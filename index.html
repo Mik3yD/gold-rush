@@ -73,6 +73,9 @@
     #excavator-help h3 { margin: 0 0 4px; color: var(--gold); font: 17px Rye, Georgia, serif; }
     #excavator-help td:first-child { padding-right: 12px; white-space: nowrap; }
     #gfx { position: fixed; right: 12px; bottom: 12px; padding: 4px 10px; font-size: 12px; color: #e6d3a8; pointer-events: none; }
+    /* Bottom left: how many of the hidden cash bundles you've found */
+    #cash-count { position: fixed; left: 12px; bottom: 12px; padding: 4px 10px; font-size: 12px; color: #e6d3a8; pointer-events: none; }
+    #cash-count b { color: #a8e59a; }
 
     /* ---- Tool bar along the bottom: one icon for every tool you own ---- */
     #toolbar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 9px 10px 7px; pointer-events: none; }
@@ -146,6 +149,7 @@
   <div id="toolbar" class="plaque"></div>
   <button id="sound" class="plaque" title="Sound on/off (M)"></button>
   <div id="gfx" class="plaque"></div>
+  <div id="cash-count" class="plaque"></div>
 
   <div id="excavator-help" class="plaque" hidden>
     <h3>Using the excavator</h3>
@@ -174,6 +178,7 @@
       <p>Dig dirt at the giant pile, carry it to the sluice box, and wash it to find gold.</p>
       <p>Save up for the excavator, then walk up to it and press <kbd>E</kbd> to climb in.</p>
       <p>The game ends when the whole pile has been dug up and washed.</p>
+      <p>Rumour has it some cash is hidden around the camp. Keep your eyes peeled!</p>
     </div>
   </div>
 
@@ -336,6 +341,7 @@
       nuggets: 0,         // how many big nuggets you've found
       timePlayed: 0,      // seconds, not counting time on the pause screen
       finished: false,    // true once the end screen has been shown
+      cashFound: [],      // ids of the hidden cash bundles you've picked up (see CASH_BUNDLES)
       endScreenOpen: false,
       levels: Object.fromEntries(TOOL_ORDER.map((id) => [id, 0])), // { shovel: 0, carrier: 0, ... }
       shopOpen: false,
@@ -922,6 +928,11 @@
     const PILE_FACE = { x: -3.22, z: -11.61 };       // the edge of the pile closest to the excavator, 3.6 m from it
     const PILE_FULL = { x: PILE_FACE.x + PILE_DIRECTION.x * PILE_RADIUS, z: PILE_FACE.z + PILE_DIRECTION.z * PILE_RADIUS }; // its middle when full
 
+    // A few boulders, trees and a bush inside the fence: good hiding spots for the cash bundles (built further down)
+    const CAMP_BOULDERS = [{ x: 17, z: 11, size: 1.5 }, { x: 18.6, z: 10, size: 1 }];
+    const CAMP_TREES = [{ x: -21, z: 19, kind: 'leafy' }, { x: 22, z: 20, kind: 'pine' }, { x: -24, z: 4, kind: 'pine' }];
+    const CAMP_BUSH = { x: 26, z: -26 };
+
     // ---------- The ground: dusty dirt in the middle, grass around it, hills further out ----------
     // How high the ground is at (x, z). The dig site only has tiny bumps (so walking stays flat); hills rise far away.
     function groundHeight(x, z) {
@@ -981,6 +992,9 @@
       if (Math.hypot(x - PILE_FULL.x, z - PILE_FULL.z) < PILE_RADIUS + margin) return true; // the pile
       if (x > 0.5 - margin && x < 11 + margin && z > -9.8 - margin && z < -4 + margin) return true; // the sluice
       if (Math.abs(x) < 4.5 + margin && z > 5 - margin && z < 10 + margin) return true;          // the shop
+      for (const spot of [...CAMP_BOULDERS, ...CAMP_TREES]) {                                     // boulders and trees in the camp
+        if (Math.hypot(x - spot.x, z - spot.z) < 1.5 + margin) return true;
+      }
       return Math.hypot(x - 0, z + 10) < 3.5 + margin;                                          // the excavator
     }
 
@@ -1059,7 +1073,10 @@
       }
     }
 
-    // Trees in the distance: pines (layers of bumpy cones) and leafy trees (clumps of bumpy balls)
+    // Trees in the distance: pines (layers of bumpy cones) and leafy trees (clumps of bumpy balls).
+    // The shapes are kept, because a few more trees stand inside the camp (see "Hiding spots").
+    const treeShapes = {};
+    const treeMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 });
     {
       const pineParts = [{ geometry: new THREE.CylinderGeometry(0.15, 0.25, 3, 7).translate(0, 1.5, 0), color: 0x5a3d22 }];
       [0x2c4a25, 0x33532a, 0x3a5c2e, 0x406331, 0x476b35].forEach((color, i) => {
@@ -1071,10 +1088,11 @@
         const ball = new THREE.IcosahedronGeometry(r, 1).translate(x, y, z);
         leafyParts.push({ geometry: roughen(ball, 0.35, i + 10), color: [0x4d6e2c, 0x5a7d33, 0x44632a, 0x62843a, 0x557a30][i] });
       });
-      const treeMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.9 });
+      treeShapes.pine = mergeShapes(pineParts);
+      treeShapes.leafy = mergeShapes(leafyParts);
       const place = new THREE.Object3D(), color = new THREE.Color();
-      for (const [parts, count] of [[pineParts, 170], [leafyParts, 80]]) {
-        const trees = new THREE.InstancedMesh(mergeShapes(parts), treeMaterial, count);
+      for (const [shape, count] of [[treeShapes.pine, 170], [treeShapes.leafy, 80]]) {
+        const trees = new THREE.InstancedMesh(shape, treeMaterial, count);
         for (let i = 0; i < count; i++) {
           const angle = rand(0, Math.PI * 2), d = rand(44, 170);
           const x = Math.cos(angle) * d, z = Math.sin(angle) * d;
@@ -1477,6 +1495,46 @@
       }
     }
 
+    // ---------- Hiding spots: boulders, trees and a bush inside the fence (places to hide cash bundles) ----------
+    // Where they go is set near the top (CAMP_BOULDERS, CAMP_TREES, CAMP_BUSH). Each gets a round solid footprint.
+    const campSolids = [];
+    {
+      const boulderMaterial = new THREE.MeshStandardMaterial({ map: TEX.ground, color: 0x938472, roughness: 0.95, flatShading: true });
+      CAMP_BOULDERS.forEach((spot, i) => {
+        const rock = new THREE.Mesh(makeRockGeometry(i * 5 + 20), boulderMaterial);
+        rock.position.set(spot.x, groundHeight(spot.x, spot.z) - spot.size * 0.2, spot.z);
+        rock.scale.set(spot.size * 1.1, spot.size, spot.size);
+        rock.rotation.y = i * 2;
+        addShadows(rock);
+        scene.add(rock);
+        campSolids.push({ circle: true, x: spot.x, z: spot.z, radius: spot.size * 1.15 });
+      });
+
+      CAMP_TREES.forEach((spot, i) => {
+        const tree = new THREE.Mesh(treeShapes[spot.kind], treeMaterial);
+        tree.position.set(spot.x, groundHeight(spot.x, spot.z) - 0.3, spot.z);
+        tree.rotation.y = i * 1.7;
+        tree.scale.setScalar(spot.kind === 'pine' ? 1 : 1.15);
+        tree.castShadow = tree.receiveShadow = true;
+        scene.add(tree);
+        // You can walk under a leafy tree (only its trunk is solid), but a pine's low branches get in the way
+        campSolids.push({ circle: true, x: spot.x, z: spot.z, radius: spot.kind === 'pine' ? 1.6 : 0.4 });
+      });
+
+      // A low, bushy shrub: a few bumpy green balls
+      const bush = new THREE.Group();
+      const leaves = new THREE.MeshStandardMaterial({ color: 0x4f6b2c, roughness: 0.9, flatShading: true });
+      [[0, 0.35, 0, 0.55], [0.4, 0.3, 0.2, 0.45], [-0.35, 0.28, 0.25, 0.42], [0.1, 0.25, -0.4, 0.4], [-0.2, 0.5, -0.1, 0.4]].forEach(([x, y, z, r], i) => {
+        const ball = new THREE.Mesh(roughen(new THREE.IcosahedronGeometry(r, 1), 0.35, i + 30), leaves);
+        ball.position.set(x, y, z);
+        bush.add(ball);
+      });
+      bush.position.set(CAMP_BUSH.x, groundHeight(CAMP_BUSH.x, CAMP_BUSH.z), CAMP_BUSH.z);
+      addShadows(bush);
+      scene.add(bush);
+      campSolids.push({ circle: true, x: CAMP_BUSH.x, z: CAMP_BUSH.z, radius: 0.6 });
+    }
+
     // ---------- Solid things: stop you from walking through them ----------
     // A solid is a Box3 (a box lined up with the world), a "rect" (a box seen from above that can be turned,
     // like the excavator, which sits at an angle) or a "circle" (the round dirt pile).
@@ -1511,7 +1569,7 @@
     const sluiceBounds = boundsOf(sluice); // updated in place whenever the sluice is upgraded
     const shopBounds = boundsOf(shop);
     const excavatorRect = { ...EXCAVATOR_SPOT, halfLength: 1.6, halfWidth: 1.3 }; // its tracks (only solid once you own it)
-    const solids = [pileCircle, sluiceBounds, shopBounds, ...props.map(boundsOf)];
+    const solids = [pileCircle, sluiceBounds, shopBounds, ...props.map(boundsOf), ...campSolids];
 
     // ---------- The dirt pile: how much is left, and making it look that big ----------
     // Resize the heap to match state.pile. Its edge next to the excavator stays put and it shrinks towards it.
@@ -1992,6 +2050,12 @@
         tone(260, 0.45, { type: 'square', volume: 0.05, slideTo: 1040, delay: 0.1 });
         [523, 659, 784].forEach((f) => tone(f, 0.5, { type: 'triangle', volume: 0.1, delay: 0.55 }));
       },
+      cash() { // picking up hidden cash: bills rustling, a ka-ching and a happy run of notes
+        for (let i = 0; i < 3; i++) noise(0.07, { volume: 0.12, filter: 'highpass', freq: 2500 + i * 800, delay: i * 0.06 });
+        tone(1568, 0.5, { type: 'triangle', volume: 0.15, delay: 0.2 });
+        tone(2093, 0.7, { type: 'triangle', volume: 0.12, delay: 0.26 });
+        [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.18, { type: 'square', volume: 0.04, delay: 0.35 + i * 0.07 }));
+      },
       denied() { // not enough money
         tone(196, 0.14, { type: 'square', volume: 0.08 });
         tone(147, 0.28, { type: 'square', volume: 0.08, delay: 0.15 });
@@ -2302,7 +2366,142 @@
       }
     }
 
+    // ---------- Hidden cash: bundles of bills hidden around the camp. Walk up and press E to pick one up. ----------
+    // SPOILERS: this list says where every bundle is hidden.
+    // id = its name (a save remembers which ones you've found), x/z = where it is, y = how high it sits
+    // (leave it out to put it on the ground), turn = which way it points, value = dollars.
+    // The better hidden, the more it's worth. All together $1,000: a nice head start (the first shovel upgrade is $60
+    // and the excavator $4,000), but small next to the roughly $99,000 of gold in the pile.
+    const CASH_BUNDLES = [
+      { id: 'crates',   x: 3.58,  y: 1.4,  z: 7.43,  turn: 0.5, value: 25 },  // easy: on top of the crates by the shop
+      { id: 'barrel',   x: 9.7,   y: 0.95, z: -2.85, turn: 2.2, value: 40 },  // easy: on the lid of a barrel
+      { id: 'sluice',   x: 3.1,              z: -7,    turn: 0.1, value: 60 },  // on the ground under the sluice's high end
+      { id: 'tent',     x: -7.24,            z: 8.76,  turn: 1.9, value: 75 },  // just inside the tent's open end
+      { id: 'boulders', x: 18.9,             z: 12.2,  turn: 0.8, value: 150 }, // behind the two boulders (far side from the camp)
+      { id: 'tree',     x: -21.45,           z: 19.45, turn: 2.6, value: 250 }, // well hidden: at the foot of the leafy tree, fence side
+      { id: 'bush',     x: 26.5,             z: -26.5, turn: 0.7, value: 400 }, // best hidden: under the bush in the far corner
+    ];
+
+    // The paper: a pale green bill with a dark border, an oval in the middle and a big $ (painted on a canvas)
+    TEX.bill = canvasTexture(128, (ctx, size) => {
+      const h = size / 2; // bills are twice as long as they are wide, so only the top half is used
+      ctx.fillStyle = '#cfe0bb';
+      ctx.fillRect(0, 0, size, h);
+      ctx.strokeStyle = '#3f6b3a';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(4, 4, size - 8, h - 8);
+      ctx.fillStyle = '#b3cc9c';
+      ctx.beginPath();
+      ctx.ellipse(size / 2, h / 2, 17, 20, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#2f5a2c';
+      ctx.font = 'bold 30px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('$', size / 2, h / 2 + 2);
+      ctx.font = 'bold 12px Georgia, serif';
+      for (const [x, y] of [[16, 14], [size - 16, 14], [16, h - 14], [size - 16, h - 14]]) ctx.fillText('100', x, y);
+    });
+    TEX.bill.repeat.set(1, 0.5); // just the top half, where the bill is painted
+    TEX.bill.offset.set(0, 0.5);
+    // The edge of a stack: thin light and dark lines, one pair for every bill
+    TEX.billEdge = canvasTexture(32, (ctx, size) => {
+      for (let y = 0; y < size; y += 4) {
+        ctx.fillStyle = '#e4eed8';
+        ctx.fillRect(0, y, size, 3);
+        ctx.fillStyle = '#8fa67d';
+        ctx.fillRect(0, y + 3, size, 1);
+      }
+    });
+    const billTop = new THREE.MeshStandardMaterial({ map: TEX.bill, roughness: 0.9 });
+    const billEdge = new THREE.MeshStandardMaterial({ map: TEX.billEdge, roughness: 1 });
+    const stringMaterial = new THREE.MeshStandardMaterial({ color: 0xc9a46a, roughness: 1 });
+
+    // One bundle: three slightly messy stacks of bills on top of each other, tied up like a parcel with string
+    function makeCashBundle() {
+      const bundle = new THREE.Group();
+      const length = 0.24, width = 0.11, layer = 0.022;
+      for (let i = 0; i < 3; i++) {
+        // Box sides are in this order: right, left, top, bottom, front, back. Only the top shows the painted bill.
+        const stack = new THREE.Mesh(new THREE.BoxGeometry(length, layer, width), [billEdge, billEdge, billTop, billEdge, billEdge, billEdge]);
+        stack.position.set(rand(-0.008, 0.008), layer * (i + 0.5), rand(-0.006, 0.006));
+        stack.rotation.y = rand(-0.05, 0.05);
+        bundle.add(stack);
+      }
+      const height = layer * 3;
+      bundle.add(box(0.012, height + 0.006, width + 0.008, stringMaterial, 0, height / 2, 0));  // string going round the short way
+      bundle.add(box(length + 0.012, height + 0.006, 0.012, stringMaterial, 0, height / 2, 0)); // ...and the long way
+      const knot = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), stringMaterial);
+      knot.position.y = height + 0.005;
+      bundle.add(knot);
+      addShadows(bundle);
+      return bundle;
+    }
+
+    for (const bundle of CASH_BUNDLES) {
+      bundle.y ??= groundHeight(bundle.x, bundle.z); // no y given: it lies on the ground
+      bundle.model = makeCashBundle();
+      bundle.model.position.set(bundle.x, bundle.y, bundle.z);
+      bundle.model.rotation.y = bundle.turn;
+      scene.add(bundle.model);
+      // You can pick it up from within reach of this little box around it
+      bundle.bounds = new THREE.Box3(new THREE.Vector3(bundle.x - 0.2, 0, bundle.z - 0.2), new THREE.Vector3(bundle.x + 0.2, 2, bundle.z + 0.2));
+      bundle.twinkleTimer = rand(0, 1.5);
+    }
+
+    const cashIsFound = (bundle) => state.cashFound.includes(bundle.id);
+
+    // Show the bundles you haven't found yet, hide the ones you have
+    function showCashBundles() {
+      for (const bundle of CASH_BUNDLES) bundle.model.visible = !cashIsFound(bundle);
+    }
+
+    // Set which bundles have been found from a list of ids (for example from a saved game). Unknown ids are ignored.
+    function applyCashFound(saved) {
+      const ids = Array.isArray(saved) ? saved : [];
+      state.cashFound = CASH_BUNDLES.map((bundle) => bundle.id).filter((id) => ids.includes(id));
+      showCashBundles();
+    }
+
+    function collectCash(bundle) {
+      if (cashIsFound(bundle)) return;
+      state.cashFound.push(bundle.id);
+      state.money += bundle.value;
+      bundle.model.visible = false;
+      const allFound = state.cashFound.length === CASH_BUNDLES.length;
+      showMessage(allFound ? `Found $${bundle.value}! That's all the hidden cash!` : `Found $${bundle.value}!`);
+      sfx.cash();
+      // A little burst of green and gold sparkles where it was
+      for (let i = 0; i < 25; i++) {
+        const angle = rand(0, Math.PI * 2), speed = rand(0.4, 1.5);
+        glitter.add({
+          x: bundle.x, y: bundle.y + 0.1, z: bundle.z,
+          vx: Math.cos(angle) * speed, vy: rand(0.8, 2.2), vz: Math.sin(angle) * speed, gravity: 3, drag: 1.5,
+          size: rand(0.08, 0.2), life: rand(0.8, 1.4), fade: 0.5, twinkle: true, color: pick([0x9dff8a, 0xd8ffc8, ...GOLD_SHADES]),
+        });
+      }
+      hud.wallet.classList.remove('bump');
+      void hud.wallet.offsetWidth; // restart the bump animation
+      hud.wallet.classList.add('bump');
+    }
+
+    // Now and then a faint twinkle floats up off each bundle you haven't found, so a careful eye can spot it
+    function twinkleCash(dt) {
+      for (const bundle of CASH_BUNDLES) {
+        if (cashIsFound(bundle)) continue;
+        bundle.twinkleTimer -= dt;
+        if (bundle.twinkleTimer > 0) continue;
+        bundle.twinkleTimer = rand(0.7, 1.8);
+        glitter.add({
+          x: bundle.x + rand(-0.1, 0.1), y: bundle.y + rand(0.05, 0.1), z: bundle.z + rand(-0.1, 0.1),
+          vy: rand(0.05, 0.2), size: rand(0.07, 0.12), life: rand(0.5, 0.9), fade: 0.4, alpha: 0.8,
+          twinkle: true, color: pick([0xffffff, 0xfff4c0, 0xe0ffd0]),
+        });
+      }
+    }
+
     function updateEffects(dt) {
+      twinkleCash(dt);
       animateWater(dt);
       exhaustSmoke(dt);
       updateShine(dt);
@@ -2311,6 +2510,13 @@
 
     // ---------- Things you can use with E ----------
     const interactables = [
+      // Hidden cash comes first, so E picks it up even when you're also next to the sluice or the crates
+      ...CASH_BUNDLES.map((bundle) => ({
+        bounds: bundle.bounds,
+        onlyIf: () => !cashIsFound(bundle),
+        prompt: () => 'Press E to pick up the cash',
+        use: () => collectCash(bundle),
+      })),
       {
         bounds: pileCircle,
         prompt: () => {
@@ -3026,6 +3232,7 @@
       prompt: document.getElementById('prompt'),
       message: document.getElementById('message'),
       gfx: document.getElementById('gfx'),
+      cashCount: document.getElementById('cash-count'),
     };
     let messageTimeout;
     function showMessage(text) {
@@ -3088,6 +3295,7 @@
       if (state.pile <= 0 && !state.finished) html += '<div class="warn">The pile is gone! Wash the last of your dirt to finish</div>';
       html += '<div class="hint"><kbd>B</kbd> shop &nbsp; <kbd>M</kbd> sound &nbsp; <kbd>G</kbd> graphics</div>';
       setHtml(hud.status, html);
+      setHtml(hud.cashCount, `Cash found: <b>${state.cashFound.length}/${CASH_BUNDLES.length}</b>`);
 
       if (state.inExcavator) {
         setHtml(hud.prompt, excavatorHint());
@@ -3160,6 +3368,7 @@
       endStats.innerHTML = `
         <tr><td>Total gold found</td><td>$${state.goldFound.toLocaleString('en-US')}</td></tr>
         <tr><td>Big nuggets</td><td>${state.nuggets}</td></tr>
+        <tr><td>Hidden cash found</td><td>${state.cashFound.length} of ${CASH_BUNDLES.length}</td></tr>
         <tr><td>Time played</td><td>${formatTime(state.timePlayed)}</td></tr>`;
       endScreen.hidden = false;
       for (const code in keys) keys[code] = false;
@@ -3183,6 +3392,7 @@
       });
       state.exc = { ...EXCAVATOR_START };
       applyToolLevels({}); // small sluice, excavator not bought
+      applyCashFound([]);  // every cash bundle hidden around the camp again
       updatePile();
       camera.position.set(0, 1.6, 2);
       yaw = 0;
