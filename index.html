@@ -1581,6 +1581,36 @@
     const PILE_LUMPS = 0.15; // how bumpy the big pile is
     const dirtPile = new THREE.Mesh(makeHeapGeometry(40, 120, PILE_LUMPS, 1), pileMaterial);
     dirtPile.castShadow = dirtPile.receiveShadow = true;
+
+    // The lumps make the pile's edge wobble in and out, so it isn't a perfect circle. For each of the heap's 120
+    // directions, find how far out its surface reaches above the ground (1 = the plain circle). You can't walk
+    // into the pile past this edge (see edgeAt() and pushOut()).
+    function edgeProfile(geometry, rings, segments) {
+      const p = geometry.attributes.position, edge = [];
+      for (let j = 0; j < segments; j++) {
+        let far = 0;
+        for (let i = 0; i <= rings; i++) {
+          const k = i * segments + j, y = p.getY(k), r = Math.hypot(p.getX(k), p.getZ(k));
+          if (y >= 0) {
+            far = Math.max(far, r);
+          } else if (i > 0 && p.getY(k - segments) >= 0) {
+            // This point is under the ground but the one before wasn't: find where the surface meets the ground
+            const y0 = p.getY(k - segments), r0 = Math.hypot(p.getX(k - segments), p.getZ(k - segments));
+            far = Math.max(far, r0 + (r - r0) * y0 / (y0 - y));
+          }
+        }
+        edge.push(far);
+      }
+      return edge;
+    }
+    const PILE_EDGE = edgeProfile(dirtPile.geometry, 40, 120);
+
+    // How far out an edge profile reaches in one direction (angle in radians, measured like Math.atan2(z, x))
+    function edgeAt(edge, angle) {
+      const t = (((angle / (Math.PI * 2)) % 1) + 1) % 1 * edge.length;
+      const i = Math.floor(t) % edge.length, next = (i + 1) % edge.length;
+      return edge[i] + (edge[next] - edge[i]) * (t - Math.floor(t));
+    }
     scene.add(dirtPile);
     // Clods and stones lying on the pile (they shrink along with it)
     {
@@ -2460,14 +2490,20 @@
       return new THREE.Box3().setFromObject(object);
     }
 
+    // A circle's radius in one direction. The dirt pile has an "edge" profile, because its lumps make it wobbly.
+    function circleRadius(solid, angle) {
+      return solid.edge ? solid.radius * edgeAt(solid.edge, angle) : solid.radius;
+    }
+
     // The nearest point on a solid's footprint to a spot on the ground
     function nearestPoint(solid, px, pz) {
       if (solid.isBox3) return { x: clamp(px, solid.min.x, solid.max.x), z: clamp(pz, solid.min.z, solid.max.z) };
       if (solid.circle) {
         const dx = px - solid.x, dz = pz - solid.z;
         const distance = Math.hypot(dx, dz);
-        if (distance <= solid.radius) return { x: px, z: pz }; // already inside it
-        return { x: solid.x + dx / distance * solid.radius, z: solid.z + dz / distance * solid.radius };
+        const radius = circleRadius(solid, Math.atan2(dz, dx));
+        if (distance <= radius) return { x: px, z: pz }; // already inside it
+        return { x: solid.x + dx / distance * radius, z: solid.z + dz / distance * radius };
       }
       const cos = Math.cos(solid.heading), sin = Math.sin(solid.heading);
       const dx = px - solid.x, dz = pz - solid.z;
@@ -2483,7 +2519,42 @@
       return Math.hypot(px - p.x, pz - p.z);
     }
 
-    const pileCircle = { circle: true, x: 0, z: 0, radius: 0 }; // the pile's footprint, updated by updatePile()
+    // Where to move a spot (px, pz) so a circle of radius r around it no longer overlaps a solid (null = no need).
+    // This also works when the spot has ended up right inside the solid: it goes back out through the nearest edge.
+    function pushOut(solid, px, pz, r) {
+      if (solid.circle) {
+        const dx = px - solid.x, dz = pz - solid.z;
+        const distance = Math.hypot(dx, dz);
+        const angle = distance > 1e-6 ? Math.atan2(dz, dx) : 0; // (bang in the middle: pick any direction)
+        const out = circleRadius(solid, angle) + r;
+        if (distance >= out) return null;
+        return { x: solid.x + Math.cos(angle) * out, z: solid.z + Math.sin(angle) * out };
+      }
+      // A Box3 is a rect that isn't turned, so both are handled the same way, in the box's own directions
+      const box = solid.isBox3
+        ? { x: (solid.min.x + solid.max.x) / 2, z: (solid.min.z + solid.max.z) / 2, heading: 0,
+            halfLength: (solid.max.x - solid.min.x) / 2, halfWidth: (solid.max.z - solid.min.z) / 2 }
+        : solid;
+      const cos = Math.cos(box.heading), sin = Math.sin(box.heading);
+      const dx = px - box.x, dz = pz - box.z;
+      let along = dx * cos - dz * sin, across = dx * sin + dz * cos;
+      const edgeAlong = clamp(along, -box.halfLength, box.halfLength), edgeAcross = clamp(across, -box.halfWidth, box.halfWidth);
+      const gapAlong = along - edgeAlong, gapAcross = across - edgeAcross, gap = Math.hypot(gapAlong, gapAcross);
+      if (gap >= r) return null;
+      if (gap > 1e-6) { // outside, but too close: move away from the nearest point on the box
+        along = edgeAlong + gapAlong / gap * r;
+        across = edgeAcross + gapAcross / gap * r;
+      } else if (box.halfLength - Math.abs(along) < box.halfWidth - Math.abs(across)) { // inside: out the nearest side
+        along = Math.sign(along || 1) * (box.halfLength + r);
+      } else {
+        across = Math.sign(across || 1) * (box.halfWidth + r);
+      }
+      return { x: box.x + along * cos + across * sin, z: box.z - along * sin + across * cos };
+    }
+
+    // The pile's footprint, updated by updatePile(). Its edge follows the lumps (PILE_EDGE).
+    // "off" = not solid (once the pile is all dug up, so no invisible wall is left behind).
+    const pileCircle = { circle: true, x: 0, z: 0, radius: 0, edge: PILE_EDGE, off: false };
     const sluiceBounds = boundsOf(sluice); // updated in place whenever the sluice is upgraded
     const shopBounds = boundsOf(shop);
     const excavatorRect = { ...EXCAVATOR_SPOT, halfLength: 1.6, halfWidth: 1.3 }; // its tracks (only solid once you own it)
@@ -2507,6 +2578,7 @@
       pileCircle.x = PILE_FACE.x + PILE_DIRECTION.x * size.radius;
       pileCircle.z = PILE_FACE.z + PILE_DIRECTION.z * size.radius;
       dirtPile.visible = state.pile > 0;
+      pileCircle.off = state.pile <= 0; // nothing left to bump into
       dirtPile.scale.set(size.radius, Math.max(size.height, 0.01), size.radius);
       dirtPile.position.set(pileCircle.x, 0, pileCircle.z);
       pileTexture.repeat.setScalar(size.radius / 3); // one copy of the dirt picture every 3 m or so
@@ -3892,7 +3964,7 @@
       // Climb out next to the cab door (left side). If something is in the way, try the right side, then the back.
       const spots = [[0.3, -2.4], [0.3, 2.6], [-3.3, 0]].map(([x, z]) => ex.upper.localToWorld(new THREE.Vector3(x, 0, z)));
       const free = spots.find((p) => Math.abs(p.x) < 28 && Math.abs(p.z) < 28
-        && !solids.some((solid) => distanceFromPoint(solid, p.x, p.z) < 0.5));
+        && !solids.some((solid) => !solid.off && distanceFromPoint(solid, p.x, p.z) < 0.5));
       const spot = free || spots[0];
       camera.position.set(clamp(spot.x, -28, 28), 1.6, clamp(spot.z, -28, 28));
       pushOutOfSolids();
@@ -4705,22 +4777,54 @@
       if (thing) thing.use();
     }
 
-    // Push the player back out of solid objects
-    function pushOutOfSolids() {
-      const playerRadius = 0.4;
-      for (const solid of solids) {
-        const p = nearestPoint(solid, camera.position.x, camera.position.z);
-        const dx = camera.position.x - p.x, dz = camera.position.z - p.z;
-        const dist = Math.hypot(dx, dz);
-        if (dist < playerRadius && dist > 0) {
-          camera.position.x = p.x + (dx / dist) * playerRadius;
-          camera.position.z = p.z + (dz / dist) * playerRadius;
+    // Keeping you out of solid things. You're a circle PLAYER_RADIUS wide (from your middle).
+    const PLAYER_RADIUS = 0.4;
+
+    // Push the player away from anything they're touching, and right back out of anything they've somehow
+    // ended up inside of. A few times over, in case being pushed out of one thing pushed them into another.
+    function pushAway() {
+      for (let pass = 0; pass < 3; pass++) {
+        for (const solid of solids) {
+          if (solid.off) continue;
+          const out = pushOut(solid, camera.position.x, camera.position.z, PLAYER_RADIUS);
+          if (out) camera.position.set(out.x, camera.position.y, out.z);
         }
       }
     }
 
+    // Are you overlapping something? (After pushAway() that only happens where two things push you into each
+    // other, like a gap narrower than you are.) The 1 cm of slack is so that just touching a wall doesn't count.
+    function stuckInSolid() {
+      return solids.some((solid) => !solid.off && pushOut(solid, camera.position.x, camera.position.z, PLAYER_RADIUS - 0.01));
+    }
+
+    // Hop to the nearest spot where you fit, trying rings further and further out
+    function moveToFreeSpot() {
+      const x = camera.position.x, z = camera.position.z;
+      for (let r = 0.1; r <= 8; r += 0.1) {
+        for (let k = 0; k < 24; k++) {
+          const angle = k / 24 * Math.PI * 2;
+          camera.position.x = clamp(x + Math.cos(angle) * r, -28, 28);
+          camera.position.z = clamp(z + Math.sin(angle) * r, -28, 28);
+          if (!stuckInSolid()) return;
+        }
+      }
+      camera.position.x = x; // nowhere to go (shouldn't happen): stay put
+      camera.position.z = z;
+    }
+
+    // Get the player out of solid things, whatever happened: pushed away, or if they're wedged in somewhere
+    // (say an upgrade made the sluice grow onto them), moved to the nearest spot where they fit
+    function pushOutOfSolids() {
+      pushAway();
+      if (stuckInSolid()) moveToFreeSpot();
+    }
+
+    const MAX_STEP = 0.1; // meters: longer moves are split up, so a slow frame can't jump you past an edge
     let stepDistance = 0; // how far you've walked since the last footstep sound
     function movePlayer(dt) {
+      pushOutOfSolids(); // first, in case something grew where you're standing (the pile, the pond...)
+
       let forward = 0, right = 0;
       if (keys.KeyW) forward += 1;
       if (keys.KeyS) forward -= 1;
@@ -4731,13 +4835,22 @@
       const length = Math.hypot(forward, right); // so diagonal walking isn't faster
       const step = (SETTINGS.walkSpeed * dt) / length;
       const sin = Math.sin(yaw), cos = Math.cos(yaw);
-      camera.position.x += (-sin * forward + cos * right) * step;
-      camera.position.z += (-cos * forward - sin * right) * step;
+      const moveX = (-sin * forward + cos * right) * step;
+      const moveZ = (-cos * forward - sin * right) * step;
 
-      // Keep inside the dig site
-      camera.position.x = clamp(camera.position.x, -28, 28);
-      camera.position.z = clamp(camera.position.z, -28, 28);
-      pushOutOfSolids();
+      // Walk there in small steps, checking for solid things after each one
+      const steps = Math.ceil(Math.hypot(moveX, moveZ) / MAX_STEP);
+      for (let i = 0; i < steps; i++) {
+        const fromX = camera.position.x, fromZ = camera.position.z;
+        camera.position.x = clamp(camera.position.x + moveX / steps, -28, 28); // (and stay inside the dig site)
+        camera.position.z = clamp(camera.position.z + moveZ / steps, -28, 28);
+        pushAway(); // walking into a wall: slide along it
+        if (stuckInSolid()) { // no room for you here (a gap narrower than you are): don't take this step
+          camera.position.x = fromX;
+          camera.position.z = fromZ;
+          break;
+        }
+      }
 
       stepDistance += SETTINGS.walkSpeed * dt;
       if (stepDistance > 1.9) {
