@@ -14,7 +14,7 @@ Dig dirt, wash it in the sluice box, find gold, and buy better tools.
 | W A S D | Walk |
 | Mouse | Look around |
 | E or left click | Dig, dump dirt, or get in the excavator (when you're close to something) |
-| B | Open or close the shop (then click an item or press 1 to 8 to buy it) |
+| B | Open or close the shop (then click an item or press 1 to 6 to buy it) |
 | M | Turn all sounds off or on (or click the speaker in the top right) |
 | Esc | Pause and get your mouse back |
 
@@ -31,7 +31,9 @@ Using the excavator (these controls are also shown on screen while you sit in it
 
 The tools you own are shown along the bottom of the screen, each with its level. Upgraded tools get better-looking icons, and upgrading the sluice box or the excavator also changes how they look in the game.
 
-The loop: walk to the **DIRT** pile and dig until your bucket is full. Carry it to the **SLUICE** and dump it in. The sluice washes the dirt and pays you for any gold it finds. Press **B** to spend your money on a better shovel, a bigger bucket or wheelbarrow, and a bigger and faster sluice. The pile holds a set number of tons and shrinks as you dig. When it's empty, buy a new load of dirt in the shop (or press E at the empty pile). Then save up for the excavator. Once you buy it, it appears between the pile and the sluice: climb in, scoop from the pile and swing over to dump into the sluice. Upgrade its bucket size and speed to dig even faster, and buy bigger dirt loads so the pile lasts longer.
+The loop: walk to the **DIRT** pile and dig until your bucket is full. Carry it to the **SLUICE** and dump it in. The sluice washes the dirt and pays you for any gold it finds. Press **B** to spend your money on a better shovel, a bigger bucket or wheelbarrow, and a bigger and faster sluice. Then save up for the excavator. Once you buy it, it appears between the pile and the sluice: climb in, scoop from the pile and swing over to dump into the sluice. Upgrade its bucket size and speed to dig even faster.
+
+There is one giant pile of dirt (5,000 tons) for the whole game. The tons left are always shown in the top left, and the pile shrinks as you dig. When every last ton has been dug up and washed, the game ends and shows how much gold you found, how many big nuggets, and how long you played.
 
 ## If double-clicking doesn't work
 

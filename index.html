@@ -50,11 +50,29 @@
     .tool-slot .badge { position: absolute; top: -9px; right: -8px; padding: 1px 6px; background: #ffd700; color: #2b1d0e; border-radius: 8px; font-size: 12px; font-weight: bold; }
     .tool-slot.upgraded { animation: pop 0.6s; } /* a little bounce right after you upgrade */
     @keyframes pop { 50% { transform: scale(1.35); } }
+
+    /* How much of the dirt pile is left: a line of text and a bar that empties */
+    #pile-text { font-size: 20px; font-weight: bold; }
+    #pile-bar { width: 260px; height: 10px; margin: 2px 0 6px; background: rgba(0, 0, 0, 0.45); border: 1px solid #fff; border-radius: 5px; overflow: hidden; }
+    #pile-fill { height: 100%; background: #c08a50; }
+
+    /* End screen, shown when all the dirt has been dug and washed */
+    #end { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.7); z-index: 15; }
+    #end[hidden] { display: none; }
+    #end-panel { background: #2b1d0e; color: #fff; border: 3px solid #ffd700; border-radius: 12px; padding: 20px 28px; text-align: center; width: min(520px, 92vw); box-sizing: border-box; }
+    #end h2 { margin: 0 0 6px; color: #ffd700; font-size: 34px; }
+    #end-stats { margin: 14px auto; font-size: 20px; border-spacing: 16px 6px; }
+    #end-stats td:first-child { text-align: left; }
+    #end-stats td:last-child { text-align: right; font-weight: bold; color: #ffd700; }
+    #end button { margin: 6px; padding: 10px 18px; font: inherit; font-size: 17px; cursor: pointer; border-radius: 8px; border: 2px solid #ffd700; background: #4a3219; color: #fff; }
+    #end button:hover { background: #6b4a26; }
   </style>
 </head>
 <body>
   <div id="hud" class="overlay-text">
     <div id="wallet">$0</div>
+    <div id="pile-text"></div>
+    <div id="pile-bar"><div id="pile-fill"></div></div>
     <div id="status"></div>
   </div>
   <div id="crosshair"></div>
@@ -79,10 +97,20 @@
     <h1>Gold Rush</h1>
     <p><b>Click to play</b></p>
     <p>WASD to walk &middot; Mouse to look &middot; E (or left click) to use things &middot; Esc to pause</p>
-    <p><b>B</b> opens the shop (buy with 1 to 8) &middot; <b>M</b> turns the sound on and off</p>
-    <p>Dig dirt at the pile, carry it to the sluice box, and wash it to find gold.</p>
-    <p>When the pile runs out, buy a new load of dirt in the shop.</p>
+    <p><b>B</b> opens the shop (buy with 1 to 6) &middot; <b>M</b> turns the sound on and off</p>
+    <p>Dig dirt at the giant pile, carry it to the sluice box, and wash it to find gold.</p>
     <p>Save up for the excavator, then walk up to it and press E to climb in.</p>
+    <p>The game ends when the whole pile has been dug up and washed.</p>
+  </div>
+
+  <div id="end" hidden>
+    <div id="end-panel">
+      <h2>The pile is all dug up!</h2>
+      <div>Every last ton of dirt has been washed.</div>
+      <table id="end-stats"></table>
+      <button id="end-again">Play again</button>
+      <button id="end-walk">Keep walking around</button>
+    </div>
   </div>
 
   <div id="shop" hidden>
@@ -113,14 +141,25 @@
       nuggetChance: 0.02,      // chance that a sluiced scoop has a big nugget
       nuggetValue: 50,         // dollars per nugget
       tonsPerScoop: 0.1,       // how heavy one scoop of dirt is (so 10 scoops = 1 ton)
+
+      // ===== TOTAL DIRT IN THE GAME: the one giant pile, in tons. The game ends when it's all dug and washed. =====
+      // How 5,000 was worked out:
+      //   Gold per scoop, on average: 2% nuggets x $50 = $1.00, plus the other 98% x 50% flake chance
+      //   x 2 flakes x $1 = $0.98. So about $1.98 per scoop, or $19.80 per ton.
+      //   Every tool and upgrade costs $40,630 in total, which needs about 2,050 t.
+      //   The fully upgraded sluice washes at most 16 scoops a second = 1.6 t/s = 96 t a minute,
+      //   so about 30 more minutes of play after that is about 2,900 t (slower digging makes it last longer).
+      //   2,050 + 2,900 = about 4,950, rounded to 5,000.
+      pileTons: 5000,
+
       // Excavator arm speeds with stock hydraulics (Speed upgrades multiply these), in radians per second
       armSwingSpeed: 0.9,
       armLiftSpeed: 0.6,
       bucketCurlSpeed: 1.1,
     };
 
-    // Turn scoops into tons for showing on screen, like "12.5" (no ".0" on whole numbers)
-    const tons = (scoops) => String(Math.round(scoops * SETTINGS.tonsPerScoop * 10) / 10);
+    // Turn scoops into tons for showing on screen, like "4,012.5" (no ".0" on whole numbers)
+    const tons = (scoops) => (Math.round(scoops * SETTINGS.tonsPerScoop * 10) / 10).toLocaleString('en-US');
 
     // ---------- Tools you can buy. Level 0 is what you start with. ----------
     const plural = (n) => (n === 1 ? '' : 's');
@@ -195,24 +234,10 @@
         ],
         describe: (level) => `${Math.round(level.speed * 100)}% speed`,
       },
-      // How much dirt you get each time the pile runs out and you buy a new load.
-      // price = the upgrade, loadPrice = what one load of this size costs.
-      dirtLoad: {
-        title: 'Dirt Loads',
-        about: 'Bigger loads of dirt for the DIRT pile, and cheaper per ton. Starts with the next load you buy.',
-        startsOwned: true,
-        levels: [
-          { name: 'Small Load', tons: 100, loadPrice: 300 },
-          { name: 'Big Load', price: 500, tons: 200, loadPrice: 500 },
-          { name: 'Huge Load', price: 2000, tons: 350, loadPrice: 700 },
-          { name: 'Mountain Load', price: 5000, tons: 500, loadPrice: 750 },
-        ],
-        describe: (level) => `${level.tons} t of dirt for $${level.loadPrice}`,
-      },
     };
-    // The shop, the tool bar and the number keys (1 to 7) only ever look at the tools in this list,
-    // so old tools that no longer exist (Gold Pan, Metal Detector, Excavator Engine and Arm) are simply ignored.
-    const TOOL_ORDER = ['shovel', 'carrier', 'sluice', 'excavator', 'digBucket', 'speed', 'dirtLoad'];
+    // The shop, the tool bar and the number keys (1 to 6) only ever look at the tools in this list, so old tools
+    // that no longer exist (Gold Pan, Metal Detector, Excavator Engine and Arm, Dirt Loads) are simply ignored.
+    const TOOL_ORDER = ['shovel', 'carrier', 'sluice', 'excavator', 'digBucket', 'speed'];
     const EXCAVATOR_PARTS = ['digBucket', 'speed'];
 
     // The excavator never moves: it sits here, between the dirt pile and the sluice.
@@ -228,8 +253,13 @@
       carrying: 0,        // scoops of dirt in your bucket or wheelbarrow
       sluiceQueue: 0,     // scoops waiting to be washed in the sluice
       washTimer: 0,
-      pile: 0,            // scoops of dirt left in the DIRT pile (set by refillPile() below)
-      pileFull: 0,        // how many scoops the pile had when it was full
+      pile: SETTINGS.pileTons / SETTINGS.tonsPerScoop, // scoops of dirt left in the DIRT pile (it starts full)
+      // For the end screen
+      goldFound: 0,       // dollars of gold found in total (spending doesn't lower it)
+      nuggets: 0,         // how many big nuggets you've found
+      timePlayed: 0,      // seconds, not counting time on the pause screen
+      finished: false,    // true once the end screen has been shown
+      endScreenOpen: false,
       levels: Object.fromEntries(TOOL_ORDER.map((id) => [id, 0])), // { shovel: 0, carrier: 0, ... }
       shopOpen: false,
       muted: false,
@@ -323,36 +353,37 @@
 
     // ---------- The dig site ----------
     const ground = new THREE.Mesh(
-      new THREE.PlaneGeometry(60, 60),
+      new THREE.PlaneGeometry(120, 120), // bigger than the area you can walk in, so the giant pile fits on it
       new THREE.MeshLambertMaterial({ color: 0x7a9a4a })
     );
     ground.rotation.x = -Math.PI / 2; // lay the plane flat
     scene.add(ground);
 
-    // Dirt pile: a cone that shrinks as you dig it. A full Small Load (100 t) is 1.8 m wide at the bottom
-    // and 1.5 m tall; bigger loads make a bigger pile. A flat patch of dirt shows where it is, even when it's empty.
-    const PILE_RADIUS = 1.8, PILE_HEIGHT = 1.5;
-    const PILE_SPOT = { x: -3, z: -6.8 };
+    // ---------- The giant dirt pile: all the dirt in the game ----------
+    // A cone, 14 m tall and 26 m across when full: it towers over you and the excavator.
+    // It shrinks towards its "dig face" (the edge next to the excavator), so the excavator can always reach it,
+    // right down to the last scoop. Its middle moves as it shrinks: see pileCircle below.
+    const PILE_RADIUS = 13, PILE_HEIGHT = 14;       // size when full, in meters
+    const PILE_DIRECTION = { x: -0.894, z: -0.447 }; // from the excavator towards the pile (back and to the left)
+    const PILE_FACE = { x: -3.22, z: -11.61 };       // the edge of the pile closest to the excavator, 3.6 m from it
     const dirtPile = new THREE.Mesh(
-      new THREE.ConeGeometry(1, 1, 24), // 1 m by 1 m, stretched to the right size by updatePile()
+      new THREE.ConeGeometry(1, 1, 32), // 1 m by 1 m, stretched to the right size by updatePile()
       new THREE.MeshLambertMaterial({ color: 0x6b4423 })
     );
-    dirtPile.position.set(PILE_SPOT.x, 0, PILE_SPOT.z);
     scene.add(dirtPile);
-    const dirtPatch = new THREE.Mesh(new THREE.CircleGeometry(PILE_RADIUS + 0.4, 24), new THREE.MeshLambertMaterial({ color: 0x5a3a1e }));
+    // A patch of bare dirt the size of the full pile, so you can see how much has been dug away
+    const dirtPatch = new THREE.Mesh(new THREE.CircleGeometry(PILE_RADIUS + 0.5, 48), new THREE.MeshLambertMaterial({ color: 0x5a3a1e }));
     dirtPatch.rotation.x = -Math.PI / 2;
-    dirtPatch.position.set(PILE_SPOT.x, 0.01, PILE_SPOT.z);
+    dirtPatch.position.set(PILE_FACE.x + PILE_DIRECTION.x * PILE_RADIUS, 0.01, PILE_FACE.z + PILE_DIRECTION.z * PILE_RADIUS);
     scene.add(dirtPatch);
-    makeSign('DIRT', -6, -4.5);
+    makeSign('DIRT', -4, -6);
 
-    // How big the pile is right now, in meters. A full pile of a bigger load is wider and taller,
-    // and it shrinks as it empties, so a nearly empty pile is small.
+    // How big the pile is right now, in meters. It shrinks as it empties, so a nearly empty pile is small.
     function pileSize() {
-      const loadSize = state.pileFull * SETTINGS.tonsPerScoop / 100; // 1 for a 100 t load, 5 for 500 t
-      const left = state.pileFull > 0 ? Math.sqrt(state.pile / state.pileFull) : 0; // 1 = full, 0 = empty
+      const left = Math.sqrt(state.pile / (SETTINGS.pileTons / SETTINGS.tonsPerScoop)); // 1 = full, 0 = empty
       return {
-        radius: PILE_RADIUS * Math.pow(loadSize, 1 / 6) * Math.max(left, 0.2), // never thinner than a small heap
-        height: PILE_HEIGHT * Math.cbrt(loadSize) * left,
+        radius: Math.max(PILE_RADIUS * left, 0.4), // never thinner than a small heap
+        height: PILE_HEIGHT * left,
       };
     }
 
@@ -447,8 +478,8 @@
     makeSign('SHOP', 0, 8.5);
 
     // ---------- Solid things: stop you from walking through them ----------
-    // A solid is either a Box3 (a box lined up with the world) or a "rect": a box seen from above that
-    // can be turned (the excavator, which sits at an angle).
+    // A solid is a Box3 (a box lined up with the world), a "rect" (a box seen from above that can be turned,
+    // like the excavator, which sits at an angle) or a "circle" (the round dirt pile).
     function boundsOf(object) {
       return new THREE.Box3().setFromObject(object);
     }
@@ -456,6 +487,12 @@
     // The nearest point on a solid's footprint to a spot on the ground
     function nearestPoint(solid, px, pz) {
       if (solid.isBox3) return { x: clamp(px, solid.min.x, solid.max.x), z: clamp(pz, solid.min.z, solid.max.z) };
+      if (solid.circle) {
+        const dx = px - solid.x, dz = pz - solid.z;
+        const distance = Math.hypot(dx, dz);
+        if (distance <= solid.radius) return { x: px, z: pz }; // already inside it
+        return { x: solid.x + dx / distance * solid.radius, z: solid.z + dz / distance * solid.radius };
+      }
       const cos = Math.cos(solid.heading), sin = Math.sin(solid.heading);
       const dx = px - solid.x, dz = pz - solid.z;
       // How far the spot is in front of / to the right of the middle, kept inside the rect
@@ -470,28 +507,24 @@
       return Math.hypot(px - p.x, pz - p.z);
     }
 
-    const pileBounds = new THREE.Box3();   // updated in place whenever the pile changes size
+    const pileCircle = { circle: true, x: 0, z: 0, radius: 0 }; // the pile's footprint, updated by updatePile()
     const sluiceBounds = boundsOf(sluice); // updated in place whenever the sluice is upgraded
     const shopBounds = boundsOf(shop);
     const excavatorRect = { ...EXCAVATOR_SPOT, halfLength: 1.6, halfWidth: 1.3 }; // its tracks (only solid once you own it)
-    const solids = [pileBounds, sluiceBounds, shopBounds];
+    const solids = [pileCircle, sluiceBounds, shopBounds];
 
     // ---------- The dirt pile: how much is left, and making it look that big ----------
-    // Resize the cone to match state.pile, and update where you bump into it
+    // Resize the cone to match state.pile. Its edge next to the excavator stays put and it shrinks towards it.
     function updatePile() {
       const size = pileSize();
+      pileCircle.radius = size.radius;
+      pileCircle.x = PILE_FACE.x + PILE_DIRECTION.x * size.radius;
+      pileCircle.z = PILE_FACE.z + PILE_DIRECTION.z * size.radius;
       dirtPile.visible = state.pile > 0;
       dirtPile.scale.set(size.radius, Math.max(size.height, 0.01), size.radius);
-      dirtPile.position.y = size.height / 2;
-      pileBounds.setFromObject(dirtPile);
+      dirtPile.position.set(pileCircle.x, size.height / 2, pileCircle.z);
     }
-
-    // Fill the pile back up with a new load (the size depends on the Dirt Loads upgrade)
-    function refillPile() {
-      state.pile = state.pileFull = toolNow('dirtLoad').tons / SETTINGS.tonsPerScoop;
-      updatePile();
-    }
-    refillPile(); // you start with a full pile
+    updatePile();
 
     // Take dirt out of the pile (by shovel or excavator). Returns how much you actually got.
     function takeFromPile(scoops) {
@@ -500,7 +533,7 @@
       if (state.pile < 0.001) state.pile = 0; // tiny leftovers from the excavator count as empty
       updatePile();
       if (taken > 0 && state.pile === 0) {
-        showMessage('The dirt pile is empty! Buy a new load in the shop (B)');
+        showMessage('The pile is all dug up! Wash the last of your dirt');
         sfx.pileEmpty();
       }
       return taken;
@@ -508,8 +541,7 @@
 
     // Put dirt back on the pile (the excavator dumping over it)
     function addToPile(scoops) {
-      state.pile += scoops;
-      state.pileFull = Math.max(state.pileFull, state.pile);
+      state.pile = Math.min(state.pile + scoops, SETTINGS.pileTons / SETTINGS.tonsPerScoop);
       updatePile();
     }
 
@@ -943,9 +975,11 @@
         tone(392, 0.2, { type: 'triangle', volume: 0.12, delay: 0.1 });
         tone(262, 0.35, { type: 'triangle', volume: 0.12, delay: 0.3 });
       },
-      newLoad() { // a big load of dirt pouring onto the pile: a long rumble with thumps in it
-        noise(1.6, { volume: 0.35, freq: 1500, freqTo: 120, attack: 0.2 });
-        for (let i = 0; i < 4; i++) tone(70 - i * 6, 0.35, { volume: 0.2, slideTo: 35, delay: 0.15 + i * 0.3 });
+      finish() { // the end of the game: a drum roll, a victory tune and a long shimmering chord
+        for (let i = 0; i < 10; i++) noise(0.08, { volume: 0.15, filter: 'bandpass', freq: 250, q: 2, delay: i * 0.06 });
+        [523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, 0.3, { type: 'triangle', volume: 0.14, delay: 0.7 + i * 0.16 }));
+        [523, 659, 784, 1047].forEach((f) => tone(f, 2, { type: 'triangle', volume: 0.1, delay: 1.7 }));
+        for (let i = 0; i < 16; i++) tone(2500 + Math.random() * 2500, 0.15, { volume: 0.04, delay: 1.7 + i * 0.1 });
       },
     };
 
@@ -1041,13 +1075,13 @@
     // ---------- Things you can use with E ----------
     const interactables = [
       {
-        bounds: pileBounds,
+        bounds: pileCircle,
         prompt: () => {
-          if (state.pile <= 0) return `The pile is empty. Press E to buy a new load (${toolNow('dirtLoad').tons} t for $${dirtLoadPrice()})`;
+          if (state.pile <= 0) return 'The pile is all dug up!';
           if (state.carrying >= toolNow('carrier').capacity) return `${toolNow('carrier').name} is full - take it to the sluice`;
-          return `Press E to dig (${tons(state.pile)} t left)`;
+          return 'Press E to dig';
         },
-        use: () => (state.pile <= 0 ? buyDirtLoad() : dig()),
+        use: () => { if (state.pile > 0) dig(); },
       },
       {
         bounds: sluiceBounds,
@@ -1076,35 +1110,6 @@
       // Each scoop comes out of the pile (a nearly empty pile may give you less than a full shovel)
       state.carrying += takeFromPile(Math.min(toolNow('shovel').scoops, capacity - state.carrying));
       sfx.dig();
-    }
-
-    // What a new load of dirt costs. If you're broke and have no dirt left anywhere, it's free,
-    // so you can never get stuck with nothing to dig.
-    function dirtLoadPrice() {
-      const price = toolNow('dirtLoad').loadPrice;
-      const noDirtAnywhere = state.carrying === 0 && state.sluiceQueue === 0 && state.exc.load === 0;
-      return state.money < price && noDirtAnywhere ? 0 : price;
-    }
-
-    // Buy a new load of dirt. You can only do this once the pile is empty.
-    function buyDirtLoad() {
-      if (state.pile > 0) {
-        showMessage(`The pile still has ${tons(state.pile)} t of dirt. Dig it all first`);
-        sfx.denied();
-        return;
-      }
-      const price = dirtLoadPrice();
-      if (state.money < price) {
-        showMessage(`You need $${price - state.money} more`);
-        sfx.denied();
-        return;
-      }
-      state.money -= price;
-      refillPile();
-      pushOutOfSolids(); // in case you were standing where the new pile landed
-      showMessage(price ? `New load: ${tons(state.pile)} t of dirt!` : `Free load: ${tons(state.pile)} t of dirt!`);
-      sfx.buy();
-      sfx.newLoad();
     }
 
     function dumpIntoSluice() {
@@ -1156,7 +1161,7 @@
 
     // Set every tool's level from a list like { shovel: 2, sluice: 1 } (for example from a saved game).
     // Only tools in TOOL_ORDER are read, so tools that no longer exist (like the old Metal Detector, Gold Pan,
-    // Excavator Engine or Arm) are ignored. Levels are kept in range, so a save from when the excavator had 3 levels still works.
+    // Excavator Engine or Arm, or Dirt Loads) are ignored. Levels are kept in range, so a save from when the excavator had 3 levels still works.
     function applyToolLevels(saved) {
       for (const id of TOOL_ORDER) {
         const level = Math.floor(Number(saved[id]) || 0);
@@ -1172,12 +1177,15 @@
     function findGold(flakeChance, nuggetChance, where) {
       if (Math.random() < nuggetChance) {
         state.money += SETTINGS.nuggetValue;
+        state.goldFound += SETTINGS.nuggetValue;
+        state.nuggets += 1;
         showMessage(`BIG NUGGET! +$${SETTINGS.nuggetValue}`);
         for (let i = 0; i < 3; i++) sparkle(0.25, where);
         sfx.nugget();
       } else if (Math.random() < flakeChance) {
         const flakes = 1 + Math.floor(Math.random() * 3); // 1 to 3 flakes
         state.money += flakes * SETTINGS.flakeValue;
+        state.goldFound += flakes * SETTINGS.flakeValue;
         for (let i = 0; i < flakes; i++) sparkle(0.07, where);
         // A little "ting" (but not dozens at once when the Power Sluice is going fast)
         if (audio && audio.currentTime - lastFlakeSound > 0.06) {
@@ -1241,7 +1249,7 @@
 
     // How far a spot on the ground is from the middle of the pile
     function distanceFromPile(p) {
-      return Math.hypot(p.x - PILE_SPOT.x, p.z - PILE_SPOT.z);
+      return Math.hypot(p.x - pileCircle.x, p.z - pileCircle.z);
     }
 
     // Is this spot (on the bucket) in the dirt pile? The pile is a cone, so it's lower near the edge.
@@ -1338,7 +1346,7 @@
     function excavatorHint() {
       const exc = state.exc;
       if (exc.load <= 0) {
-        if (state.pile <= 0) return 'The dirt pile is empty: press B to buy a new load';
+        if (state.pile <= 0) return 'The pile is all dug up!';
         return bucketInDirt() ? 'The bucket is in the dirt: hold Q to scoop' : 'Swing (← →) to the DIRT pile, lower the arm (↓), then hold Q to scoop';
       }
       if (dumpTarget() === 'sluice') return 'Over the sluice: hold F to dump';
@@ -1374,13 +1382,11 @@
       };
     }
 
-    // One row per tool (keys 1 to 7), then a last row for buying a new load of dirt (key 8)
+    // One row per tool (keys 1 to 6)
     const shopRows = {};
     TOOL_ORDER.forEach((id, i) => {
       shopRows[id] = makeShopRow(i + 1, TOOLS[id].title, TOOLS[id].about, () => buy(id));
     });
-    const LOAD_KEY = TOOL_ORDER.length + 1;
-    const loadRow = makeShopRow(LOAD_KEY, 'New Dirt Load', 'Fills the DIRT pile back up. You can buy one when the pile is empty.', buyDirtLoad);
     document.getElementById('shop-close').addEventListener('click', () => closeShop());
 
     // Refresh the text and greyed-out state of every shop row
@@ -1401,15 +1407,6 @@
         // Greyed out, but still clickable, so you hear the "not enough money" sound
         row.button.classList.toggle('cant', !next || locked || state.money < next.price);
       }
-
-      // The "New Dirt Load" row
-      const load = toolNow('dirtLoad');
-      const loadPrice = dirtLoadPrice();
-      loadRow.level.textContent = load.name;
-      loadRow.now.textContent = state.pile > 0 ? `The pile still has ${tons(state.pile)} t of dirt` : 'The pile is empty!';
-      loadRow.next.textContent = `Gives you ${load.tons} t of dirt${loadPrice === 0 ? ' (free this time, because you are out of money)' : ''}`;
-      loadRow.price.textContent = `$${loadPrice}`;
-      loadRow.button.classList.toggle('cant', state.pile > 0 || state.money < loadPrice);
     }
 
     function openShop() {
@@ -1588,26 +1585,6 @@
         }
         if (level >= 1) polygon(ctx, [[-4, -2], [-10, 8], [-4, 8], [-8, 16], [4, 4], [-2, 4], [2, -2]], '#fff', '#222', 1); // lightning bolt
       },
-
-      dirtLoad(ctx, level) { // a heap of dirt that's bigger at each level
-        const w = 18 + level * 3, h = 14 + level * 5;
-        ctx.beginPath();
-        ctx.moveTo(-w, 20);
-        ctx.quadraticCurveTo(0, 20 - h * 2, w, 20); // a rounded heap, h tall
-        ctx.closePath();
-        ctx.fillStyle = '#6b4423';
-        ctx.fill();
-        ctx.strokeStyle = level === 3 ? GOLD : '#222';
-        ctx.lineWidth = level === 3 ? 3 : 1.5;
-        ctx.stroke();
-        for (let i = 0; i < 3 + level; i++) circle(ctx, -w * 0.6 + i * w * 1.2 / (2 + level), 14 - (i % 2) * 5, 2, '#8a6440', 'transparent'); // pebbles
-        if (level >= 1) circle(ctx, w * 0.3, 16 - h * 0.4, 2.5, GOLD, '#8a6d00');         // a glint of gold
-        if (level >= 2) circle(ctx, -w * 0.25, 18 - h * 0.6, 2.5, GOLD, '#8a6d00');
-        if (level === 3) {                                                                 // a little flag on top
-          line(ctx, 0, 20 - h, 0, 20 - h - 14, '#333', 2);
-          polygon(ctx, [[0, 20 - h - 14], [10, 20 - h - 10], [0, 20 - h - 6]], GOLD, '#8a6d00', 1);
-        }
-      },
     };
 
     const toolbarEl = document.getElementById('toolbar');
@@ -1668,7 +1645,7 @@
     startScreen.addEventListener('click', lockPointer);
     document.addEventListener('pointerlockchange', () => {
       playing = document.pointerLockElement === renderer.domElement;
-      startScreen.style.display = playing || state.shopOpen ? 'none' : 'flex';
+      startScreen.style.display = playing || state.shopOpen || state.endScreenOpen ? 'none' : 'flex';
       if (!playing) for (const code in keys) keys[code] = false; // let go of everything when paused
     });
     document.addEventListener('mousemove', (e) => {
@@ -1706,6 +1683,8 @@
         return;
       }
 
+      if (state.endScreenOpen) return; // use the buttons on the end screen
+
       if (e.code === 'KeyB') {
         if (state.shopOpen) closeShop();
         else openShop();
@@ -1715,7 +1694,6 @@
       if (state.shopOpen) {
         const number = Number(e.key);
         if (number >= 1 && number <= TOOL_ORDER.length) buy(TOOL_ORDER[number - 1]);
-        if (number === LOAD_KEY) buyDirtLoad();
         if (e.code === 'Escape') closeShop();
         return;
       }
@@ -1785,6 +1763,8 @@
     // ---------- On-screen text ----------
     const hud = {
       wallet: document.getElementById('wallet'),
+      pileText: document.getElementById('pile-text'),
+      pileFill: document.getElementById('pile-fill'),
       status: document.getElementById('status'),
       prompt: document.getElementById('prompt'),
       message: document.getElementById('message'),
@@ -1800,12 +1780,16 @@
     function updateHud() {
       hud.wallet.textContent = `$${state.money}`;
 
+      // The dirt pile: tons left, and a bar that shows how much of the game is left
+      const pileLeft = state.pile / (SETTINGS.pileTons / SETTINGS.tonsPerScoop); // 1 = full, 0 = empty
+      hud.pileText.textContent = state.pile > 0
+        ? `Dirt pile: ${tons(state.pile)} t left (of ${SETTINGS.pileTons.toLocaleString('en-US')} t)`
+        : 'Dirt pile: all dug up!';
+      hud.pileFill.style.width = `${pileLeft * 100}%`;
+
       const carrier = toolNow('carrier');
       const shovel = toolNow('shovel');
       const lines = [
-        state.pile > 0
-          ? `Dirt pile: ${tons(state.pile)} t left (of ${tons(state.pileFull)} t)`
-          : 'Dirt pile: EMPTY - buy a new load in the shop (B)',
         `${carrier.name}: ${state.carrying} / ${carrier.capacity} scoops`,
         `Shovel: ${shovel.name} (${shovel.scoops} per dig)`,
         `Sluice: ${state.sluiceQueue} scoops left to wash`,
@@ -1818,6 +1802,7 @@
           ? `Excavator bucket: ${tons(state.exc.load)} / ${tons(bucketScoops)} t`
           : 'Excavator: parked (walk up to it and press E)');
       }
+      if (state.pile <= 0 && !state.finished) lines.push('The pile is gone! Wash the last of your dirt to finish');
       lines.push('Press B for the shop');
       hud.status.textContent = lines.join('\n');
 
@@ -1829,13 +1814,79 @@
       }
     }
 
+    // ---------- The end of the game: when the whole pile has been dug up and washed ----------
+    const endScreen = document.getElementById('end');
+    const endStats = document.getElementById('end-stats');
+
+    // Turn seconds into something like "1 h 5 min" or "12 min 30 s"
+    function formatTime(seconds) {
+      const h = Math.floor(seconds / 3600), min = Math.floor(seconds / 60) % 60, s = Math.floor(seconds) % 60;
+      return h > 0 ? `${h} h ${min} min` : `${min} min ${s} s`;
+    }
+
+    // The game is over once the pile is empty and there's no dirt left anywhere to wash
+    function checkForEnd() {
+      if (state.finished) return;
+      const dirtLeft = state.pile + state.carrying + state.sluiceQueue + state.exc.load;
+      if (dirtLeft <= 0) showEndScreen();
+    }
+
+    function showEndScreen() {
+      state.finished = true;
+      state.endScreenOpen = true;
+      if (state.inExcavator) exitExcavator();
+      if (state.shopOpen) {
+        state.shopOpen = false;
+        shopEl.hidden = true;
+      }
+      endStats.innerHTML = `
+        <tr><td>Total gold found</td><td>$${state.goldFound.toLocaleString('en-US')}</td></tr>
+        <tr><td>Big nuggets</td><td>${state.nuggets}</td></tr>
+        <tr><td>Time played</td><td>${formatTime(state.timePlayed)}</td></tr>`;
+      endScreen.hidden = false;
+      for (const code in keys) keys[code] = false;
+      if (document.pointerLockElement) document.exitPointerLock(); // give the mouse back for the buttons
+      sfx.finish();
+    }
+
+    function closeEndScreen() {
+      state.endScreenOpen = false;
+      endScreen.hidden = true;
+      lockPointer();
+    }
+
+    // Start a brand new game: no money, no tools, a full pile, back at the start
+    function resetGame() {
+      if (state.inExcavator) exitExcavator();
+      Object.assign(state, {
+        money: 0, carrying: 0, sluiceQueue: 0, washTimer: 0,
+        pile: SETTINGS.pileTons / SETTINGS.tonsPerScoop,
+        goldFound: 0, nuggets: 0, timePlayed: 0, finished: false,
+      });
+      state.exc = { ...EXCAVATOR_START };
+      applyToolLevels({}); // small sluice, excavator not bought
+      updatePile();
+      camera.position.set(0, 1.6, 2);
+      yaw = 0;
+      pitch = 0;
+    }
+
+    // "Keep walking around": close the end screen and carry on (it won't show again)
+    document.getElementById('end-walk').addEventListener('click', closeEndScreen);
+    document.getElementById('end-again').addEventListener('click', () => {
+      resetGame();
+      closeEndScreen();
+      showMessage('A brand new pile of dirt. Good luck!');
+    });
+
     // =====================================================================
     // ---------- TEST CHEATS: for trying things out without grinding ----------
-    // K = add money, R = reset the wallet and all tools back to the start.
+    // K = add money, R = reset everything back to the start, P = dig away most of the pile (to test the end screen).
     // Set CHEATS_ON to false (or delete this whole block) before the game is finished.
     // =====================================================================
     const CHEATS_ON = true;
     const CHEAT_MONEY = 10000;
+    const CHEAT_PILE_LEFT = 5; // tons the P cheat leaves in the pile
 
     function cheatAddMoney() {
       state.money += CHEAT_MONEY;
@@ -1843,26 +1894,24 @@
     }
 
     function cheatResetEverything() {
-      if (state.inExcavator) exitExcavator();
-      state.money = 0;
-      state.carrying = 0;
-      state.sluiceQueue = 0;
-      state.washTimer = 0;
-      // Put the world back the way it was: small sluice, excavator (for sale) and a full Small Load pile
-      state.exc = { ...EXCAVATOR_START };
-      applyToolLevels({});
-      refillPile();
-      pushOutOfSolids();
+      resetGame();
       showMessage('Everything reset (test cheat)');
+    }
+
+    function cheatShrinkPile() {
+      state.pile = Math.min(state.pile, CHEAT_PILE_LEFT / SETTINGS.tonsPerScoop);
+      updatePile();
+      showMessage(`Pile shrunk to ${tons(state.pile)} t (test cheat)`);
     }
 
     if (CHEATS_ON) {
       // Its own key listener, so the rest of the game doesn't need to know about cheats.
-      // Works while playing and while the shop is open.
+      // Works while playing and while the shop is open (but not on the end screen).
       addEventListener('keydown', (e) => {
-        if (e.repeat) return;
+        if (e.repeat || state.endScreenOpen) return;
         if (e.code === 'KeyK') cheatAddMoney();
         if (e.code === 'KeyR') cheatResetEverything();
+        if (e.code === 'KeyP') cheatShrinkPile();
       });
     }
     // ---------- END OF TEST CHEATS ----------
@@ -1884,7 +1933,9 @@
         camera.rotation.set(pitch, yaw, 0, 'YXZ');
       }
 
+      if ((playing || state.shopOpen) && !state.finished) state.timePlayed += dt; // not while paused
       updateSluice(dt);
+      checkForEnd();
       updateSparkles(dt);
       updateDirtBits(dt);
       updateSounds(dt);
