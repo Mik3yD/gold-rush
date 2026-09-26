@@ -9,20 +9,36 @@
     .overlay-text { color: #fff; text-shadow: 0 1px 3px #000; pointer-events: none; }
     #hud { position: fixed; top: 12px; left: 12px; font-size: 18px; line-height: 1.5; }
     #wallet { font-size: 32px; font-weight: bold; color: #ffd700; }
+    #status { white-space: pre-line; }
+    #detector.beep { color: #7fff7f; }
     #crosshair { position: fixed; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; background: #fff; border-radius: 50%; pointer-events: none; }
     #prompt { position: fixed; top: 58%; width: 100%; text-align: center; font-size: 20px; }
-    #message { position: fixed; top: 25%; width: 100%; text-align: center; font-size: 36px; font-weight: bold; color: #ffd700; opacity: 0; transition: opacity 0.4s; }
+    #message { position: fixed; top: 25%; width: 100%; text-align: center; font-size: 36px; font-weight: bold; color: #ffd700; opacity: 0; transition: opacity 0.4s; z-index: 10; }
     #start { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.65); color: #fff; cursor: pointer; text-align: center; }
     #start h1 { font-size: 56px; color: #ffd700; margin: 0 0 16px; }
     #start p { margin: 4px; font-size: 18px; }
+
+    /* Shop menu */
+    #shop { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.7); z-index: 5; }
+    #shop[hidden] { display: none; }
+    #shop-panel { background: #2b1d0e; color: #fff; border: 3px solid #ffd700; border-radius: 12px; padding: 16px 20px; width: min(760px, 94vw); max-height: 92vh; overflow-y: auto; box-sizing: border-box; }
+    #shop h2 { margin: 0; color: #ffd700; font-size: 32px; }
+    #shop-money { font-size: 22px; margin-bottom: 8px; }
+    .shop-item { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; margin: 6px 0; padding: 8px 12px; background: #4a3219; color: #fff; border: 2px solid #ffd700; border-radius: 8px; font: inherit; font-size: 15px; cursor: pointer; }
+    .shop-item:hover:not(:disabled) { background: #6b4a26; }
+    .shop-item:disabled { opacity: 0.4; filter: grayscale(1); cursor: not-allowed; }
+    .shop-item .key { font-size: 22px; font-weight: bold; color: #ffd700; min-width: 20px; }
+    .shop-item .title { font-size: 18px; }
+    .shop-item .about { color: #ddd; }
+    .shop-item .price { margin-left: auto; font-size: 22px; font-weight: bold; color: #ffd700; white-space: nowrap; }
+    #shop-close { margin-top: 8px; padding: 8px 16px; font: inherit; font-size: 16px; cursor: pointer; }
   </style>
 </head>
 <body>
   <div id="hud" class="overlay-text">
     <div id="wallet">$0</div>
-    <div id="bucket"></div>
-    <div id="sluice"></div>
-    <div id="shovel"></div>
+    <div id="status"></div>
+    <div id="detector"></div>
   </div>
   <div id="crosshair"></div>
   <div id="prompt" class="overlay-text"></div>
@@ -32,8 +48,19 @@
     <h1>Gold Rush</h1>
     <p><b>Click to play</b></p>
     <p>WASD to walk &middot; Mouse to look &middot; E (or left click) to use things &middot; Esc to pause</p>
+    <p><b>B</b> opens the shop &middot; <b>M</b> mutes the metal detector</p>
     <p>Dig dirt at the pile, carry it to the sluice box, and wash it to find gold.</p>
-    <p>Spend your money at the shop on a bigger shovel.</p>
+    <p>Spend your money on better tools.</p>
+  </div>
+
+  <div id="shop" hidden>
+    <div id="shop-panel">
+      <h2>Shop</h2>
+      <div id="shop-money"></div>
+      <div id="shop-items"></div>
+      <div>Click an item or press its number key to buy it. Greyed out = you can't afford it yet.</div>
+      <button id="shop-close">Back to the game (B)</button>
+    </div>
   </div>
 
   <!-- Tells the browser where to download Three.js from (a CDN), so nothing needs installing. -->
@@ -49,25 +76,112 @@
       walkSpeed: 5,            // meters per second
       mouseSensitivity: 0.002,
       reach: 1.5,              // how close (in meters) you must be to use something
-      bucketSize: 10,          // most scoops of dirt you can carry at once
-      secondsPerScoop: 1,      // how long the sluice takes to wash one scoop
-      flakeChance: 0.5,        // chance (0 to 1) that a scoop has gold flakes in it
+      flakeChance: 0.5,        // chance (0 to 1) that a sluiced scoop has gold flakes in it
       flakeValue: 1,           // dollars per flake
-      nuggetChance: 0.02,      // chance that a scoop has a big nugget
+      nuggetChance: 0.02,      // chance that a sluiced scoop has a big nugget
       nuggetValue: 50,         // dollars per nugget
-      bigShovelCost: 25,
-      basicShovelScoops: 1,    // scoops per dig with the starting shovel
-      bigShovelScoops: 3,      // scoops per dig after buying the upgrade
+      panFlakeChance: 0.6,     // the gold pan is slower but finds a bit more gold
+      panNuggetChance: 0.025,
+      buriedNuggetMin: 100,    // a nugget found with the metal detector is worth between these
+      buriedNuggetMax: 250,
+      maxBuriedNuggets: 3,     // how many nuggets can be hidden in the ground at once
+      secondsPerNewBuriedNugget: 60,
+      excavatorSecondsPerLoad: 2,
+      sluiceMaxQueue: 300,     // the excavator waits if this many scoops are already in the sluice
     };
+
+    // ---------- Tools you can buy. Level 0 is what you start with. ----------
+    const plural = (n) => (n === 1 ? '' : 's');
+    const TOOLS = {
+      shovel: {
+        title: 'Shovel',
+        about: 'Digs dirt from the DIRT pile.',
+        levels: [
+          { name: 'Basic Shovel', scoops: 1 },
+          { name: 'Big Shovel', price: 60, scoops: 2 },
+          { name: 'Steel Shovel', price: 250, scoops: 3 },
+          { name: 'Giant Shovel', price: 700, scoops: 5 },
+        ],
+        describe: (level) => `digs ${level.scoops} scoop${plural(level.scoops)} each time`,
+      },
+      carrier: {
+        title: 'Bucket / Wheelbarrow',
+        about: 'Carries dirt to the sluice or the pan tub.',
+        levels: [
+          { name: 'Small Bucket', capacity: 10 },
+          { name: 'Big Bucket', price: 100, capacity: 20 },
+          { name: 'Wheelbarrow', price: 350, capacity: 35 },
+          { name: 'Big Wheelbarrow', price: 900, capacity: 60 },
+        ],
+        describe: (level) => `carries ${level.capacity} scoops per trip`,
+      },
+      pan: {
+        title: 'Gold Pan',
+        about: 'Dump dirt in the PAN tub and stand next to it. Slower than the sluice, but finds more gold.',
+        levels: [
+          { name: 'Not owned yet', secondsPerScoop: 0 },
+          { name: 'Gold Pan', price: 80, secondsPerScoop: 3 },
+          { name: 'Steel Pan', price: 300, secondsPerScoop: 2 },
+          { name: 'Pro Pan', price: 800, secondsPerScoop: 1.2 },
+        ],
+        describe: (level) => level.secondsPerScoop ? `pans 1 scoop every ${level.secondsPerScoop} s` : '',
+      },
+      sluice: {
+        title: 'Sluice Box',
+        about: 'Washes the dirt you dump in it, all by itself.',
+        levels: [
+          { name: 'Small Sluice', batch: 1, seconds: 1 },
+          { name: 'Long Sluice', price: 120, batch: 2, seconds: 0.8 },
+          { name: 'Double Sluice', price: 450, batch: 4, seconds: 0.6 },
+          { name: 'Power Sluice', price: 1200, batch: 8, seconds: 0.5 },
+        ],
+        describe: (level) => `washes ${level.batch} scoop${plural(level.batch)} every ${level.seconds} s`,
+      },
+      detector: {
+        title: 'Metal Detector',
+        about: 'Beeps faster as you get closer to a buried nugget. Stand on it and press E to dig.',
+        levels: [
+          { name: 'Not owned yet', range: 0 },
+          { name: 'Metal Detector', price: 300, range: 8 },
+          { name: 'Good Detector', price: 900, range: 14 },
+          { name: 'Pro Detector', price: 2000, range: 22 },
+        ],
+        describe: (level) => level.range ? `hears nuggets up to ${level.range} m away` : '',
+      },
+      excavator: {
+        title: 'Small Excavator',
+        about: 'A machine that digs dirt and dumps it into the sluice for you.',
+        levels: [
+          { name: 'Not owned yet', scoopsPerLoad: 0 },
+          { name: 'Small Excavator', price: 4000, scoopsPerLoad: 10 },
+          { name: 'Tuned Excavator', price: 10000, scoopsPerLoad: 20 },
+          { name: 'Turbo Excavator', price: 20000, scoopsPerLoad: 40 },
+        ],
+        describe: (level) => level.scoopsPerLoad ? `digs ${level.scoopsPerLoad} scoops every ${SETTINGS.excavatorSecondsPerLoad} s` : '',
+      },
+    };
+    const TOOL_ORDER = ['shovel', 'carrier', 'pan', 'sluice', 'detector', 'excavator']; // also the number keys 1 to 6
 
     // ---------- Game state: everything that changes while you play ----------
     const state = {
       money: 0,
-      bucket: 0,          // scoops of dirt you're carrying
-      sluiceQueue: 0,     // scoops waiting to be washed
+      carrying: 0,        // scoops of dirt in your bucket or wheelbarrow
+      sluiceQueue: 0,     // scoops waiting to be washed in the sluice
       washTimer: 0,
-      hasBigShovel: false,
+      panQueue: 0,        // scoops waiting in the pan tub
+      panTimer: 0,
+      levels: { shovel: 0, carrier: 0, pan: 0, sluice: 0, detector: 0, excavator: 0 },
+      buriedNuggets: [],  // hidden nuggets, each one is { x, z }
+      buryTimer: 0,
+      detectorSignal: 0,  // 0 = nothing nearby, 1 = standing right on a nugget
+      detectorMuted: false,
+      excavatorTimer: 0,
+      shopOpen: false,
     };
+
+    // The level you own right now, and the one you can buy next (undefined when maxed out).
+    function toolNow(id) { return TOOLS[id].levels[state.levels[id]]; }
+    function toolNext(id) { return TOOLS[id].levels[state.levels[id] + 1]; }
 
     // ---------- Scene, camera and renderer ----------
     const scene = new THREE.Scene();
@@ -97,6 +211,12 @@
     // ---------- Helpers for building plain-shape objects ----------
     function box(w, h, d, color, x, y, z) {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
+      mesh.position.set(x, y, z);
+      return mesh;
+    }
+
+    function cylinder(radius, height, color, x, y, z) {
+      const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, 24), new THREE.MeshLambertMaterial({ color }));
       mesh.position.set(x, y, z);
       return mesh;
     }
@@ -163,99 +283,365 @@
     scene.add(sluice);
     makeSign('SLUICE', 6, -3.5);
 
+    // Pan tub: a tub of water where you pan dirt by hand (the pan appears once you buy one)
+    const tub = new THREE.Group();
+    tub.add(cylinder(0.8, 0.7, 0x8b5a2b, 0, 0.35, 0));
+    tub.add(cylinder(0.72, 0.02, 0x3399ff, 0, 0.7, 0)); // water
+    const goldPan = new THREE.Group();
+    goldPan.add(cylinder(0.35, 0.06, 0x999999, 0, 0, 0));
+    const panDirt = cylinder(0.25, 0.05, 0x6b4423, 0, 0.03, 0); // shows when dirt is waiting
+    goldPan.add(panDirt);
+    goldPan.position.set(0, 0.78, 0);
+    goldPan.visible = false;
+    tub.add(goldPan);
+    tub.position.set(-7, 0, 1);
+    scene.add(tub);
+    makeSign('PAN', -5.2, 0.8);
+
     // Shop: a table with a shiny shovel on it
     const shop = new THREE.Group();
     shop.add(box(2, 1, 1, 0x8b5a2b, 0, 0.5, 0));
-    const shopShovel = new THREE.Group();
-    shopShovel.add(box(1.2, 0.05, 0.05, 0xaaaaaa, 0, 1.05, 0));
-    shopShovel.add(box(0.3, 0.03, 0.25, 0xffd700, 0.7, 1.05, 0));
-    shop.add(shopShovel);
+    shop.add(box(1.2, 0.05, 0.05, 0xaaaaaa, 0, 1.05, 0));
+    shop.add(box(0.3, 0.03, 0.25, 0xffd700, 0.7, 1.05, 0));
     shop.position.set(0, 0, 7);
     scene.add(shop);
     makeSign('SHOP', 0, 8.5);
+
+    // Small excavator: a yellow machine that swings its arm between the dirt pile and the sluice.
+    // It stays hidden until you buy it.
+    const excavator = new THREE.Group();
+    const excavatorBase = new THREE.Group();
+    excavatorBase.add(box(2.6, 0.5, 0.6, 0x333333, 0, 0.25, 0.8));  // tracks
+    excavatorBase.add(box(2.6, 0.5, 0.6, 0x333333, 0, 0.25, -0.8));
+    excavatorBase.add(box(2.2, 0.9, 2, 0xf2b705, 0, 0.95, 0));      // body
+    excavatorBase.add(box(0.9, 1, 0.9, 0xf2b705, -0.5, 1.9, 0.4));  // cab
+    excavator.add(excavatorBase);
+    const excavatorArm = new THREE.Group();
+    excavatorArm.add(box(4.6, 0.25, 0.25, 0xf2b705, 2.3, 0.2, 0));  // arm
+    excavatorArm.add(box(0.6, 0.5, 0.6, 0x555555, 4.8, 0, 0));      // digging bucket
+    const excavatorLoad = box(0.5, 0.15, 0.5, 0x6b4423, 4.8, 0.3, 0); // dirt in the bucket
+    excavatorArm.add(excavatorLoad);
+    excavatorArm.position.set(0, 1.6, 0);
+    excavator.add(excavatorArm);
+    excavator.position.set(0, 0, -9.5);
+    excavator.visible = false;
+    scene.add(excavator);
+    // Which way the arm points to reach the pile and the top end of the sluice
+    const armAngle = (x, z) => Math.atan2(-(z - excavator.position.z), x - excavator.position.x);
+    const pileAngle = armAngle(dirtPile.position.x, dirtPile.position.z);
+    const sluiceAngle = armAngle(sluice.position.x - 1.4, sluice.position.z);
 
     // Every solid thing: used to stop you walking through it and to measure how close you are.
     function boundsOf(object) {
       return new THREE.Box3().setFromObject(object);
     }
-    const solids = [dirtPile, sluice, shop].map(boundsOf);
+    const solids = [dirtPile, sluice, tub, shop].map(boundsOf);
+    const excavatorBounds = boundsOf(excavatorBase); // becomes solid once you buy it
+    const tubBounds = boundsOf(tub);
 
     // ---------- Things you can use with E ----------
     const interactables = [
       {
         bounds: boundsOf(dirtPile),
-        prompt: () => state.bucket >= SETTINGS.bucketSize ? 'Bucket is full - take it to the sluice' : 'Press E to dig',
+        prompt: () => state.carrying >= toolNow('carrier').capacity
+          ? `${toolNow('carrier').name} is full - take it to the sluice or the pan tub`
+          : 'Press E to dig',
         use: dig,
       },
       {
         bounds: boundsOf(sluice),
-        prompt: () => state.bucket > 0 ? `Press E to dump ${state.bucket} scoops into the sluice` : 'Bring dirt here to wash it',
+        prompt: () => state.carrying > 0 ? `Press E to dump ${state.carrying} scoops into the sluice` : 'Bring dirt here to wash it',
         use: dumpIntoSluice,
       },
       {
+        bounds: tubBounds,
+        prompt: () => {
+          if (!toolNow('pan').secondsPerScoop) return 'Buy a Gold Pan in the shop (press B) to pan here';
+          if (state.carrying > 0) return `Press E to dump ${state.carrying} scoops into the pan tub`;
+          if (state.panQueue > 0) return `Panning... stay here (${state.panQueue} scoops left)`;
+          return 'Bring dirt here to pan it by hand';
+        },
+        use: dumpIntoPan,
+      },
+      {
         bounds: boundsOf(shop),
-        prompt: () => state.hasBigShovel ? 'You own the Big Shovel' : `Press E to buy the Big Shovel ($${SETTINGS.bigShovelCost}) - digs ${SETTINGS.bigShovelScoops} scoops at once`,
-        use: buyBigShovel,
+        prompt: () => 'Press E to open the shop (or press B anywhere)',
+        use: openShop,
       },
     ];
 
     function dig() {
-      const scoops = state.hasBigShovel ? SETTINGS.bigShovelScoops : SETTINGS.basicShovelScoops;
-      state.bucket = Math.min(SETTINGS.bucketSize, state.bucket + scoops);
+      const capacity = toolNow('carrier').capacity;
+      state.carrying = Math.min(capacity, state.carrying + toolNow('shovel').scoops);
     }
 
     function dumpIntoSluice() {
-      state.sluiceQueue += state.bucket;
-      state.bucket = 0;
+      state.sluiceQueue += state.carrying;
+      state.carrying = 0;
     }
 
-    function buyBigShovel() {
-      if (state.hasBigShovel) return;
-      if (state.money < SETTINGS.bigShovelCost) {
-        showMessage(`You need $${SETTINGS.bigShovelCost - state.money} more`);
+    function dumpIntoPan() {
+      if (!toolNow('pan').secondsPerScoop) {
+        showMessage('Buy a Gold Pan first (press B)');
         return;
       }
-      state.money -= SETTINGS.bigShovelCost;
-      state.hasBigShovel = true;
-      shopShovel.visible = false; // you took it off the table
-      showMessage('Bought the Big Shovel!');
+      state.panQueue += state.carrying;
+      state.carrying = 0;
     }
 
-    // Wash one scoop of dirt and see what gold is in it.
-    function washOneScoop() {
-      state.sluiceQueue -= 1;
-      if (Math.random() < SETTINGS.nuggetChance) {
-        state.money += SETTINGS.nuggetValue;
-        showMessage(`BIG NUGGET! +$${SETTINGS.nuggetValue}`);
-        sparkle(0.25);
-      } else if (Math.random() < SETTINGS.flakeChance) {
-        const flakes = 1 + Math.floor(Math.random() * 3); // 1 to 3 flakes
-        state.money += flakes * SETTINGS.flakeValue;
-        for (let i = 0; i < flakes; i++) sparkle(0.07);
+    function buy(id) {
+      const next = toolNext(id);
+      if (!next) return; // already fully upgraded
+      if (state.money < next.price) {
+        showMessage(`You need $${next.price - state.money} more`);
+        return;
+      }
+      state.money -= next.price;
+      state.levels[id] += 1;
+      showMessage(`Bought the ${next.name}!`);
+      if (id === 'pan') goldPan.visible = true;
+      if (id === 'excavator' && !excavator.visible) {
+        excavator.visible = true;
+        solids.push(excavatorBounds);
       }
     }
 
-    // ---------- Gold sparkles that float up from the sluice ----------
+    // Look for gold in one scoop of dirt. "where" is the spot the sparkles float up from.
+    function findGold(flakeChance, nuggetChance, where) {
+      if (Math.random() < nuggetChance) {
+        state.money += SETTINGS.nuggetValue;
+        showMessage(`BIG NUGGET! +$${SETTINGS.nuggetValue}`);
+        sparkle(0.25, where);
+      } else if (Math.random() < flakeChance) {
+        const flakes = 1 + Math.floor(Math.random() * 3); // 1 to 3 flakes
+        state.money += flakes * SETTINGS.flakeValue;
+        for (let i = 0; i < flakes; i++) sparkle(0.07, where);
+      }
+    }
+    const sluiceSpot = { x: sluice.position.x, y: 1.3, z: sluice.position.z, spread: 2 };
+    const tubSpot = { x: tub.position.x, y: 0.9, z: tub.position.z, spread: 0.5 };
+
+    // ---------- Sluice: washes dirt by itself ----------
+    function updateSluice(dt) {
+      const level = toolNow('sluice');
+      if (state.sluiceQueue > 0) {
+        state.washTimer += dt;
+        while (state.washTimer >= level.seconds && state.sluiceQueue > 0) {
+          state.washTimer -= level.seconds;
+          const scoops = Math.min(level.batch, state.sluiceQueue);
+          state.sluiceQueue -= scoops;
+          for (let i = 0; i < scoops; i++) findGold(SETTINGS.flakeChance, SETTINGS.nuggetChance, sluiceSpot);
+        }
+      } else {
+        state.washTimer = 0;
+      }
+      sluiceDirt.visible = state.sluiceQueue > 0;
+    }
+
+    // ---------- Gold pan: only works while you stand next to the tub ----------
+    function updatePan(dt) {
+      const seconds = toolNow('pan').secondsPerScoop;
+      const panning = playing && seconds && state.panQueue > 0 && distanceTo(tubBounds) < SETTINGS.reach;
+      if (panning) {
+        state.panTimer += dt;
+        if (state.panTimer >= seconds) {
+          state.panTimer = 0;
+          state.panQueue -= 1;
+          findGold(SETTINGS.panFlakeChance, SETTINGS.panNuggetChance, tubSpot);
+        }
+        goldPan.rotation.z = Math.sin(clock.elapsedTime * 12) * 0.15; // swirl the pan
+      } else {
+        goldPan.rotation.z = 0;
+      }
+      panDirt.visible = state.panQueue > 0;
+    }
+
+    // ---------- Excavator: digs by itself and dumps into the sluice ----------
+    function updateExcavator(dt) {
+      const scoops = toolNow('excavator').scoopsPerLoad;
+      if (!scoops) return;
+      const period = SETTINGS.excavatorSecondsPerLoad;
+      const backedUp = state.sluiceQueue >= SETTINGS.sluiceMaxQueue;
+      if (!backedUp) {
+        const before = state.excavatorTimer;
+        state.excavatorTimer += dt;
+        // Halfway through each swing the arm is over the sluice, so the dirt drops in
+        if (before < period / 2 && state.excavatorTimer >= period / 2) state.sluiceQueue += scoops;
+        if (state.excavatorTimer >= period) state.excavatorTimer -= period;
+      }
+      const phase = state.excavatorTimer / period;           // 0 = at the pile, 0.5 = over the sluice
+      const swing = (1 - Math.cos(phase * 2 * Math.PI)) / 2;  // goes smoothly 0 -> 1 -> 0
+      excavatorArm.rotation.y = pileAngle + (sluiceAngle - pileAngle) * swing;
+      excavatorLoad.visible = phase < 0.5;
+    }
+
+    // ---------- Buried nuggets and the metal detector ----------
+    const holeGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.02, 16);
+    const holeMaterial = new THREE.MeshLambertMaterial({ color: 0x3b2410 });
+
+    // Hide a nugget at a random spot that isn't too close to anything else.
+    function buryNugget() {
+      const stations = [...solids, excavatorBounds];
+      for (let tries = 0; tries < 100; tries++) {
+        const x = (Math.random() - 0.5) * 44;
+        const z = (Math.random() - 0.5) * 44;
+        const nearStation = stations.some((bounds) => distanceFromPoint(bounds, x, z) < 3);
+        const nearOther = state.buriedNuggets.some((n) => Math.hypot(n.x - x, n.z - z) < 6);
+        if (!nearStation && !nearOther) {
+          state.buriedNuggets.push({ x, z });
+          return;
+        }
+      }
+    }
+    for (let i = 0; i < SETTINGS.maxBuriedNuggets; i++) buryNugget();
+
+    function updateBuriedNuggets(dt) {
+      if (state.buriedNuggets.length >= SETTINGS.maxBuriedNuggets) return;
+      state.buryTimer += dt;
+      if (state.buryTimer >= SETTINGS.secondsPerNewBuriedNugget) {
+        state.buryTimer = 0;
+        buryNugget();
+      }
+    }
+
+    // The buried nugget you're standing on, if you own a detector
+    function buriedNuggetHere() {
+      if (!toolNow('detector').range) return undefined;
+      return state.buriedNuggets.find((n) => Math.hypot(camera.position.x - n.x, camera.position.z - n.z) < SETTINGS.reach);
+    }
+
+    function digUpNugget(nugget) {
+      state.buriedNuggets.splice(state.buriedNuggets.indexOf(nugget), 1);
+      const range = SETTINGS.buriedNuggetMax - SETTINGS.buriedNuggetMin;
+      const value = SETTINGS.buriedNuggetMin + Math.floor(Math.random() * (range + 1));
+      state.money += value;
+      showMessage(`You dug up a nugget! +$${value}`);
+      const hole = new THREE.Mesh(holeGeometry, holeMaterial);
+      hole.position.set(nugget.x, 0.01, nugget.z);
+      scene.add(hole);
+      for (let i = 0; i < 4; i++) sparkle(0.2, { x: nugget.x, y: 0.3, z: nugget.z, spread: 0.8 });
+    }
+
+    // Beeps: made with the browser's built-in sound generator, so no sound files are needed.
+    let audio = null;
+    function beep(signal) {
+      if (!audio) return;
+      const tone = audio.createOscillator();
+      const volume = audio.createGain();
+      tone.frequency.value = 700 + 600 * signal; // higher pitch when closer
+      volume.gain.value = 0.08;
+      tone.connect(volume);
+      volume.connect(audio.destination);
+      tone.start();
+      tone.stop(audio.currentTime + 0.06);
+    }
+
+    let beepTimer = 0;
+    let beepFlash = 0;
+    function updateDetector(dt) {
+      const range = toolNow('detector').range;
+      state.detectorSignal = 0;
+      if (!range || !playing || state.buriedNuggets.length === 0) return;
+
+      const distance = Math.min(...state.buriedNuggets.map((n) => Math.hypot(camera.position.x - n.x, camera.position.z - n.z)));
+      if (distance >= range) return;
+
+      state.detectorSignal = 1 - distance / range;
+      const secondsBetweenBeeps = 0.08 + 0.9 * (distance / range); // closer = faster beeps
+      beepTimer += dt;
+      if (beepTimer >= secondsBetweenBeeps) {
+        beepTimer = 0;
+        beepFlash = 0.1;
+        if (!state.detectorMuted) beep(state.detectorSignal);
+      }
+    }
+
+    // ---------- Gold sparkles that float up ----------
     const sparkles = [];
+    const sparkleGeometry = new THREE.SphereGeometry(1, 8, 8); // shared by all sparkles, scaled to size
     const goldMaterial = new THREE.MeshBasicMaterial({ color: 0xffd700 });
-    function sparkle(size) {
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(size, 8, 8), goldMaterial);
-      mesh.position.set(sluice.position.x + (Math.random() - 0.5) * 2, 1.3, sluice.position.z + (Math.random() - 0.5) * 0.6);
+    function sparkle(size, where) {
+      const mesh = new THREE.Mesh(sparkleGeometry, goldMaterial);
+      mesh.position.set(
+        where.x + (Math.random() - 0.5) * where.spread,
+        where.y,
+        where.z + (Math.random() - 0.5) * where.spread * 0.3
+      );
       scene.add(mesh);
-      sparkles.push({ mesh, life: 1 });
+      sparkles.push({ mesh, size, life: 1 });
     }
     function updateSparkles(dt) {
       for (let i = sparkles.length - 1; i >= 0; i--) {
         const s = sparkles[i];
         s.life -= dt;
         s.mesh.position.y += dt;
-        s.mesh.scale.setScalar(Math.max(s.life, 0.01));
+        s.mesh.scale.setScalar(s.size * Math.max(s.life, 0.01));
         if (s.life <= 0) {
           scene.remove(s.mesh);
-          s.mesh.geometry.dispose();
           sparkles.splice(i, 1);
         }
       }
+    }
+
+    // ---------- Shop menu ----------
+    const shopEl = document.getElementById('shop');
+    const shopMoney = document.getElementById('shop-money');
+    const shopRows = {};
+    TOOL_ORDER.forEach((id, i) => {
+      const button = document.createElement('button');
+      button.className = 'shop-item';
+      button.innerHTML = `
+        <span class="key">${i + 1}</span>
+        <span>
+          <b class="title">${TOOLS[id].title}</b> &middot; <span class="level"></span><br>
+          <span class="about">${TOOLS[id].about}</span><br>
+          <span class="now"></span><br>
+          <span class="next"></span>
+        </span>
+        <span class="price"></span>`;
+      button.addEventListener('click', () => buy(id));
+      document.getElementById('shop-items').appendChild(button);
+      shopRows[id] = {
+        button,
+        level: button.querySelector('.level'),
+        now: button.querySelector('.now'),
+        next: button.querySelector('.next'),
+        price: button.querySelector('.price'),
+      };
+    });
+    document.getElementById('shop-close').addEventListener('click', () => closeShop());
+
+    // Refresh the text and greyed-out state of every shop row
+    function updateShop() {
+      shopMoney.textContent = `You have $${state.money}`;
+      for (const id of TOOL_ORDER) {
+        const row = shopRows[id];
+        const tool = TOOLS[id];
+        const now = toolNow(id);
+        const next = toolNext(id);
+        const nowText = tool.describe(now);
+        row.level.textContent = `Level ${state.levels[id]} / ${tool.levels.length - 1}`;
+        row.now.textContent = `Now: ${now.name}${nowText ? ` - ${nowText}` : ''}`;
+        row.next.textContent = next ? `Next: ${next.name} - ${tool.describe(next)}` : 'Fully upgraded!';
+        row.price.textContent = next ? `$${next.price}` : 'MAX';
+        row.button.disabled = !next || state.money < next.price;
+      }
+    }
+
+    function openShop() {
+      state.shopOpen = true;
+      shopEl.hidden = false;
+      startScreen.style.display = 'none';
+      for (const code in keys) keys[code] = false; // stop walking
+      if (document.pointerLockElement) document.exitPointerLock(); // give the mouse back for clicking
+      updateShop();
+    }
+
+    function closeShop() {
+      state.shopOpen = false;
+      shopEl.hidden = true;
+      startScreen.style.display = 'flex'; // hidden again as soon as the mouse is captured
+      lockPointer();
     }
 
     // ---------- Controls: mouse look, WASD, E to use ----------
@@ -265,10 +651,18 @@
     const keys = {};
     const startScreen = document.getElementById('start');
 
-    startScreen.addEventListener('click', () => renderer.domElement.requestPointerLock());
+    // Capture the mouse so it turns the camera. Also switches on sound (browsers only allow it after a click or key press).
+    function lockPointer() {
+      if (!audio) audio = new AudioContext();
+      audio.resume();
+      const request = renderer.domElement.requestPointerLock();
+      if (request && request.catch) request.catch(() => {}); // if it fails the "Click to play" screen stays up
+    }
+
+    startScreen.addEventListener('click', lockPointer);
     document.addEventListener('pointerlockchange', () => {
       playing = document.pointerLockElement === renderer.domElement;
-      startScreen.style.display = playing ? 'none' : 'flex';
+      startScreen.style.display = playing || state.shopOpen ? 'none' : 'flex';
     });
     document.addEventListener('mousemove', (e) => {
       if (!playing) return;
@@ -279,15 +673,39 @@
     document.addEventListener('mousedown', (e) => { if (playing && e.button === 0) interact(); });
     addEventListener('keydown', (e) => {
       keys[e.code] = true;
-      if (playing && e.code === 'KeyE' && !e.repeat) interact();
+      if (e.repeat) return;
+
+      if (e.code === 'KeyB') {
+        if (state.shopOpen) closeShop();
+        else openShop();
+        return;
+      }
+
+      if (state.shopOpen) {
+        const number = Number(e.key);
+        if (number >= 1 && number <= TOOL_ORDER.length) buy(TOOL_ORDER[number - 1]);
+        if (e.code === 'Escape') closeShop();
+        return;
+      }
+
+      if (!playing) return;
+      if (e.code === 'KeyE') interact();
+      if (e.code === 'KeyM' && toolNow('detector').range) {
+        state.detectorMuted = !state.detectorMuted;
+        showMessage(state.detectorMuted ? 'Detector muted' : 'Detector sound on');
+      }
     });
     addEventListener('keyup', (e) => { keys[e.code] = false; });
 
-    // Distance from you to the nearest edge of an object's bounding box (ignoring height).
+    // Distance from a spot on the ground to the nearest edge of an object's bounding box (ignoring height).
+    function distanceFromPoint(bounds, px, pz) {
+      const x = Math.max(bounds.min.x, Math.min(px, bounds.max.x));
+      const z = Math.max(bounds.min.z, Math.min(pz, bounds.max.z));
+      return Math.hypot(px - x, pz - z);
+    }
+
     function distanceTo(bounds) {
-      const x = Math.max(bounds.min.x, Math.min(camera.position.x, bounds.max.x));
-      const z = Math.max(bounds.min.z, Math.min(camera.position.z, bounds.max.z));
-      return Math.hypot(camera.position.x - x, camera.position.z - z);
+      return distanceFromPoint(bounds, camera.position.x, camera.position.z);
     }
 
     function nearbyThing() {
@@ -295,6 +713,11 @@
     }
 
     function interact() {
+      const nugget = buriedNuggetHere();
+      if (nugget) {
+        digUpNugget(nugget);
+        return;
+      }
       const thing = nearbyThing();
       if (thing) thing.use();
     }
@@ -334,9 +757,8 @@
     // ---------- On-screen text ----------
     const hud = {
       wallet: document.getElementById('wallet'),
-      bucket: document.getElementById('bucket'),
-      sluice: document.getElementById('sluice'),
-      shovel: document.getElementById('shovel'),
+      status: document.getElementById('status'),
+      detector: document.getElementById('detector'),
       prompt: document.getElementById('prompt'),
       message: document.getElementById('message'),
     };
@@ -347,15 +769,43 @@
       clearTimeout(messageTimeout);
       messageTimeout = setTimeout(() => { hud.message.style.opacity = 0; }, 2000);
     }
-    function updateHud() {
+    function updateHud(dt) {
       hud.wallet.textContent = `$${state.money}`;
-      hud.bucket.textContent = `Bucket: ${state.bucket} / ${SETTINGS.bucketSize} scoops`;
-      hud.sluice.textContent = `Sluice: ${state.sluiceQueue} scoops left to wash`;
-      hud.shovel.textContent = state.hasBigShovel
-        ? `Shovel: Big (${SETTINGS.bigShovelScoops} scoops per dig)`
-        : `Shovel: Basic (${SETTINGS.basicShovelScoops} scoop per dig)`;
-      const thing = nearbyThing();
-      hud.prompt.textContent = thing ? thing.prompt() : '';
+
+      const carrier = toolNow('carrier');
+      const shovel = toolNow('shovel');
+      const lines = [
+        `${carrier.name}: ${state.carrying} / ${carrier.capacity} scoops`,
+        `Shovel: ${shovel.name} (${shovel.scoops} per dig)`,
+        `Sluice: ${state.sluiceQueue} scoops left to wash`,
+      ];
+      if (toolNow('pan').secondsPerScoop) lines.push(`Pan tub: ${state.panQueue} scoops (stand next to it to pan)`);
+      const excavatorScoops = toolNow('excavator').scoopsPerLoad;
+      if (excavatorScoops) {
+        lines.push(state.sluiceQueue >= SETTINGS.sluiceMaxQueue
+          ? 'Excavator: waiting, the sluice is full'
+          : `Excavator: digging ${excavatorScoops} scoops every ${SETTINGS.excavatorSecondsPerLoad} s`);
+      }
+      lines.push('Press B for the shop');
+      hud.status.textContent = lines.join('\n');
+
+      // Metal detector signal bar, which flashes green on each beep
+      if (toolNow('detector').range) {
+        const bars = Math.round(state.detectorSignal * 10);
+        const muted = state.detectorMuted ? ' (muted, M)' : ' (M to mute)';
+        hud.detector.textContent = `Detector: ${'■'.repeat(bars)}${'□'.repeat(10 - bars)}${muted}`;
+      } else {
+        hud.detector.textContent = '';
+      }
+      beepFlash -= dt;
+      hud.detector.classList.toggle('beep', beepFlash > 0);
+
+      if (buriedNuggetHere()) {
+        hud.prompt.textContent = 'Your detector is going crazy! Press E to dig here';
+      } else {
+        const thing = nearbyThing();
+        hud.prompt.textContent = thing ? thing.prompt() : '';
+      }
     }
 
     // ---------- Game loop: runs about 60 times per second ----------
@@ -366,19 +816,14 @@
       if (playing) movePlayer(dt);
       camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
-      if (state.sluiceQueue > 0) {
-        state.washTimer += dt;
-        while (state.washTimer >= SETTINGS.secondsPerScoop && state.sluiceQueue > 0) {
-          state.washTimer -= SETTINGS.secondsPerScoop;
-          washOneScoop();
-        }
-      } else {
-        state.washTimer = 0;
-      }
-      sluiceDirt.visible = state.sluiceQueue > 0;
-
+      updateSluice(dt);
+      updatePan(dt);
+      updateExcavator(dt);
+      updateBuriedNuggets(dt);
+      updateDetector(dt);
       updateSparkles(dt);
-      updateHud();
+      updateHud(dt);
+      if (state.shopOpen) updateShop();
       renderer.render(scene, camera);
       requestAnimationFrame(gameLoop);
     }
