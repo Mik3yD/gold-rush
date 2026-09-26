@@ -988,6 +988,46 @@
       }
     }
 
+    // =====================================================================
+    // ---------- TEST CHEATS: for trying things out without grinding ----------
+    // K = add money, R = reset the wallet and all tools back to the start.
+    // Set CHEATS_ON to false (or delete this whole block) before the game is finished.
+    // =====================================================================
+    const CHEATS_ON = true;
+    const CHEAT_MONEY = 10000;
+
+    function cheatAddMoney() {
+      state.money += CHEAT_MONEY;
+      showMessage(`+$${CHEAT_MONEY.toLocaleString('en-US')} (test cheat)`);
+    }
+
+    function cheatResetEverything() {
+      state.money = 0;
+      state.carrying = 0;
+      state.sluiceQueue = 0;
+      state.washTimer = 0;
+      state.excavatorTimer = 0;
+      for (const id of TOOL_ORDER) state.levels[id] = 0;
+      // Put the world back the way it was: small sluice, no excavator
+      upgradeSluiceModel();
+      excavator.visible = false;
+      const i = solids.indexOf(excavatorBounds);
+      if (i !== -1) solids.splice(i, 1);
+      updateToolbar();
+      showMessage('Everything reset (test cheat)');
+    }
+
+    if (CHEATS_ON) {
+      // Its own key listener, so the rest of the game doesn't need to know about cheats.
+      // Works while playing and while the shop is open.
+      addEventListener('keydown', (e) => {
+        if (e.repeat) return;
+        if (e.code === 'KeyK') cheatAddMoney();
+        if (e.code === 'KeyR') cheatResetEverything();
+      });
+    }
+    // ---------- END OF TEST CHEATS ----------
+
     // ---------- Game loop: runs about 60 times per second ----------
     const clock = new THREE.Clock();
     function gameLoop() {

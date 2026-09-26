@@ -21,6 +21,7 @@ Core loop:
 - A tool bar along the bottom shows an icon for every tool you own, with a "Lv N" badge. Tools you haven't bought don't appear. Icons are drawn with the 2D canvas in code (no image files) and look better at each level: bigger, shinier metal, and a gold trim plus a glowing gold border at level 3.
 - Buried nuggets: up to 3 are hidden in the ground at a time, and a new one is buried every 60 s. You need the metal detector to dig them up ($100 to $250 each). **M** mutes the detector.
 - No saving yet. Progress resets when you reload the page.
+- **Test cheats (turn off before release):** **K** adds $10,000, **R** resets the wallet and all tools to the start. All cheat code is in one block marked `TEST CHEATS` near the end of the script; set `CHEATS_ON = false` (or delete the block) to turn them off.
 
 ### Tools and prices
 
