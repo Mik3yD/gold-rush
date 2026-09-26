@@ -10,13 +10,22 @@
     #hud { position: fixed; top: 12px; left: 12px; font-size: 18px; line-height: 1.5; }
     #wallet { font-size: 32px; font-weight: bold; color: #ffd700; }
     #status { white-space: pre-line; }
-    #detector.beep { color: #7fff7f; }
     #crosshair { position: fixed; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; background: #fff; border-radius: 50%; pointer-events: none; }
     #prompt { position: fixed; top: 58%; width: 100%; text-align: center; font-size: 20px; }
     #message { position: fixed; top: 25%; width: 100%; text-align: center; font-size: 36px; font-weight: bold; color: #ffd700; opacity: 0; transition: opacity 0.4s; z-index: 10; }
     #start { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.65); color: #fff; cursor: pointer; text-align: center; }
     #start h1 { font-size: 56px; color: #ffd700; margin: 0 0 16px; }
     #start p { margin: 4px; font-size: 18px; }
+
+    /* Speaker button in the top right corner (M also toggles it) */
+    #sound { position: fixed; top: 12px; right: 12px; width: 48px; height: 48px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45); border: 2px solid #999; border-radius: 10px; cursor: pointer; z-index: 20; }
+    #sound .key { position: absolute; bottom: 1px; right: 4px; font-size: 10px; color: #ddd; }
+
+    /* Excavator controls, shown while you're driving */
+    #drive-help { position: fixed; top: 72px; right: 12px; padding: 10px 14px; background: rgba(0, 0, 0, 0.5); border-radius: 10px; font-size: 15px; line-height: 1.45; }
+    #drive-help[hidden] { display: none; }
+    #drive-help h3 { margin: 0 0 4px; color: #ffd700; font-size: 17px; }
+    #drive-help td:first-child { font-weight: bold; color: #ffd700; padding-right: 12px; white-space: nowrap; }
 
     /* Shop menu */
     #shop { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.7); z-index: 5; }
@@ -25,15 +34,15 @@
     #shop h2 { margin: 0; color: #ffd700; font-size: 32px; }
     #shop-money { font-size: 22px; margin-bottom: 8px; }
     .shop-item { display: flex; gap: 12px; align-items: center; width: 100%; text-align: left; margin: 6px 0; padding: 8px 12px; background: #4a3219; color: #fff; border: 2px solid #ffd700; border-radius: 8px; font: inherit; font-size: 15px; cursor: pointer; }
-    .shop-item:hover:not(:disabled) { background: #6b4a26; }
-    .shop-item:disabled { opacity: 0.4; filter: grayscale(1); cursor: not-allowed; }
+    .shop-item:hover:not(.cant) { background: #6b4a26; }
+    .shop-item.cant { opacity: 0.4; filter: grayscale(1); cursor: not-allowed; } /* can't buy it (yet) */
     .shop-item .key { font-size: 22px; font-weight: bold; color: #ffd700; min-width: 20px; }
     .shop-item .title { font-size: 18px; }
     .shop-item .about { color: #ddd; }
     .shop-item .price { margin-left: auto; font-size: 22px; font-weight: bold; color: #ffd700; white-space: nowrap; }
     #shop-close { margin-top: 8px; padding: 8px 16px; font: inherit; font-size: 16px; cursor: pointer; }
 
-    /* Tool bar along the bottom: one icon per tool you own */
+    /* Tool bar along the bottom: one icon for every tool you own */
     #toolbar { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: none; }
     .tool-slot { position: relative; width: 64px; height: 64px; background: rgba(0, 0, 0, 0.45); border: 2px solid #999; border-radius: 10px; }
     .tool-slot.max { border-color: #ffd700; box-shadow: 0 0 10px #ffd700; } /* fully upgraded */
@@ -47,20 +56,34 @@
   <div id="hud" class="overlay-text">
     <div id="wallet">$0</div>
     <div id="status"></div>
-    <div id="detector"></div>
   </div>
   <div id="crosshair"></div>
   <div id="prompt" class="overlay-text"></div>
   <div id="message" class="overlay-text"></div>
   <div id="toolbar"></div>
+  <button id="sound" title="Sound on/off (M)"></button>
+
+  <div id="drive-help" class="overlay-text" hidden>
+    <h3>Driving the excavator</h3>
+    <table>
+      <tr><td>W / S</td><td>drive forward / back</td></tr>
+      <tr><td>A / D</td><td>turn</td></tr>
+      <tr><td>&larr; / &rarr;</td><td>swing the arm</td></tr>
+      <tr><td>&uarr; / &darr;</td><td>raise / lower the arm</td></tr>
+      <tr><td>Q or left click</td><td>scoop (hold, with the bucket in the dirt)</td></tr>
+      <tr><td>F or right click</td><td>dump (hold, over the sluice or truck)</td></tr>
+      <tr><td>Mouse</td><td>look around</td></tr>
+      <tr><td>E</td><td>get out</td></tr>
+    </table>
+  </div>
 
   <div id="start">
     <h1>Gold Rush</h1>
     <p><b>Click to play</b></p>
     <p>WASD to walk &middot; Mouse to look &middot; E (or left click) to use things &middot; Esc to pause</p>
-    <p><b>B</b> opens the shop (buy with 1 to 5) &middot; <b>M</b> mutes the metal detector</p>
+    <p><b>B</b> opens the shop (buy with 1 to 7) &middot; <b>M</b> turns the sound on and off</p>
     <p>Dig dirt at the pile, carry it to the sluice box, and wash it to find gold.</p>
-    <p>Spend your money on better tools.</p>
+    <p>Save up for the excavator, then walk up to it and press E to drive it.</p>
   </div>
 
   <div id="shop" hidden>
@@ -68,7 +91,7 @@
       <h2>Shop</h2>
       <div id="shop-money"></div>
       <div id="shop-items"></div>
-      <div>Click an item or press its number key to buy it. Greyed out = you can't afford it yet.</div>
+      <div>Click an item or press its number key to buy it. Greyed out = you can't buy it yet.</div>
       <button id="shop-close">Back to the game (B)</button>
     </div>
   </div>
@@ -90,12 +113,16 @@
       flakeValue: 1,           // dollars per flake
       nuggetChance: 0.02,      // chance that a sluiced scoop has a big nugget
       nuggetValue: 50,         // dollars per nugget
-      buriedNuggetMin: 100,    // a nugget found with the metal detector is worth between these
-      buriedNuggetMax: 250,
-      maxBuriedNuggets: 3,     // how many nuggets can be hidden in the ground at once
-      secondsPerNewBuriedNugget: 60,
-      excavatorSecondsPerLoad: 2,
-      sluiceMaxQueue: 300,     // the excavator waits if this many scoops are already in the sluice
+      // Excavator speeds with the stock engine (engine upgrades multiply these)
+      excavatorDriveSpeed: 3,  // meters per second
+      excavatorTurnSpeed: 0.8, // radians per second (about 45 degrees)
+      armSwingSpeed: 0.9,
+      armLiftSpeed: 0.6,
+      bucketCurlSpeed: 1.1,
+      // The dump truck
+      truckCapacity: 200,      // scoops
+      truckWaitSeconds: 5,     // it drives off this long after the last load (or as soon as it's full)
+      truckSpeed: 3.5,         // meters per second
     };
 
     // ---------- Tools you can buy. Level 0 is what you start with. ----------
@@ -137,32 +164,60 @@
         ],
         describe: (level) => `washes ${level.batch} scoop${plural(level.batch)} every ${level.seconds} s`,
       },
-      detector: {
-        title: 'Metal Detector',
-        about: 'Beeps faster as you get closer to a buried nugget. Stand on it and press E to dig.',
-        levels: [
-          { name: 'Not owned yet', range: 0 },
-          { name: 'Metal Detector', price: 300, range: 8 },
-          { name: 'Good Detector', price: 900, range: 14 },
-          { name: 'Pro Detector', price: 2000, range: 22 },
-        ],
-        describe: (level) => level.range ? `hears nuggets up to ${level.range} m away` : '',
-      },
       excavator: {
         title: 'Small Excavator',
-        about: 'A machine that digs dirt and dumps it into the sluice for you.',
+        about: 'A digger you drive yourself. It is parked at the dig site: walk up to it and press E.',
         levels: [
-          { name: 'Not owned yet', scoopsPerLoad: 0 },
-          { name: 'Small Excavator', price: 4000, scoopsPerLoad: 10 },
-          { name: 'Tuned Excavator', price: 10000, scoopsPerLoad: 20 },
-          { name: 'Turbo Excavator', price: 20000, scoopsPerLoad: 40 },
+          { name: 'Not owned yet' },
+          { name: 'Small Excavator', price: 4000 },
         ],
-        describe: (level) => level.scoopsPerLoad ? `digs ${level.scoopsPerLoad} scoops every ${SETTINGS.excavatorSecondsPerLoad} s` : '',
+        describe: (level) => level.price ? 'scoops dirt into the sluice or the dump truck' : '',
+      },
+      // The three excavator upgrades. "needs" means you must own the excavator first.
+      digBucket: {
+        title: 'Excavator Bucket',
+        about: 'A bigger bucket digs more dirt with each scoop.',
+        needs: 'excavator',
+        levels: [
+          { name: 'Standard Bucket', scoops: 40 },
+          { name: 'Wide Bucket', price: 1500, scoops: 60 },
+          { name: 'Heavy Bucket', price: 4000, scoops: 90 },
+          { name: 'Monster Bucket', price: 9000, scoops: 130 },
+        ],
+        describe: (level) => `holds ${level.scoops} scoops`,
+      },
+      engine: {
+        title: 'Excavator Engine',
+        about: 'A stronger engine drives and moves the arm faster.',
+        needs: 'excavator',
+        levels: [
+          { name: 'Stock Engine', speed: 1 },
+          { name: 'Tuned Engine', price: 2000, speed: 1.3 },
+          { name: 'Turbo Engine', price: 5000, speed: 1.65 },
+          { name: 'Twin-Turbo Engine', price: 11000, speed: 2.1 },
+        ],
+        describe: (level) => `${Math.round(level.speed * 100)}% speed`,
+      },
+      arm: {
+        title: 'Excavator Arm',
+        about: 'A longer arm reaches further, so you drive around less.',
+        needs: 'excavator',
+        levels: [ // boom = the first part of the arm, stick = the second part (in meters)
+          { name: 'Short Arm', boom: 2.8, stick: 1.8, reach: 4.3 },
+          { name: 'Long Arm', price: 1200, boom: 3.3, stick: 2.1, reach: 4.8 },
+          { name: 'Extra-Long Arm', price: 3500, boom: 3.8, stick: 2.4, reach: 5.3 },
+          { name: 'Super-Long Arm', price: 8000, boom: 4.4, stick: 2.8, reach: 5.8 },
+        ],
+        describe: (level) => `reaches about ${level.reach} m`,
       },
     };
-    // The shop, the tool bar and the number keys (1 to 5) only ever look at the tools in this list,
-    // so an old tool that no longer exists (like the Gold Pan) is simply ignored.
-    const TOOL_ORDER = ['shovel', 'carrier', 'sluice', 'detector', 'excavator'];
+    // The shop, the tool bar and the number keys (1 to 7) only ever look at the tools in this list,
+    // so old tools that no longer exist (the Gold Pan and the Metal Detector) are simply ignored.
+    const TOOL_ORDER = ['shovel', 'carrier', 'sluice', 'excavator', 'digBucket', 'engine', 'arm'];
+    const EXCAVATOR_PARTS = ['digBucket', 'engine', 'arm'];
+
+    // Where the excavator is parked at the start, and how its arm is posed
+    const EXCAVATOR_START = { x: 2.5, z: -14, heading: Math.PI, swing: 0, boom: 0.9, bucketPitch: -0.3, fill: 0 };
 
     // ---------- Game state: everything that changes while you play ----------
     const state = {
@@ -170,13 +225,17 @@
       carrying: 0,        // scoops of dirt in your bucket or wheelbarrow
       sluiceQueue: 0,     // scoops waiting to be washed in the sluice
       washTimer: 0,
-      levels: { shovel: 0, carrier: 0, sluice: 0, detector: 0, excavator: 0 },
-      buriedNuggets: [],  // hidden nuggets, each one is { x, z }
-      buryTimer: 0,
-      detectorSignal: 0,  // 0 = nothing nearby, 1 = standing right on a nugget
-      detectorMuted: false,
-      excavatorTimer: 0,
+      levels: Object.fromEntries(TOOL_ORDER.map((id) => [id, 0])), // { shovel: 0, carrier: 0, ... }
       shopOpen: false,
+      muted: false,
+      driving: false,     // true while you're sitting in the excavator
+      // The excavator. heading = which way the tracks face, swing = the top part turned left/right,
+      // boom = arm raised up (radians), bucketPitch = bucket tilt (up = holding dirt, down = dumping),
+      // fill = how full the bucket is (0 to 1).
+      exc: { ...EXCAVATOR_START },
+      // The dump truck. mode is 'parked', 'reversing' (to the sluice), 'dumping' or 'returning'.
+      // progress goes from 0 (parked) to 1 (at the sluice).
+      truck: { load: 0, mode: 'parked', progress: 0, wait: 0, timer: 0 },
     };
 
     // The level you own right now, and the one you can buy next (undefined when maxed out).
@@ -211,6 +270,8 @@
     scene.add(sun);
 
     // ---------- Helpers for building plain-shape objects ----------
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
     function box(w, h, d, color, x, y, z) {
       const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
       mesh.position.set(x, y, z);
@@ -220,6 +281,20 @@
     function cylinder(radius, height, color, x, y, z) {
       const mesh = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, 24), new THREE.MeshLambertMaterial({ color }));
       mesh.position.set(x, y, z);
+      return mesh;
+    }
+
+    // A cylinder lying on its side (pointing left-right, along z): wheels, pins and rollers
+    function wheel(radius, width, color, x, y, z) {
+      const mesh = cylinder(radius, width, color, x, y, z);
+      mesh.rotation.x = Math.PI / 2;
+      return mesh;
+    }
+
+    // A box stretched between two points, seen from the side (x = forward, y = up). Used for the excavator's arm.
+    function beam(x1, y1, x2, y2, thickness, width, color) {
+      const mesh = box(Math.hypot(x2 - x1, y2 - y1), thickness, width, color, (x1 + x2) / 2, (y1 + y2) / 2, 0);
+      mesh.rotation.z = Math.atan2(y2 - y1, x2 - x1);
       return mesh;
     }
 
@@ -255,12 +330,13 @@
     ground.rotation.x = -Math.PI / 2; // lay the plane flat
     scene.add(ground);
 
-    // Dirt pile
+    // Dirt pile: a cone 2 m wide at the bottom and 1.5 m tall
+    const PILE_RADIUS = 2, PILE_HEIGHT = 1.5;
     const dirtPile = new THREE.Mesh(
-      new THREE.ConeGeometry(2, 1.5, 16),
+      new THREE.ConeGeometry(PILE_RADIUS, PILE_HEIGHT, 16),
       new THREE.MeshLambertMaterial({ color: 0x6b4423 })
     );
-    dirtPile.position.set(-6, 0.75, -6);
+    dirtPile.position.set(-6, PILE_HEIGHT / 2, -6);
     scene.add(dirtPile);
     makeSign('DIRT', -6, -3.5);
 
@@ -354,226 +430,576 @@
     scene.add(shop);
     makeSign('SHOP', 0, 8.5);
 
-    // Small excavator: a yellow machine that swings its arm between the dirt pile and the sluice.
-    // It stays hidden until you buy it.
-    const excavator = new THREE.Group();
-    const excavatorBase = new THREE.Group();
-    excavatorBase.add(box(2.6, 0.5, 0.6, 0x333333, 0, 0.25, 0.8));  // tracks
-    excavatorBase.add(box(2.6, 0.5, 0.6, 0x333333, 0, 0.25, -0.8));
-    excavatorBase.add(box(2.2, 0.9, 2, 0xf2b705, 0, 0.95, 0));      // body
-    excavatorBase.add(box(0.9, 1, 0.9, 0xf2b705, -0.5, 1.9, 0.4));  // cab
-    excavator.add(excavatorBase);
-    const excavatorArm = new THREE.Group();
-    excavatorArm.add(box(4.6, 0.25, 0.25, 0xf2b705, 2.3, 0.2, 0));  // arm
-    excavatorArm.add(box(0.6, 0.5, 0.6, 0x555555, 4.8, 0, 0));      // digging bucket
-    const excavatorLoad = box(0.5, 0.15, 0.5, 0x6b4423, 4.8, 0.3, 0); // dirt in the bucket
-    excavatorArm.add(excavatorLoad);
-    excavatorArm.position.set(0, 1.6, 0);
-    excavator.add(excavatorArm);
-    excavator.position.set(0, 0, -9.5);
-    excavator.visible = false;
-    scene.add(excavator);
-    // Which way the arm points to reach the pile and the top end of the sluice
-    const armAngle = (x, z) => Math.atan2(-(z - excavator.position.z), x - excavator.position.x);
-    const pileAngle = armAngle(dirtPile.position.x, dirtPile.position.z);
-    const sluiceAngle = armAngle(sluice.position.x - 1.4, sluice.position.z);
-
-    // Every solid thing: used to stop you walking through it and to measure how close you are.
+    // ---------- Solid things: stop you (and the machines) from going through them ----------
+    // A solid is either a Box3 (a box lined up with the world) or a "rect": a box seen from above that
+    // can be turned, for things that drive around (the excavator and the truck).
     function boundsOf(object) {
       return new THREE.Box3().setFromObject(object);
     }
+
+    // The nearest point on a solid's footprint to a spot on the ground
+    function nearestPoint(solid, px, pz) {
+      if (solid.isBox3) return { x: clamp(px, solid.min.x, solid.max.x), z: clamp(pz, solid.min.z, solid.max.z) };
+      const cos = Math.cos(solid.heading), sin = Math.sin(solid.heading);
+      const dx = px - solid.x, dz = pz - solid.z;
+      // How far the spot is in front of / to the right of the middle, kept inside the rect
+      const along = clamp(dx * cos - dz * sin, -solid.halfLength, solid.halfLength);
+      const across = clamp(dx * sin + dz * cos, -solid.halfWidth, solid.halfWidth);
+      return { x: solid.x + along * cos + across * sin, z: solid.z - along * sin + across * cos };
+    }
+
+    // Distance from a spot on the ground to the nearest edge of a solid (0 = inside it)
+    function distanceFromPoint(solid, px, pz) {
+      const p = nearestPoint(solid, px, pz);
+      return Math.hypot(px - p.x, pz - p.z);
+    }
+
+    const pileBounds = boundsOf(dirtPile);
     const sluiceBounds = boundsOf(sluice); // updated in place whenever the sluice is upgraded
-    const solids = [boundsOf(dirtPile), sluiceBounds, boundsOf(shop)];
-    const excavatorBounds = boundsOf(excavatorBase); // becomes solid once you buy it
+    const shopBounds = boundsOf(shop);
+    const excavatorRect = { x: 0, z: 0, heading: 0, halfLength: 1.6, halfWidth: 1.3 }; // moved by poseExcavator()
+    const truckRect = { x: 0, z: 0, heading: 0, halfLength: 2.7, halfWidth: 1.1 };     // moved by poseTruck()
+    const truckBedRect = { x: 0, z: 0, heading: 0, halfLength: 2.0, halfWidth: 1.35 }; // where the excavator can dump into the truck
+    const solids = [pileBounds, sluiceBounds, shopBounds, excavatorRect, truckRect];
 
-    // ---------- Things you can use with E ----------
-    const interactables = [
-      {
-        bounds: boundsOf(dirtPile),
-        prompt: () => state.carrying >= toolNow('carrier').capacity
-          ? `${toolNow('carrier').name} is full - take it to the sluice`
-          : 'Press E to dig',
-        use: dig,
-      },
-      {
-        bounds: sluiceBounds,
-        prompt: () => state.carrying > 0 ? `Press E to dump ${state.carrying} scoops into the sluice` : 'Bring dirt here to wash it',
-        use: dumpIntoSluice,
-      },
-      {
-        bounds: boundsOf(shop),
-        prompt: () => 'Press E to open the shop (or press B anywhere)',
-        use: openShop,
-      },
-    ];
+    // ---------- The excavator: parked at the dig site. Buy it, then walk up and press E to drive it. ----------
+    // Built from plain shapes like everything else, just a lot more of them. Its own "forward" is +x and "right" is +z.
+    const EXC_YELLOW = 0xf2b705, EXC_DARK = 0x2a2a2a, EXC_GREY = 0x3a3a3a, EXC_STEEL = 0x777777, CHROME = 0xdfe6ee;
+    const DIRT_COLOR = 0x6b4423;
+    const STICK_ANGLE = -2.0; // the second part of the arm hangs down from the first at this angle
+    const DUMP_PITCH = -1.1;  // tip the bucket further down than this and the dirt falls out
+    const glassMaterial = new THREE.MeshLambertMaterial({ color: 0x9fd4ff, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
+    const unitCylinder = new THREE.CylinderGeometry(1, 1, 1, 12); // stretched to fit, for the hydraulic rams
+    const UP = new THREE.Vector3(0, 1, 0);
 
-    function dig() {
-      const capacity = toolNow('carrier').capacity;
-      state.carrying = Math.min(capacity, state.carrying + toolNow('shovel').scoops);
-    }
+    const excavator = new THREE.Group(); // the whole machine: moves and turns when you drive
+    scene.add(excavator);
+    let ex = {}; // its moving parts (upper, boom, bucket, ...), filled in by buildExcavator()
 
-    function dumpIntoSluice() {
-      state.sluiceQueue += state.carrying;
-      state.carrying = 0;
-    }
+    // Throw away the old excavator model and build it again with the current upgrades.
+    function buildExcavator() {
+      const arm = toolNow('arm');
+      const engineLevel = state.levels.engine;
+      const bucketLevel = state.levels.digBucket;
+      excavator.clear();
+      ex = {};
 
-    function buy(id) {
-      const next = toolNext(id);
-      if (!next) return; // already fully upgraded
-      if (state.money < next.price) {
-        showMessage(`You need $${next.price - state.money} more`);
-        return;
-      }
-      state.money -= next.price;
-      state.levels[id] += 1;
-      showMessage(`Bought the ${next.name}!`);
-      if (id === 'sluice') upgradeSluiceModel();
-      if (id === 'excavator' && !excavator.visible) {
-        excavator.visible = true;
-        solids.push(excavatorBounds);
-      }
-      updateToolbar(id);
-    }
-
-    // Swap in the bigger sluice model and update where you bump into it
-    function upgradeSluiceModel() {
-      buildSluice(state.levels.sluice);
-      sluiceBounds.setFromObject(sluice);
-      // A longer sluice might now sit on top of a buried nugget. Remove those; new ones get buried over time.
-      state.buriedNuggets = state.buriedNuggets.filter((n) => distanceFromPoint(sluiceBounds, n.x, n.z) >= 3);
-    }
-
-    // Look for gold in one scoop of dirt. "where" is the spot the sparkles float up from.
-    function findGold(flakeChance, nuggetChance, where) {
-      if (Math.random() < nuggetChance) {
-        state.money += SETTINGS.nuggetValue;
-        showMessage(`BIG NUGGET! +$${SETTINGS.nuggetValue}`);
-        sparkle(0.25, where);
-      } else if (Math.random() < flakeChance) {
-        const flakes = 1 + Math.floor(Math.random() * 3); // 1 to 3 flakes
-        state.money += flakes * SETTINGS.flakeValue;
-        for (let i = 0; i < flakes; i++) sparkle(0.07, where);
-      }
-    }
-
-    // ---------- Sluice: washes dirt by itself ----------
-    function updateSluice(dt) {
-      const level = toolNow('sluice');
-      if (state.sluiceQueue > 0) {
-        state.washTimer += dt;
-        while (state.washTimer >= level.seconds && state.sluiceQueue > 0) {
-          state.washTimer -= level.seconds;
-          const scoops = Math.min(level.batch, state.sluiceQueue);
-          state.sluiceQueue -= scoops;
-          for (let i = 0; i < scoops; i++) findGold(SETTINGS.flakeChance, SETTINGS.nuggetChance, sluiceSpot);
+      // --- Tracks and the frame between them (these don't turn when the arm swings) ---
+      for (const side of [-1, 1]) {
+        const z = side * 1.0;
+        excavator.add(box(2.7, 0.5, 0.5, EXC_DARK, 0, 0.35, z));        // the track belt
+        excavator.add(wheel(0.25, 0.5, EXC_DARK, 1.35, 0.35, z));        // round front end
+        excavator.add(wheel(0.25, 0.5, EXC_DARK, -1.35, 0.35, z));       // round back end
+        for (let i = 0; i < 14; i++) {                                   // ridges on the belt (track pads)
+          const x = -1.3 + i * 0.2;
+          excavator.add(box(0.09, 0.05, 0.54, 0x111111, x, 0.62, z));
+          excavator.add(box(0.09, 0.05, 0.54, 0x111111, x, 0.08, z));
         }
-      } else {
-        state.washTimer = 0;
+        for (const x of [-0.8, -0.27, 0.27, 0.8]) {                      // rollers on the outside
+          excavator.add(wheel(0.12, 0.04, EXC_STEEL, x, 0.3, z + side * 0.26));
+        }
+        excavator.add(wheel(0.22, 0.05, EXC_YELLOW, -1.35, 0.35, z + side * 0.27)); // drive wheel
+        excavator.add(wheel(0.1, 0.07, EXC_DARK, -1.35, 0.35, z + side * 0.28));    // its hub
       }
-      sluiceDirt.visible = state.sluiceQueue > 0;
-    }
+      excavator.add(box(1.9, 0.35, 1.5, EXC_GREY, 0, 0.45, 0));        // frame
+      excavator.add(cylinder(0.75, 0.12, 0x555555, 0, 0.72, 0));        // swing ring the top part turns on
 
-    // ---------- Excavator: digs by itself and dumps into the sluice ----------
-    function updateExcavator(dt) {
-      const scoops = toolNow('excavator').scoopsPerLoad;
-      if (!scoops) return;
-      const period = SETTINGS.excavatorSecondsPerLoad;
-      const backedUp = state.sluiceQueue >= SETTINGS.sluiceMaxQueue;
-      if (!backedUp) {
-        const before = state.excavatorTimer;
-        state.excavatorTimer += dt;
-        // Halfway through each swing the arm is over the sluice, so the dirt drops in
-        if (before < period / 2 && state.excavatorTimer >= period / 2) state.sluiceQueue += scoops;
-        if (state.excavatorTimer >= period) state.excavatorTimer -= period;
+      // --- The top part: engine, cab and arm. It turns around when you swing the arm. ---
+      const upper = new THREE.Group();
+      upper.position.y = 0.8;
+      excavator.add(upper);
+      upper.add(box(2.8, 0.18, 2.3, EXC_DARK, -0.35, 0.09, 0));         // deck
+      upper.add(box(1.4, 0.9, 2.2, EXC_YELLOW, -0.95, 0.63, 0));        // engine cover
+      upper.add(box(1.42, 0.08, 2.22, EXC_DARK, -0.95, 0.3, 0));        // dark stripe along the bottom of it
+      upper.add(box(0.35, 0.8, 2.3, EXC_GREY, -1.85, 0.55, 0));         // counterweight (the heavy back end)
+      for (let i = 0; i < 4; i++) upper.add(box(0.7, 0.04, 0.02, EXC_DARK, -0.95, 0.55 + i * 0.12, 1.11)); // engine grill
+      upper.add(box(0.7, 0.55, 0.55, EXC_YELLOW, 0.55, 0.45, 0.85));    // tool box on the front right
+      upper.add(box(0.35, 0.3, 0.4, EXC_DARK, 0.9, 0.35, 0.35));        // bracket the arm is fixed to
+
+      // Cab on the front left, with glass windows, a seat and two joysticks
+      const cab = new THREE.Group();
+      cab.position.set(0.45, 0.18, -0.6);
+      upper.add(cab);
+      cab.add(box(1.1, 0.05, 0.95, EXC_DARK, 0, 0.02, 0));              // floor
+      for (const x of [-0.52, 0.52]) for (const z of [-0.445, 0.445]) cab.add(box(0.07, 1.32, 0.07, EXC_DARK, x, 0.67, z)); // corner posts
+      cab.add(box(1.2, 0.08, 1.02, EXC_YELLOW, 0, 1.36, 0));            // roof
+      cab.add(box(0.05, 1.3, 0.95, EXC_YELLOW, -0.53, 0.67, 0));        // back wall
+      cab.add(box(0.05, 0.35, 0.95, EXC_YELLOW, 0.53, 0.2, 0));         // panel under the front window
+      const frontWindow = new THREE.Mesh(new THREE.PlaneGeometry(0.9, 0.92), glassMaterial);
+      frontWindow.rotation.y = Math.PI / 2;
+      frontWindow.position.set(0.53, 0.84, 0);
+      cab.add(frontWindow);
+      for (const z of [-0.445, 0.445]) {
+        const sideWindow = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.15), glassMaterial);
+        sideWindow.position.set(0, 0.72, z);
+        cab.add(sideWindow);
       }
-      const phase = state.excavatorTimer / period;           // 0 = at the pile, 0.5 = over the sluice
-      const swing = (1 - Math.cos(phase * 2 * Math.PI)) / 2;  // goes smoothly 0 -> 1 -> 0
-      excavatorArm.rotation.y = pileAngle + (sluiceAngle - pileAngle) * swing;
-      excavatorLoad.visible = phase < 0.5;
-    }
+      cab.add(box(0.3, 0.3, 0.3, EXC_GREY, -0.2, 0.17, 0));             // seat stand
+      cab.add(box(0.45, 0.12, 0.45, 0x222222, -0.2, 0.36, 0));          // seat
+      cab.add(box(0.1, 0.55, 0.45, 0x222222, -0.42, 0.66, 0));          // seat back
+      cab.add(box(0.15, 0.3, 0.6, EXC_GREY, 0.4, 0.17, 0));             // dashboard
+      for (const z of [-0.28, 0.28]) {                                  // joysticks
+        cab.add(cylinder(0.02, 0.25, 0x111111, 0.05, 0.5, z));
+        cab.add(cylinder(0.04, 0.08, 0x111111, 0.05, 0.65, z));
+      }
+      ex.seat = new THREE.Object3D();                                   // where your eyes are when you drive
+      ex.seat.position.set(-0.15, 1.0, 0);
+      cab.add(ex.seat);
 
-    // ---------- Buried nuggets and the metal detector ----------
-    const holeGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.02, 16);
-    const holeMaterial = new THREE.MeshLambertMaterial({ color: 0x3b2410 });
+      // Engine upgrades: bigger and shinier exhaust pipes, an air filter, then a hood scoop and a warning light
+      const stacks = engineLevel >= 2 ? [0.6, 0.9] : [0.75];
+      const stackHeight = 0.45 + engineLevel * 0.12;
+      for (const z of stacks) {
+        upper.add(cylinder(engineLevel ? 0.07 : 0.05, stackHeight, engineLevel ? CHROME : EXC_DARK, -1.25, 1.08 + stackHeight / 2, z));
+      }
+      if (engineLevel >= 1) {
+        upper.add(cylinder(0.14, 0.35, EXC_DARK, -0.6, 1.25, 0.7));       // air filter
+        upper.add(box(0.6, 0.02, 0.8, EXC_DARK, -1.05, 1.09, -0.3));      // vents on the hood
+      }
+      if (engineLevel >= 3) {
+        upper.add(box(0.5, 0.18, 0.5, EXC_DARK, -0.9, 1.17, -0.3));       // hood scoop for the turbos
+        for (const z of [-0.8, -0.2, 0.4]) upper.add(box(0.37, 0.12, 0.3, EXC_YELLOW, -1.86, 0.75, z)); // hazard stripes
+        const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.12, 12), new THREE.MeshBasicMaterial({ color: 0xff8800 }));
+        beacon.position.set(-0.3, 1.46, -0.3);
+        cab.add(beacon);                                                // orange warning light on the roof
+      }
 
-    // Hide a nugget at a random spot that isn't too close to anything else.
-    function buryNugget() {
-      const stations = [...solids, excavatorBounds];
-      for (let tries = 0; tries < 100; tries++) {
-        const x = (Math.random() - 0.5) * 44;
-        const z = (Math.random() - 0.5) * 44;
-        const nearStation = stations.some((bounds) => distanceFromPoint(bounds, x, z) < 3);
-        const nearOther = state.buriedNuggets.some((n) => Math.hypot(n.x - x, n.z - z) < 6);
-        if (!nearStation && !nearOther) {
-          state.buriedNuggets.push({ x, z });
-          return;
+      // --- The arm: boom (first part), stick (second part) and the bucket, joined by pins ---
+      const boomLength = arm.boom, stickLength = arm.stick;
+      const kneeX = boomLength * 0.55, kneeY = 0.35;                    // the boom is bent, like a banana
+      const boom = new THREE.Group();
+      boom.position.set(0.95, 0.5, 0.35);
+      upper.add(boom);
+      boom.add(beam(0, 0, kneeX, kneeY, 0.34, 0.3, EXC_YELLOW));
+      boom.add(beam(kneeX, kneeY, boomLength, 0, 0.3, 0.28, EXC_YELLOW));
+      boom.add(wheel(0.1, 0.4, EXC_DARK, 0, 0, 0));                     // pins at the joints
+      boom.add(wheel(0.1, 0.36, EXC_DARK, boomLength, 0, 0));
+      if (arm.price) boom.add(box(0.9, 0.24, 0.34, EXC_DARK, kneeX, kneeY, 0)); // upgraded arms: dark steel plates at the bend
+      if (state.levels.arm >= 2) {                                          // ...then hydraulic hoses along the top
+        const hose1 = beam(0.3, 0.2, kneeX, kneeY + 0.22, 0.04, 0.04, 0x111111);
+        const hose2 = beam(kneeX, kneeY + 0.22, boomLength - 0.3, 0.2, 0.04, 0.04, 0x111111);
+        hose1.position.z = hose2.position.z = 0.08;
+        boom.add(hose1, hose2);
+      }
+
+      const stick = new THREE.Group();
+      stick.position.set(boomLength, 0, 0);
+      stick.rotation.z = STICK_ANGLE;
+      boom.add(stick);
+      stick.add(beam(-0.45, 0, stickLength, 0, 0.24, 0.22, EXC_YELLOW)); // it sticks out a bit behind the pin (the "heel")
+      stick.add(wheel(0.08, 0.3, EXC_DARK, stickLength, 0, 0));
+      if (state.levels.arm >= 3) {                                        // Super-Long Arm: black and yellow stripes near the end
+        for (let i = 0; i < 3; i++) stick.add(box(0.1, 0.25, 0.23, EXC_DARK, stickLength * 0.6 + i * 0.2, 0, 0));
+      }
+
+      // The bucket. With pitch 0 its floor is flat, the opening faces up and the teeth point forward.
+      const size = [1, 1.15, 1.3, 1.5][bucketLevel];
+      const H = 0.55 * size, D = 0.75 * size, W = 0.75 * size;         // height, depth, width
+      const bucket = new THREE.Group();
+      bucket.position.set(stickLength, 0, 0);
+      stick.add(bucket);
+      bucket.add(beam(-0.05 * size, 0, 0.08 * size, -H, 0.06, W, EXC_GREY));   // back
+      bucket.add(beam(0.08 * size, -H, D, -H + 0.08 * size, 0.06, W, EXC_GREY)); // floor
+      for (const z of [-W / 2, W / 2]) bucket.add(box(D + 0.05, H, 0.04, EXC_YELLOW, D / 2, -H / 2, z)); // sides
+      const teeth = 4 + bucketLevel;
+      for (let i = 0; i < teeth; i++) {
+        const z = -W / 2 + 0.08 + i * (W - 0.16) / (teeth - 1);
+        bucket.add(box(0.16 * size, 0.06, 0.07, bucketLevel === 3 ? CHROME : 0x1a1a1a, D + 0.07 * size, -H + 0.08 * size, z));
+      }
+      if (bucketLevel >= 2) {                                          // Heavy: dark wear strips under the floor
+        for (const z of [-W / 4, W / 4]) {
+          const strip = beam(0.1 * size, -H - 0.04, D, -H + 0.04, 0.04, 0.08, EXC_DARK);
+          strip.position.z = z;
+          bucket.add(strip);
         }
       }
-    }
-    for (let i = 0; i < SETTINGS.maxBuriedNuggets; i++) buryNugget();
+      if (bucketLevel >= 3) {                                          // Monster: side cutters
+        for (const z of [-W / 2 - 0.03, W / 2 + 0.03]) bucket.add(box(0.2, H * 0.6, 0.04, EXC_DARK, D - 0.05, -H * 0.55, z));
+      }
+      ex.dirtHeight = H * 0.8;
+      ex.dirtBottom = -H + 0.04;
+      ex.dirt = box(D * 0.85, ex.dirtHeight, W * 0.9, DIRT_COLOR, D / 2, 0, 0); // the dirt you've scooped up
+      bucket.add(ex.dirt);
+      // Points on the bucket used by the game: the teeth tip, the bottom of the back, and the middle
+      ex.tip = new THREE.Vector3(D + 0.15 * size, -H + 0.08 * size, 0);
+      ex.heel = new THREE.Vector3(0.08 * size, -H, 0);
+      ex.belly = new THREE.Vector3(D / 2, -H / 2, 0);
 
-    function updateBuriedNuggets(dt) {
-      if (state.buriedNuggets.length >= SETTINGS.maxBuriedNuggets) return;
-      state.buryTimer += dt;
-      if (state.buryTimer >= SETTINGS.secondsPerNewBuriedNugget) {
-        state.buryTimer = 0;
-        buryNugget();
+      Object.assign(ex, { upper, boom, stick, bucket });
+
+      // Hydraulic rams: a dark tube with a shiny rod that slides out as the arm moves
+      ex.rams = [
+        makeRam(upper, new THREE.Vector3(1.05, 0.25, 0.35), boom, new THREE.Vector3(boomLength * 0.4, -0.2, 0), 0.08),
+        makeRam(boom, new THREE.Vector3(kneeX * 0.6, kneeY + 0.12, 0), stick, new THREE.Vector3(-0.45, 0.05, 0), 0.07),
+        makeRam(stick, new THREE.Vector3(0.3, 0.17, 0), bucket, new THREE.Vector3(0.15 * size, 0.12, 0), 0.055),
+      ];
+    }
+
+    function makeRam(fromPart, fromPoint, toPart, toPoint, radius) {
+      const barrel = new THREE.Mesh(unitCylinder, new THREE.MeshLambertMaterial({ color: EXC_DARK }));
+      const rod = new THREE.Mesh(unitCylinder, new THREE.MeshLambertMaterial({ color: CHROME }));
+      ex.upper.add(barrel, rod);
+      return { fromPart, fromPoint, toPart, toPoint, radius, barrel, rod };
+    }
+
+    // Stretch a cylinder so it runs from point a to point b
+    function placeBetween(mesh, a, b, radius) {
+      const direction = new THREE.Vector3().subVectors(b, a);
+      mesh.position.addVectors(a, b).multiplyScalar(0.5);
+      mesh.scale.set(radius, direction.length(), radius);
+      mesh.quaternion.setFromUnitVectors(UP, direction.normalize());
+    }
+
+    function updateRams() {
+      for (const ram of ex.rams) {
+        // Where the two ends are, measured from the top part of the excavator (that's where the rams live)
+        const a = ex.upper.worldToLocal(ram.fromPart.localToWorld(ram.fromPoint.clone()));
+        const b = ex.upper.worldToLocal(ram.toPart.localToWorld(ram.toPoint.clone()));
+        placeBetween(ram.barrel, a, a.clone().lerp(b, 0.6), ram.radius);
+        placeBetween(ram.rod, a.clone().lerp(b, 0.5), b, ram.radius * 0.55);
       }
     }
 
-    // The buried nugget you're standing on, if you own a detector
-    function buriedNuggetHere() {
-      if (!toolNow('detector').range) return undefined;
-      return state.buriedNuggets.find((n) => Math.hypot(camera.position.x - n.x, camera.position.z - n.z) < SETTINGS.reach);
+    // Where a point on the bucket is in the world right now
+    function bucketWorld(point) {
+      return ex.bucket.localToWorld(point.clone());
     }
 
-    function digUpNugget(nugget) {
-      state.buriedNuggets.splice(state.buriedNuggets.indexOf(nugget), 1);
-      const range = SETTINGS.buriedNuggetMax - SETTINGS.buriedNuggetMin;
-      const value = SETTINGS.buriedNuggetMin + Math.floor(Math.random() * (range + 1));
-      state.money += value;
-      showMessage(`You dug up a nugget! +$${value}`);
-      const hole = new THREE.Mesh(holeGeometry, holeMaterial);
-      hole.position.set(nugget.x, 0.01, nugget.z);
-      scene.add(hole);
-      for (let i = 0; i < 4; i++) sparkle(0.2, { x: nugget.x, y: 0.3, z: nugget.z, spread: 0.8 });
+    // Move every part of the excavator to match state.exc
+    function poseExcavator() {
+      const exc = state.exc;
+      excavator.position.set(exc.x, 0, exc.z);
+      excavator.rotation.y = exc.heading;
+      ex.upper.rotation.y = exc.swing;
+      ex.boom.rotation.z = exc.boom;
+      ex.bucket.rotation.z = exc.bucketPitch - exc.boom - STICK_ANGLE; // keeps the bucket's tilt steady while the arm moves
+      ex.dirt.visible = exc.fill > 0;
+      ex.dirt.scale.y = Math.max(exc.fill, 0.05);
+      ex.dirt.position.y = ex.dirtBottom + ex.dirtHeight * exc.fill / 2;
+      excavator.updateMatrixWorld(true);
+      updateRams();
+      ex.lowest = Math.min(bucketWorld(ex.tip).y, bucketWorld(ex.heel).y); // so the bucket can't go into the ground
+      Object.assign(excavatorRect, { x: exc.x, z: exc.z, heading: exc.heading });
+    }
+    buildExcavator();
+    poseExcavator();
+
+    // ---------- The dump truck: fill it with the excavator and it takes the dirt to the sluice by itself ----------
+    const TRUCK_ORANGE = 0xd35400, TRUCK_WINDOW = 0x3a5f7a;
+    const TRUCK_PARK = { x: -1.5, z: -11.5 };  // where it waits to be loaded
+    const TRUCK_REAR_AT_SLUICE = { x: 3.7, z: -6.2 }; // where its back end stops, at the top of the sluice
+    // Work out its route once: it backs up in a straight line from the parking spot to the sluice
+    const truckRouteX = TRUCK_REAR_AT_SLUICE.x - TRUCK_PARK.x, truckRouteZ = TRUCK_REAR_AT_SLUICE.z - TRUCK_PARK.z;
+    const truckRouteRear = Math.hypot(truckRouteX, truckRouteZ);
+    const truckDir = { x: truckRouteX / truckRouteRear, z: truckRouteZ / truckRouteRear }; // pointing to the sluice
+    const truckDumpSpot = { x: TRUCK_REAR_AT_SLUICE.x - truckDir.x * 2.7, z: TRUCK_REAR_AT_SLUICE.z - truckDir.z * 2.7 };
+    const truckRouteLength = Math.hypot(truckDumpSpot.x - TRUCK_PARK.x, truckDumpSpot.z - TRUCK_PARK.z);
+    const truckHeading = Math.atan2(truckDir.z, -truckDir.x); // the cab faces away from the sluice
+
+    const truck = new THREE.Group();
+    truck.rotation.y = truckHeading;
+    scene.add(truck);
+    truck.add(box(5.0, 0.3, 1.6, EXC_GREY, -0.2, 0.75, 0));             // chassis
+    for (const x of [1.6, -1.1, -2.0]) {
+      for (const z of [-0.95, 0.95]) {
+        truck.add(wheel(0.45, 0.35, 0x1a1a1a, x, 0.45, z));             // tyre
+        truck.add(wheel(0.2, 0.37, 0x999999, x, 0.45, z));              // hub
+      }
+    }
+    truck.add(box(1.4, 1.4, 2.0, TRUCK_ORANGE, 1.6, 1.6, 0));           // cab
+    truck.add(box(0.05, 0.6, 1.7, TRUCK_WINDOW, 2.31, 1.95, 0));        // windscreen
+    for (const z of [-1.0, 1.0]) truck.add(box(0.8, 0.55, 0.05, TRUCK_WINDOW, 1.7, 1.95, z)); // side windows
+    truck.add(box(0.1, 0.35, 2.0, 0x222222, 2.35, 1.05, 0));            // bumper
+    for (const z of [-0.7, 0.7]) truck.add(box(0.05, 0.15, 0.3, 0xffffcc, 2.4, 1.2, z)); // headlights
+
+    // The tipping bed. It's hinged at the back, so turning it lifts the front end.
+    const truckBed = new THREE.Group();
+    truckBed.position.set(-2.6, 1.0, 0);
+    truck.add(truckBed);
+    truckBed.add(box(3.4, 0.1, 2.1, TRUCK_ORANGE, 1.7, 0.05, 0));       // floor
+    for (const z of [-1.05, 1.05]) {
+      truckBed.add(box(3.4, 0.8, 0.08, TRUCK_ORANGE, 1.7, 0.45, z));    // sides
+      for (const x of [0.4, 1.3, 2.2, 3.1]) truckBed.add(box(0.08, 0.8, 0.06, EXC_DARK, x, 0.45, z * 1.04)); // dark ribs
+    }
+    truckBed.add(box(0.08, 1.0, 2.1, TRUCK_ORANGE, 3.4, 0.55, 0));      // front wall
+    truckBed.add(box(0.5, 0.08, 2.1, TRUCK_ORANGE, 3.6, 1.05, 0));      // guard over the cab
+    const tailgate = new THREE.Group();                                  // hinged at the top, swings open when tipping
+    tailgate.position.set(0, 0.85, 0);
+    tailgate.add(box(0.08, 0.8, 2.1, TRUCK_ORANGE, 0, -0.4, 0));
+    truckBed.add(tailgate);
+    const truckDirt = box(3.2, 0.7, 1.95, DIRT_COLOR, 1.7, 0.45, 0);
+    truckBed.add(truckDirt);
+
+    function truckSpot(progress) {
+      return {
+        x: TRUCK_PARK.x + (truckDumpSpot.x - TRUCK_PARK.x) * progress,
+        z: TRUCK_PARK.z + (truckDumpSpot.z - TRUCK_PARK.z) * progress,
+      };
     }
 
-    // Beeps: made with the browser's built-in sound generator, so no sound files are needed.
-    let audio = null;
-    function beep(signal) {
+    // Move the truck, its bed and the dirt in it to match state.truck
+    function poseTruck() {
+      const t = state.truck;
+      const spot = truckSpot(t.progress);
+      truck.position.set(spot.x, 0, spot.z);
+      // Bed: up over 1.2 s, stays up for 0.6 s, then down over 1 s
+      let tilt = 0;
+      if (t.mode === 'dumping') tilt = t.timer < 1.2 ? t.timer / 1.2 : t.timer < 1.8 ? 1 : Math.max(0, 2.8 - t.timer);
+      truckBed.rotation.z = tilt * 0.9;
+      tailgate.rotation.z = -tilt * 0.9; // hangs straight down, so the dirt can slide out
+      const full = t.load / SETTINGS.truckCapacity;
+      truckDirt.visible = t.load > 0;
+      truckDirt.scale.y = Math.max(full, 0.05);
+      truckDirt.position.y = 0.1 + 0.35 * full;
+      Object.assign(truckRect, { x: spot.x, z: spot.z, heading: truckHeading });
+      // The bed is towards the back of the truck
+      Object.assign(truckBedRect, { x: spot.x + truckDir.x * 0.9, z: spot.z + truckDir.z * 0.9, heading: truckHeading });
+    }
+    poseTruck();
+
+    // ---------- Sounds: every sound is made in code with the Web Audio API, so no sound files are needed ----------
+    let audio = null;        // the browser's sound maker. Browsers only allow it after a click, so it starts in lockPointer()
+    let master = null;       // every sound goes through this volume knob, so muting is one switch
+    let noiseBuffer = null;  // one second of random hiss: the raw material for dirt, footsteps and water
+    const loops = {};        // sounds that keep running: the sluice water, the engines and the hydraulics
+
+    function startAudio() {
+      if (!audio) {
+        audio = new AudioContext();
+        master = audio.createGain();
+        master.gain.value = state.muted ? 0 : 1;
+        master.connect(audio.destination);
+        noiseBuffer = audio.createBuffer(1, audio.sampleRate, audio.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+        loops.water = makeWaterSound();
+        loops.excavator = makeEngineSound(38);
+        loops.truck = makeEngineSound(55);
+        loops.hydraulics = makeHumSound(420);
+      }
+      audio.resume();
+    }
+
+    // One note that fades out. type can be 'sine' (soft), 'triangle', 'square' (buzzy) or 'sawtooth' (harsh).
+    // slideTo makes the pitch slide to another frequency while it plays.
+    function tone(freq, seconds, { type = 'sine', volume = 0.2, delay = 0, slideTo = 0 } = {}) {
       if (!audio) return;
-      const tone = audio.createOscillator();
+      const start = audio.currentTime + delay;
+      const osc = audio.createOscillator();
+      const gain = audio.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, start);
+      if (slideTo) osc.frequency.exponentialRampToValueAtTime(slideTo, start + seconds);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(Math.max(volume, 0.0001), start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + seconds);
+      osc.connect(gain).connect(master);
+      osc.start(start);
+      osc.stop(start + seconds + 0.05);
+    }
+
+    // A burst of hiss through a filter. Low filters sound like thuds and dirt, high ones like clicks and splashes.
+    function noise(seconds, { volume = 0.3, delay = 0, filter = 'lowpass', freq = 1000, freqTo = 0, q = 1, attack = 0.01 } = {}) {
+      if (!audio) return;
+      const start = audio.currentTime + delay;
+      const source = audio.createBufferSource();
+      source.buffer = noiseBuffer;
+      source.loop = true;
+      const shape = audio.createBiquadFilter();
+      shape.type = filter;
+      shape.frequency.setValueAtTime(freq, start);
+      if (freqTo) shape.frequency.exponentialRampToValueAtTime(freqTo, start + seconds);
+      shape.Q.value = q;
+      const gain = audio.createGain();
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(Math.max(volume, 0.0001), start + attack);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + seconds);
+      source.connect(shape).connect(gain).connect(master);
+      source.start(start, Math.random() * 0.5); // start at a random place so no two sound exactly the same
+      source.stop(start + seconds + 0.05);
+    }
+
+    // Engine: a buzzing low note that "chugs" (its volume wobbles). set() changes how hard it's working.
+    function makeEngineSound(baseFreq) {
+      const osc = audio.createOscillator();
+      osc.type = 'sawtooth';
+      const sub = audio.createOscillator(); // an even lower note underneath, for rumble
+      sub.type = 'square';
+      const subVolume = audio.createGain();
+      subVolume.gain.value = 0.5;
+      const muffle = audio.createBiquadFilter();
+      muffle.type = 'lowpass';
+      muffle.Q.value = 2;
+      const chug = audio.createGain();
+      chug.gain.value = 0.6;
+      const chugSpeed = audio.createOscillator();
+      chugSpeed.type = 'triangle';
+      const chugAmount = audio.createGain();
+      chugAmount.gain.value = 0.4;
+      chugSpeed.connect(chugAmount).connect(chug.gain);
       const volume = audio.createGain();
-      tone.frequency.value = 700 + 600 * signal; // higher pitch when closer
-      volume.gain.value = 0.08;
-      tone.connect(volume);
-      volume.connect(audio.destination);
-      tone.start();
-      tone.stop(audio.currentTime + 0.06);
+      volume.gain.value = 0;
+      osc.connect(muffle);
+      sub.connect(subVolume).connect(muffle);
+      muffle.connect(chug).connect(volume).connect(master);
+      osc.start(); sub.start(); chugSpeed.start();
+      return {
+        set(rpm, vol) { // rpm: 0 = idling, 1 = working flat out
+          const now = audio.currentTime;
+          osc.frequency.setTargetAtTime(baseFreq * (1 + rpm), now, 0.15);
+          sub.frequency.setTargetAtTime(baseFreq * (1 + rpm) / 2, now, 0.15);
+          chugSpeed.frequency.setTargetAtTime(7 + 12 * rpm, now, 0.15);
+          muffle.frequency.setTargetAtTime(250 + 600 * rpm, now, 0.15);
+          volume.gain.setTargetAtTime(vol, now, 0.2);
+        },
+      };
     }
 
-    let beepTimer = 0;
-    let beepFlash = 0;
-    function updateDetector(dt) {
-      const range = toolNow('detector').range;
-      state.detectorSignal = 0;
-      if (!range || !playing || state.buriedNuggets.length === 0) return;
+    // Running water: hiss through a filter that slowly wobbles, like bubbling
+    function makeWaterSound() {
+      const source = audio.createBufferSource();
+      source.buffer = noiseBuffer;
+      source.loop = true;
+      const shape = audio.createBiquadFilter();
+      shape.type = 'bandpass';
+      shape.frequency.value = 900;
+      shape.Q.value = 0.8;
+      const wobble = audio.createOscillator();
+      wobble.frequency.value = 0.5;
+      const wobbleAmount = audio.createGain();
+      wobbleAmount.gain.value = 300;
+      wobble.connect(wobbleAmount).connect(shape.frequency);
+      const volume = audio.createGain();
+      volume.gain.value = 0;
+      source.connect(shape).connect(volume).connect(master);
+      source.start(); wobble.start();
+      return {
+        set(pitch, vol) {
+          shape.frequency.setTargetAtTime(pitch, audio.currentTime, 0.3);
+          volume.gain.setTargetAtTime(vol, audio.currentTime, 0.3);
+        },
+      };
+    }
 
-      const distance = Math.min(...state.buriedNuggets.map((n) => Math.hypot(camera.position.x - n.x, camera.position.z - n.z)));
-      if (distance >= range) return;
+    // A steady whine: the excavator's hydraulics while the arm moves
+    function makeHumSound(freq) {
+      const osc = audio.createOscillator();
+      osc.frequency.value = freq;
+      const volume = audio.createGain();
+      volume.gain.value = 0;
+      osc.connect(volume).connect(master);
+      osc.start();
+      return {
+        set(pitch, vol) {
+          osc.frequency.setTargetAtTime(pitch, audio.currentTime, 0.1);
+          volume.gain.setTargetAtTime(vol, audio.currentTime, 0.1);
+        },
+      };
+    }
 
-      state.detectorSignal = 1 - distance / range;
-      const secondsBetweenBeeps = 0.08 + 0.9 * (distance / range); // closer = faster beeps
-      beepTimer += dt;
-      if (beepTimer >= secondsBetweenBeeps) {
-        beepTimer = 0;
-        beepFlash = 0.1;
-        if (!state.detectorMuted) beep(state.detectorSignal);
+    // How loud a sound at (x, z) is where you are: 1 right next to it, 0 at "range" meters or further
+    function nearness(x, z, range = 30) {
+      return Math.max(0, 1 - Math.hypot(camera.position.x - x, camera.position.z - z) / range);
+    }
+
+    // Every one-off sound in the game
+    const sfx = {
+      step() { noise(0.08, { volume: 0.1, freq: 400 + Math.random() * 300 }); },
+      dig() {
+        noise(0.2, { volume: 0.3, filter: 'bandpass', freq: 1600, freqTo: 400, q: 0.7 });
+        tone(110, 0.15, { volume: 0.2, slideTo: 60 });
+      },
+      full() { tone(160, 0.12, { type: 'triangle', volume: 0.15 }); }, // "bonk": your bucket is already full
+      dump(size = 1, v = 1) { // size 1 = a bucketful, 2 = an excavator or truck load
+        noise(0.4 + 0.4 * size, { volume: 0.3 * v, freq: 2000, freqTo: 150, attack: 0.04 });
+        tone(80, 0.3 + 0.2 * size, { volume: 0.2 * v, slideTo: 40, delay: 0.05 });
+      },
+      flake(v = 1) { tone(2200 + Math.random() * 1400, 0.3, { volume: 0.06 * v }); },
+      nugget() {
+        // A low boom, a fast fanfare going up, a big chord and a shower of sparkles
+        tone(110, 0.7, { type: 'triangle', volume: 0.35, slideTo: 55 });
+        [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => tone(f, 0.25, { type: 'square', volume: 0.06, delay: 0.08 * i }));
+        [1047, 1319, 1568, 2093].forEach((f) => tone(f, 1.2, { type: 'triangle', volume: 0.1, delay: 0.5 }));
+        for (let i = 0; i < 12; i++) tone(2500 + Math.random() * 2500, 0.15, { volume: 0.05, delay: 0.5 + i * 0.07 });
+      },
+      buy() { // cash register "ka-ching"
+        noise(0.06, { volume: 0.2, filter: 'highpass', freq: 3000 });
+        tone(1568, 0.5, { type: 'triangle', volume: 0.15, delay: 0.06 });
+        tone(2093, 0.7, { type: 'triangle', volume: 0.12, delay: 0.12 });
+      },
+      upgrade() { // ka-ching, then a power-up sweep and a happy chord
+        sfx.buy();
+        tone(260, 0.45, { type: 'square', volume: 0.05, slideTo: 1040, delay: 0.1 });
+        [523, 659, 784].forEach((f) => tone(f, 0.5, { type: 'triangle', volume: 0.1, delay: 0.55 }));
+      },
+      denied() { // not enough money
+        tone(196, 0.14, { type: 'square', volume: 0.08 });
+        tone(147, 0.28, { type: 'square', volume: 0.08, delay: 0.15 });
+      },
+      shopOpen() {
+        tone(523, 0.12, { type: 'triangle', volume: 0.12 });
+        tone(784, 0.16, { type: 'triangle', volume: 0.12, delay: 0.08 });
+      },
+      shopClose() {
+        tone(784, 0.12, { type: 'triangle', volume: 0.12 });
+        tone(523, 0.16, { type: 'triangle', volume: 0.12, delay: 0.08 });
+      },
+      engineStart() {
+        noise(0.6, { volume: 0.15, filter: 'bandpass', freq: 300, q: 2 });
+        tone(30, 0.7, { type: 'sawtooth', volume: 0.12, slideTo: 60 });
+      },
+      engineStop() { tone(60, 0.6, { type: 'sawtooth', volume: 0.08, slideTo: 25 }); },
+      scrape() { // the excavator bucket digging into the pile
+        noise(0.12, { volume: 0.25, filter: 'bandpass', freq: 700 + Math.random() * 500, q: 0.8 });
+        noise(0.05, { volume: 0.08, filter: 'highpass', freq: 3000, delay: 0.03 });
+      },
+      clank() { noise(0.04, { volume: 0.1, filter: 'bandpass', freq: 2500, q: 4 }); }, // tracks rolling
+      reverseBeep(v) { tone(1050, 0.22, { type: 'square', volume: 0.04 * v }); },
+      honk(v) {
+        tone(330, 0.4, { type: 'square', volume: 0.06 * v });
+        tone(415, 0.4, { type: 'square', volume: 0.05 * v });
+      },
+    };
+
+    // Turn the running sounds up and down to match what's happening (10 times a second is plenty)
+    let loopTimer = 0;
+    function updateSounds(dt) {
+      loopTimer -= dt;
+      if (!audio || loopTimer > 0) return;
+      loopTimer = 0.1;
+      const washing = state.sluiceQueue > 0;
+      const near = nearness(sluiceSpot.x, sluiceSpot.z, 25);
+      loops.water.set(washing ? 1400 : 900, near * (washing ? 0.16 + 0.03 * state.levels.sluice : 0.05));
+      if (state.driving) {
+        const rpm = Math.min(1, 0.1 + (excavatorMoving ? 0.5 : 0) + (armMoving ? 0.4 : 0));
+        loops.excavator.set(rpm, 0.12 + 0.02 * state.levels.engine);
+        loops.hydraulics.set(armMoving ? 480 : 380, armMoving ? 0.025 : 0);
+      } else {
+        loops.excavator.set(0, 0);
+        loops.hydraulics.set(380, 0);
       }
+      const truckBusy = state.truck.mode !== 'parked';
+      loops.truck.set(state.truck.mode === 'dumping' ? 0.7 : 0.4, truckBusy ? 0.1 * nearness(truckRect.x, truckRect.z) : 0);
     }
 
-    // ---------- Gold sparkles that float up ----------
+    function toggleMute() {
+      state.muted = !state.muted;
+      if (master) master.gain.setTargetAtTime(state.muted ? 0 : 1, audio.currentTime, 0.02);
+      updateSoundIcon();
+    }
+
+    // Speaker icon, drawn with SVG. It gets a red cross when muted.
+    const soundButton = document.getElementById('sound');
+    function updateSoundIcon() {
+      const speaker = '<path d="M3 9h4l5-4v14l-5-4H3z" fill="#fff"/>';
+      const waves = '<path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round"/>';
+      const cross = '<path d="M16 9l6 6M22 9l-6 6" stroke="#ff6b6b" stroke-width="2.5" stroke-linecap="round"/>';
+      soundButton.innerHTML = `<svg viewBox="0 0 24 24" width="28" height="28">${speaker}${state.muted ? cross : waves}</svg><span class="key">M</span>`;
+    }
+    updateSoundIcon();
+    soundButton.addEventListener('click', toggleMute);
+
+    // ---------- Gold sparkles that float up, and dirt that falls ----------
     const sparkles = [];
     const sparkleGeometry = new THREE.SphereGeometry(1, 8, 8); // shared by all sparkles, scaled to size
     const goldMaterial = new THREE.MeshBasicMaterial({ color: 0xffd700 });
@@ -598,6 +1024,391 @@
           sparkles.splice(i, 1);
         }
       }
+    }
+
+    const dirtBits = [];
+    const dirtBitGeometry = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+    const dirtBitMaterial = new THREE.MeshLambertMaterial({ color: DIRT_COLOR });
+    // Little clumps of dirt that fall to the ground. More scoops = more clumps.
+    function dirtFalls(where, scoops) {
+      const count = Math.min(25, 4 + Math.round(scoops / 5));
+      for (let i = 0; i < count; i++) {
+        const mesh = new THREE.Mesh(dirtBitGeometry, dirtBitMaterial);
+        mesh.position.set(where.x + (Math.random() - 0.5) * 0.5, where.y, where.z + (Math.random() - 0.5) * 0.5);
+        scene.add(mesh);
+        dirtBits.push({ mesh, vx: (Math.random() - 0.5) * 1.5, vy: Math.random(), vz: (Math.random() - 0.5) * 1.5 });
+      }
+    }
+    function updateDirtBits(dt) {
+      for (let i = dirtBits.length - 1; i >= 0; i--) {
+        const bit = dirtBits[i];
+        bit.vy -= 9.8 * dt; // gravity
+        bit.mesh.position.x += bit.vx * dt;
+        bit.mesh.position.y += bit.vy * dt;
+        bit.mesh.position.z += bit.vz * dt;
+        if (bit.mesh.position.y < 0.05) {
+          scene.remove(bit.mesh);
+          dirtBits.splice(i, 1);
+        }
+      }
+    }
+
+    // ---------- Things you can use with E ----------
+    const interactables = [
+      {
+        bounds: pileBounds,
+        prompt: () => state.carrying >= toolNow('carrier').capacity
+          ? `${toolNow('carrier').name} is full - take it to the sluice`
+          : 'Press E to dig',
+        use: dig,
+      },
+      {
+        bounds: sluiceBounds,
+        prompt: () => state.carrying > 0 ? `Press E to dump ${state.carrying} scoops into the sluice` : 'Bring dirt here to wash it',
+        use: dumpIntoSluice,
+      },
+      {
+        bounds: shopBounds,
+        prompt: () => 'Press E to open the shop (or press B anywhere)',
+        use: openShop,
+      },
+      {
+        bounds: excavatorRect,
+        prompt: () => ownsTool('excavator')
+          ? 'Press E to get in the excavator'
+          : `Excavator for sale: $${TOOLS.excavator.levels[1].price} in the shop (press E)`,
+        use: () => (ownsTool('excavator') ? enterExcavator() : openShop()),
+      },
+    ];
+
+    function dig() {
+      const capacity = toolNow('carrier').capacity;
+      if (state.carrying >= capacity) {
+        sfx.full();
+        return;
+      }
+      state.carrying = Math.min(capacity, state.carrying + toolNow('shovel').scoops);
+      sfx.dig();
+    }
+
+    function dumpIntoSluice() {
+      if (state.carrying === 0) return;
+      dirtFalls({ x: sluice.position.x - 1.4, y: 1.6, z: sluice.position.z }, state.carrying);
+      state.sluiceQueue += state.carrying;
+      state.carrying = 0;
+      sfx.dump(1);
+    }
+
+    function buy(id) {
+      const tool = TOOLS[id];
+      const next = toolNext(id);
+      if (!next) return; // already fully upgraded
+      if (tool.needs && !ownsTool(tool.needs)) {
+        showMessage(`Buy the ${TOOLS[tool.needs].title} first`);
+        sfx.denied();
+        return;
+      }
+      if (state.money < next.price) {
+        showMessage(`You need $${next.price - state.money} more`);
+        sfx.denied();
+        return;
+      }
+      // Buying something brand new (the excavator) gets the "ka-ching", everything else is an upgrade
+      const brandNew = !tool.startsOwned && !tool.needs && state.levels[id] === 0;
+      state.money -= next.price;
+      state.levels[id] += 1;
+      showMessage(`Bought the ${next.name}!`);
+      if (brandNew) sfx.buy();
+      else sfx.upgrade();
+      if (id === 'sluice') upgradeSluiceModel();
+      if (EXCAVATOR_PARTS.includes(id)) rebuildExcavator();
+      updateToolbar(id);
+    }
+
+    // Swap in the bigger sluice model and update where you bump into it
+    function upgradeSluiceModel() {
+      buildSluice(state.levels.sluice);
+      sluiceBounds.setFromObject(sluice);
+    }
+
+    // Rebuild the excavator with its new upgrades, in the same spot and pose
+    function rebuildExcavator() {
+      buildExcavator();
+      poseExcavator();
+    }
+
+    // Set every tool's level from a list like { shovel: 2, sluice: 1 } (for example from a saved game).
+    // Only tools in TOOL_ORDER are read, so tools that no longer exist (like the old Metal Detector
+    // or Gold Pan) are ignored. Levels are kept in range, so a save from when the excavator had 3 levels still works.
+    function applyToolLevels(saved) {
+      for (const id of TOOL_ORDER) {
+        const level = Math.floor(Number(saved[id]) || 0);
+        state.levels[id] = clamp(level, 0, TOOLS[id].levels.length - 1);
+      }
+      upgradeSluiceModel();
+      rebuildExcavator();
+      updateToolbar();
+    }
+
+    // Look for gold in one scoop of dirt. "where" is the spot the sparkles float up from.
+    let lastFlakeSound = 0;
+    function findGold(flakeChance, nuggetChance, where) {
+      if (Math.random() < nuggetChance) {
+        state.money += SETTINGS.nuggetValue;
+        showMessage(`BIG NUGGET! +$${SETTINGS.nuggetValue}`);
+        for (let i = 0; i < 3; i++) sparkle(0.25, where);
+        sfx.nugget();
+      } else if (Math.random() < flakeChance) {
+        const flakes = 1 + Math.floor(Math.random() * 3); // 1 to 3 flakes
+        state.money += flakes * SETTINGS.flakeValue;
+        for (let i = 0; i < flakes; i++) sparkle(0.07, where);
+        // A little "ting" (but not dozens at once when the Power Sluice is going fast)
+        if (audio && audio.currentTime - lastFlakeSound > 0.06) {
+          lastFlakeSound = audio.currentTime;
+          sfx.flake(Math.max(0.2, nearness(where.x, where.z)));
+        }
+      }
+    }
+
+    // ---------- Sluice: washes dirt by itself ----------
+    function updateSluice(dt) {
+      const level = toolNow('sluice');
+      if (state.sluiceQueue > 0) {
+        state.washTimer += dt;
+        while (state.washTimer >= level.seconds && state.sluiceQueue > 0) {
+          state.washTimer -= level.seconds;
+          const scoops = Math.min(level.batch, state.sluiceQueue);
+          state.sluiceQueue -= scoops;
+          for (let i = 0; i < scoops; i++) findGold(SETTINGS.flakeChance, SETTINGS.nuggetChance, sluiceSpot);
+        }
+      } else {
+        state.washTimer = 0;
+      }
+      sluiceDirt.visible = state.sluiceQueue > 0;
+    }
+
+    // ---------- Driving the excavator ----------
+    let cabYaw = 0, cabPitch = 0;          // where you're looking inside the cab
+    let excavatorMoving = false, armMoving = false; // for the engine sound
+    let scrapeTimer = 0, clankTimer = 0;
+    let biting = false; // true while the bucket is scooping into the pile
+    const driveHelp = document.getElementById('drive-help');
+    const crosshair = document.getElementById('crosshair');
+
+    function enterExcavator() {
+      state.driving = true;
+      cabYaw = 0;
+      cabPitch = -0.3; // look a bit down, at the bucket
+      for (const code in keys) keys[code] = false;
+      driveHelp.hidden = false;
+      crosshair.style.display = 'none';
+      sfx.engineStart();
+    }
+
+    function exitExcavator() {
+      const exc = state.exc;
+      state.driving = false;
+      for (const code in keys) keys[code] = false;
+      driveHelp.hidden = true;
+      crosshair.style.display = '';
+      sfx.engineStop();
+      // Climb out next to the cab door (left side). If something is in the way, try the right side, then the back.
+      const spots = [[0.3, -2.4], [0.3, 2.6], [-3.3, 0]].map(([x, z]) => ex.upper.localToWorld(new THREE.Vector3(x, 0, z)));
+      const free = spots.find((p) => Math.abs(p.x) < 28 && Math.abs(p.z) < 28
+        && !solids.some((solid) => distanceFromPoint(solid, p.x, p.z) < 0.5));
+      const spot = free || spots[0];
+      camera.position.set(clamp(spot.x, -28, 28), 1.6, clamp(spot.z, -28, 28));
+      pushOutOfSolids();
+      yaw = exc.heading + exc.swing - Math.PI / 2 + cabYaw; // keep looking the same way
+      pitch = 0;
+    }
+
+    // Would the excavator hit something at its current spot?
+    function excavatorBumps() {
+      const exc = state.exc;
+      if (Math.abs(exc.x) > 27 || Math.abs(exc.z) > 27) return true;
+      return solids.some((solid) => solid !== excavatorRect && distanceFromPoint(solid, exc.x, exc.z) < 1.6);
+    }
+
+    // Is this spot (the tip of the bucket) in the dirt pile? The pile is a cone, so it's lower near the edge.
+    function inPile(p) {
+      const distance = Math.hypot(p.x - dirtPile.position.x, p.z - dirtPile.position.z);
+      const surface = PILE_HEIGHT * (1 - distance / PILE_RADIUS);
+      return distance < PILE_RADIUS + 0.1 && p.y < surface + 0.4;
+    }
+
+    // Is the bucket digging into the pile? (Either its teeth or its middle count, to keep it easy.)
+    function bucketInDirt() {
+      return inPile(bucketWorld(ex.tip)) || inPile(bucketWorld(ex.belly));
+    }
+
+    // Where the bucket would drop its dirt: 'pile', 'sluice', 'truck', 'truck away' or 'ground'
+    // (It measures from the bucket's hinge, which doesn't move while you tip the bucket.)
+    function dumpTarget() {
+      const spot = ex.bucket.getWorldPosition(new THREE.Vector3());
+      if (Math.hypot(spot.x - dirtPile.position.x, spot.z - dirtPile.position.z) < PILE_RADIUS + 0.3) return 'pile';
+      if (distanceFromPoint(sluiceBounds, spot.x, spot.z) < 0.3) return 'sluice';
+      if (distanceFromPoint(truckBedRect, spot.x, spot.z) === 0) return state.truck.mode === 'parked' ? 'truck' : 'truck away';
+      return 'ground';
+    }
+
+    function dumpBucket() {
+      const exc = state.exc;
+      const scoops = Math.round(exc.fill * toolNow('digBucket').scoops);
+      exc.fill = 0;
+      if (scoops === 0) return;
+      dirtFalls(bucketWorld(ex.belly), scoops);
+      sfx.dump(2);
+      const target = dumpTarget();
+      if (target === 'sluice') {
+        state.sluiceQueue += scoops;
+        showMessage(`+${scoops} scoops in the sluice`);
+      } else if (target === 'truck') {
+        const added = Math.min(scoops, SETTINGS.truckCapacity - state.truck.load);
+        state.truck.load += added;
+        state.truck.wait = 0;
+        showMessage(added < scoops ? `The truck is full! ${scoops - added} scoops spilled` : `+${scoops} scoops in the truck`);
+      } else if (target !== 'pile') { // dumping back onto the pile is fine, anywhere else it's lost
+        showMessage('Spilled! Dump over the sluice or the truck');
+      }
+    }
+
+    function driveExcavator(dt) {
+      const exc = state.exc;
+      const speed = toolNow('engine').speed;
+      const before = { ...exc };
+      const held = (...codes) => (codes.some((code) => keys[code]) ? 1 : 0);
+
+      // Tracks: W/S drive, A/D turn. If that bumps into something, don't move.
+      const drive = held('KeyW') - held('KeyS');
+      const turn = held('KeyA') - held('KeyD');
+      exc.heading += turn * SETTINGS.excavatorTurnSpeed * speed * dt;
+      exc.x += Math.cos(exc.heading) * drive * SETTINGS.excavatorDriveSpeed * speed * dt;
+      exc.z -= Math.sin(exc.heading) * drive * SETTINGS.excavatorDriveSpeed * speed * dt;
+      if (excavatorBumps()) {
+        exc.x = before.x;
+        exc.z = before.z;
+        exc.heading = before.heading;
+      }
+
+      // Arm: arrows swing it and raise/lower it, Q/F (or the mouse buttons) tilt the bucket
+      const swing = held('ArrowLeft') - held('ArrowRight');
+      const lift = held('ArrowUp') - held('ArrowDown');
+      const curl = held('KeyQ', 'MouseLeft') - held('KeyF', 'MouseRight');
+      exc.swing += swing * SETTINGS.armSwingSpeed * speed * dt;
+      exc.boom = clamp(exc.boom + lift * SETTINGS.armLiftSpeed * speed * dt, -0.5, 1.25);
+      exc.bucketPitch = clamp(exc.bucketPitch + curl * SETTINGS.bucketCurlSpeed * speed * dt, -1.6, 1.0);
+
+      const lowestBefore = ex.lowest;
+      poseExcavator();
+      // The bucket can't go into the ground: undo the arm move if it pushed the bucket lower
+      if (ex.lowest < 0.05 && ex.lowest < lowestBefore) {
+        exc.boom = before.boom;
+        exc.bucketPitch = before.bucketPitch;
+        poseExcavator();
+      }
+
+      // Scooping: curl the bucket while its teeth are in the pile and it fills up
+      // Once the bucket bites into the dirt, it keeps filling while you hold scoop and it's still over the pile
+      const overPile = Math.hypot(bucketWorld(ex.belly).x - dirtPile.position.x, bucketWorld(ex.belly).z - dirtPile.position.z) < PILE_RADIUS + 0.3;
+      if (curl <= 0 || !overPile) biting = false;
+      else if (bucketInDirt()) biting = true;
+      if (biting && exc.fill < 1 && exc.bucketPitch > DUMP_PITCH) {
+        exc.fill = Math.min(1, exc.fill + Math.max(0, exc.bucketPitch - before.bucketPitch)); // full after about 1 radian of curl
+        scrapeTimer -= dt;
+        if (scrapeTimer <= 0) {
+          sfx.scrape();
+          scrapeTimer = 0.13;
+        }
+      }
+      // Dumping: tip the bucket far enough down and everything falls out
+      if (exc.bucketPitch <= DUMP_PITCH && exc.fill > 0) dumpBucket();
+
+      excavatorMoving = drive !== 0 || turn !== 0;
+      armMoving = swing !== 0 || lift !== 0 || curl !== 0;
+      if (excavatorMoving) {
+        clankTimer -= dt;
+        if (clankTimer <= 0) {
+          sfx.clank();
+          clankTimer = 0.28 / speed;
+        }
+      }
+    }
+
+    // A hint under the crosshair that tells you what to do next while driving
+    function drivingHint() {
+      const exc = state.exc;
+      if (exc.fill <= 0) {
+        return bucketInDirt() ? 'The bucket is in the dirt: hold Q to scoop' : 'Lower the bucket (↓) into the DIRT pile, then hold Q to scoop';
+      }
+      const target = dumpTarget();
+      if (target === 'sluice') return 'Over the sluice: hold F to dump';
+      if (target === 'truck') return 'Over the truck: hold F to dump';
+      if (target === 'truck away') return 'The truck is away. Wait for it to come back';
+      if (exc.fill >= 1) return 'Bucket full! Raise it (↑), swing (← →) to the sluice or the truck, then hold F';
+      return '';
+    }
+
+    // ---------- Dump truck: waits to be loaded, then backs up to the sluice and tips the dirt in ----------
+    let truckBeepTimer = 0, truckHonkTimer = 0;
+
+    // Would moving the truck to "progress" bump into the excavator or you? (Moving away is always allowed.)
+    function truckBlocked(progress) {
+      const spot = truckSpot(progress);
+      const next = { ...truckRect, x: spot.x, z: spot.z };
+      const nextToExcavator = distanceFromPoint(next, state.exc.x, state.exc.z);
+      if (nextToExcavator < 1.5 &&nextToExcavator < distanceFromPoint(truckRect, state.exc.x, state.exc.z)) return true;
+      if (state.driving) return false;
+      const nextToYou = distanceFromPoint(next, camera.position.x, camera.position.z);
+      return nextToYou < 0.6 && nextToYou < distanceFromPoint(truckRect, camera.position.x, camera.position.z);
+    }
+
+    function updateTruck(dt) {
+      const t = state.truck;
+      const near = nearness(truckRect.x, truckRect.z);
+      if (t.mode === 'parked') {
+        if (t.load > 0) {
+          t.wait += dt;
+          if (t.load >= SETTINGS.truckCapacity || t.wait >= SETTINGS.truckWaitSeconds) t.mode = 'reversing';
+        }
+      } else if (t.mode === 'reversing' || t.mode === 'returning') {
+        const direction = t.mode === 'reversing' ? 1 : -1;
+        const next = clamp(t.progress + direction * SETTINGS.truckSpeed * dt / truckRouteLength, 0, 1);
+        if (truckBlocked(next)) {
+          truckHonkTimer -= dt;
+          if (truckHonkTimer <= 0) {
+            sfx.honk(Math.max(0.3, near));
+            truckHonkTimer = 2;
+          }
+        } else {
+          t.progress = next;
+        }
+        if (t.mode === 'reversing') {
+          truckBeepTimer -= dt;
+          if (truckBeepTimer <= 0) {
+            sfx.reverseBeep(near);
+            truckBeepTimer = 0.6;
+          }
+          if (t.progress >= 1) {
+            t.mode = 'dumping';
+            t.timer = 0;
+          }
+        } else if (t.progress <= 0) {
+          t.mode = 'parked';
+          t.wait = 0;
+        }
+      } else if (t.mode === 'dumping') {
+        const before = t.timer;
+        t.timer += dt;
+        if (before < 1.2 && t.timer >= 1.2) { // the bed is all the way up: the dirt slides into the sluice
+          dirtFalls(truck.localToWorld(new THREE.Vector3(-3, 1.3, 0)), t.load);
+          state.sluiceQueue += t.load;
+          t.load = 0;
+          sfx.dump(2, Math.max(0.3, near));
+        }
+        if (t.timer >= 2.8) t.mode = 'returning';
+      }
+      poseTruck();
     }
 
     // ---------- Shop menu ----------
@@ -636,12 +1447,15 @@
         const tool = TOOLS[id];
         const now = toolNow(id);
         const next = toolNext(id);
+        const locked = tool.needs && !ownsTool(tool.needs);
         const nowText = tool.describe(now);
         row.level.textContent = `Level ${state.levels[id]} / ${tool.levels.length - 1}`;
         row.now.textContent = `Now: ${now.name}${nowText ? ` - ${nowText}` : ''}`;
-        row.next.textContent = next ? `Next: ${next.name} - ${tool.describe(next)}` : 'Fully upgraded!';
+        if (locked) row.next.textContent = `Buy the ${TOOLS[tool.needs].title} first`;
+        else row.next.textContent = next ? `Next: ${next.name} - ${tool.describe(next)}` : 'Fully upgraded!';
         row.price.textContent = next ? `$${next.price}` : 'MAX';
-        row.button.disabled = !next || state.money < next.price;
+        // Greyed out, but still clickable, so you hear the "not enough money" sound
+        row.button.classList.toggle('cant', !next || locked || state.money < next.price);
       }
     }
 
@@ -652,12 +1466,14 @@
       for (const code in keys) keys[code] = false; // stop walking
       if (document.pointerLockElement) document.exitPointerLock(); // give the mouse back for clicking
       updateShop();
+      sfx.shopOpen();
     }
 
     function closeShop() {
       state.shopOpen = false;
       shopEl.hidden = true;
       startScreen.style.display = 'flex'; // hidden again as soon as the mouse is captured
+      sfx.shopClose();
       lockPointer();
     }
 
@@ -665,6 +1481,7 @@
     // Each icon gets better with the level: bigger, shinier metal, and a gold trim at the top level.
     const METAL = ['#6f6f6f', '#9a9a9a', '#cfd8e2', '#eef3f8']; // dull grey -> bright steel
     const GOLD = '#ffd700';
+    const YELLOW = '#f2b705';
 
     // Fill (and outline) a shape made of [x, y] corner points
     function polygon(ctx, points, fill, outline = '#222', lineWidth = 1.5) {
@@ -757,44 +1574,92 @@
         if (level === 3) polygon(ctx, [[-half - 2, -16], [-half + 12, -16], [-half + 10, -7], [-half, -7]], METAL[1]); // hopper
       },
 
-      detector(ctx, level) {
-        line(ctx, 14, -22, -8, 18, METAL[level], 3);               // shaft
-        const boxColor = ['#555555', '#555555', '#2f6db5', '#222222'][level];
-        polygon(ctx, [[4, -18], [16, -18], [16, -8], [4, -8]], boxColor, level === 3 ? GOLD : '#222', level === 3 ? 2.5 : 1.5);
-        if (level >= 2) circle(ctx, 10, -13, 2, '#7fff7f', 'transparent'); // green light
-        ctx.beginPath();
-        ctx.ellipse(-10, 21, 9 + level * 2, 5, 0, 0, Math.PI * 2); // search coil
-        ctx.fillStyle = level === 3 ? '#222' : METAL[level];
-        ctx.fill();
-        ctx.strokeStyle = level === 3 ? GOLD : '#222';
-        ctx.lineWidth = level === 3 ? 3 : 1.5;
-        ctx.stroke();
-        for (let i = 1; i < level; i++) { // signal waves
+      // The excavator icon shows all three excavator upgrades at once
+      excavator(ctx) {
+        const armLevel = state.levels.arm, bucketLevel = state.levels.digBucket, engineLevel = state.levels.engine;
+        const allMax = EXCAVATOR_PARTS.every((id) => !toolNext(id));
+        const trim = allMax ? GOLD : '#222';
+        const width = allMax ? 2.5 : 1.5;
+        polygon(ctx, [[-28, 12], [4, 12], [6, 22], [-30, 22]], '#333');                   // tracks
+        for (let x = -24; x <= 0; x += 6) circle(ctx, x, 17, 2.2, '#777', '#111');        // rollers
+        polygon(ctx, [[-26, -2], [6, -2], [6, 12], [-26, 12]], YELLOW, trim, width);      // body
+        polygon(ctx, [[-24, -18], [-10, -18], [-10, -2], [-24, -2]], YELLOW, trim, width); // cab
+        polygon(ctx, [[-21, -15], [-13, -15], [-13, -6], [-21, -6]], '#9fd4ff');          // window
+        line(ctx, -25, 6, 5, 6, '#222', 2);                                               // dark stripe
+        const stacks = engineLevel >= 2 ? 2 : 1;                                          // exhaust pipes
+        for (let i = 0; i < stacks; i++) line(ctx, -5 + i * 4, -2, -5 + i * 4, -8 - engineLevel * 2, engineLevel ? METAL[3] : '#333', 2.5);
+        const knee = [14 + armLevel * 2.5, -22 - armLevel];                               // longer arm
+        const tip = [22 + armLevel * 2.5, 2 + armLevel];
+        line(ctx, 4, 0, knee[0], knee[1], YELLOW, 4);
+        line(ctx, knee[0], knee[1], tip[0], tip[1], YELLOW, 3);
+        const b = 4 + bucketLevel * 1.5;                                                  // bigger bucket
+        polygon(ctx, [[tip[0] - b, tip[1]], [tip[0] + b, tip[1]], [tip[0], tip[1] + b * 1.6]], '#555');
+      },
+
+      digBucket(ctx, level) {
+        const s = 0.8 + level * 0.12;
+        ctx.scale(s, s);
+        const trim = level === 3 ? GOLD : '#222';
+        if (level >= 1) circle(ctx, -2, -8, 12 + level, '#6b4423', 'transparent');       // dirt heaped up in it
+        polygon(ctx, [[-10, -22], [-2, -22], [-2, -8], [-10, -8]], '#333');               // mounting ears
+        polygon(ctx, [[-20, -8], [16, -8], [22, 14], [4, 19], [-12, 15], [-20, 4]], YELLOW, trim, level === 3 ? 3 : 1.5); // body
+        polygon(ctx, [[-16, 12], [2, 16], [18, 12], [4, 18], [-12, 15]], '#333', 'transparent'); // dark bottom edge
+        const teeth = 1 + level;
+        for (let i = 0; i < teeth; i++) {
+          const y = teeth === 1 ? 9 : 4 + i * 10 / (teeth - 1); // spread along the front edge
+          polygon(ctx, [[19, y - 3], [28, y], [20, y + 3]], level === 3 ? METAL[3] : '#222', '#111', 1);
+        }
+        if (level >= 2) line(ctx, -14, 2, 12, 6, '#222', 3);                              // wear strip
+      },
+
+      engine(ctx, level) {
+        const trim = level === 3 ? GOLD : '#222';
+        const lw = level === 3 ? 3 : 1.5;
+        polygon(ctx, [[-22, -6], [16, -6], [16, 18], [-22, 18]], level === 0 ? METAL[0] : YELLOW, trim, lw); // engine block
+        for (let i = 0; i < 4; i++) polygon(ctx, [[-19 + i * 9, -12], [-13 + i * 9, -12], [-13 + i * 9, -6], [-19 + i * 9, -6]], '#333'); // cylinders
+        for (let i = 0; i < 3; i++) line(ctx, -18, 2 + i * 5, 12, 2 + i * 5, '#222', 1.5);   // cooling fins
+        const stacks = level >= 2 ? 2 : 1;
+        for (let i = 0; i < stacks; i++) {
+          const x = 22 + i * 6;
+          line(ctx, x - 6, 4, x, 4, '#333', 3);
+          line(ctx, x, 4, x, -14 - level * 2, level ? METAL[3] : '#333', 3);               // exhaust stack
+          for (let p = 0; p < level; p++) circle(ctx, x - 2 + p * 2, -19 - level * 2 - p * 4, 2 + p, 'rgba(160,160,160,0.7)', 'transparent'); // smoke: more with a better engine
+        }
+        if (level === 3) {                                                                 // turbo snail
+          circle(ctx, -24, 6, 7, METAL[2]);
           ctx.beginPath();
-          ctx.arc(-10, 21, 10 + level * 2 + i * 5, Math.PI * 1.1, Math.PI * 1.5);
-          ctx.strokeStyle = '#7fff7f';
+          ctx.arc(-24, 6, 3.5, 0, Math.PI * 1.5);
+          ctx.strokeStyle = '#333';
           ctx.lineWidth = 1.5;
           ctx.stroke();
         }
+        if (level >= 1) polygon(ctx, [[-4, -2], [-10, 8], [-4, 8], [-8, 16], [4, 4], [-2, 4], [2, -2]], '#fff', '#222', 1); // lightning bolt
       },
 
-      excavator(ctx, level) {
-        const trim = level === 3 ? GOLD : '#222';
-        const width = level === 3 ? 2.5 : 1.5;
-        polygon(ctx, [[-26, 12], [8, 12], [10, 22], [-28, 22]], '#333');                 // tracks
-        polygon(ctx, [[-24, -2], [8, -2], [8, 12], [-24, 12]], '#f2b705', trim, width);  // body
-        polygon(ctx, [[-22, -18], [-8, -18], [-8, -2], [-22, -2]], '#f2b705', trim, width); // cab
-        polygon(ctx, [[-19, -15], [-11, -15], [-11, -7], [-19, -7]], '#9fd4ff');         // window
-        if (level >= 2) line(ctx, -23, 6, 7, 6, '#222', 2);                               // stripe
-        if (level === 3) line(ctx, 2, -2, 2, -12, '#555', 3);                             // exhaust pipe
-        line(ctx, 4, 0, 18, -20, '#f2b705', 4);                                           // arm
-        line(ctx, 18, -20, 26, 2, '#f2b705', 3);
-        const b = 4 + level;                                                              // bigger digging bucket
-        polygon(ctx, [[26 - b, 2], [26 + b, 2], [26, 2 + b * 1.6]], METAL[level]);
+      arm(ctx, level) {
+        const len = 1 + level * 0.18;                                                      // longer at each level
+        const base = [-26, 20], knee = [-26 + 26 * len, 20 - 30 * len], tip = [knee[0] + 8 * len, knee[1] + 28 * len];
+        if (level === 3) {                                                                 // gold glow under the arm
+          line(ctx, ...base, ...knee, GOLD, 9);
+          line(ctx, ...knee, ...tip, GOLD, 7);
+        }
+        line(ctx, base[0] + 4, base[1] + 2, (base[0] + knee[0]) / 2 + 3, (base[1] + knee[1]) / 2 + 3, METAL[3], 2.5); // hydraulic ram
+        line(ctx, ...base, ...knee, YELLOW, 5);                                            // boom
+        line(ctx, ...knee, ...tip, YELLOW, 4);                                             // stick
+        if (level >= 1) line(ctx, (base[0] + knee[0]) / 2, (base[1] + knee[1]) / 2, knee[0], knee[1], '#222', 1.5); // dark plates
+        circle(ctx, ...base, 3, '#333');                                                   // pins
+        circle(ctx, ...knee, 3, '#333');
+        polygon(ctx, [[tip[0] - 4, tip[1] - 2], [tip[0] + 4, tip[1] - 2], [tip[0] + 2, tip[1] + 6], [tip[0] - 4, tip[1] + 4]], '#555'); // bucket
       },
     };
 
     const toolbarEl = document.getElementById('toolbar');
+
+    // Is this tool as good as it gets? (The excavator is when all three of its upgrades are.)
+    function isMaxed(id) {
+      if (id === 'excavator') return EXCAVATOR_PARTS.every((part) => !toolNext(part));
+      return !toolNext(id);
+    }
 
     // Redraw the whole tool bar. "justUpgraded" is the tool you just bought, so its icon can bounce.
     function updateToolbar(justUpgraded) {
@@ -804,8 +1669,9 @@
         const level = state.levels[id];
         const slot = document.createElement('div');
         slot.className = 'tool-slot';
-        if (!toolNext(id)) slot.classList.add('max');
-        if (id === justUpgraded) slot.classList.add('upgraded');
+        if (isMaxed(id)) slot.classList.add('max');
+        // Upgrading an excavator part makes the excavator icon bounce too, since it changes as well
+        if (id === justUpgraded || (id === 'excavator' && EXCAVATOR_PARTS.includes(justUpgraded))) slot.classList.add('upgraded');
 
         const canvas = document.createElement('canvas');
         canvas.width = canvas.height = 128; // double size, so it stays sharp on high-res screens
@@ -814,12 +1680,15 @@
         ctx.translate(32, 32);             // (0, 0) is now the middle of the icon
         ctx.scale(0.75 + level * 0.06, 0.75 + level * 0.06); // better tools look a bit bigger
         ICONS[id](ctx, level);
-
-        const badge = document.createElement('span');
-        badge.className = 'badge';
-        badge.textContent = `Lv ${level}`;
         slot.title = toolNow(id).name;
-        slot.append(canvas, badge);
+        slot.append(canvas);
+
+        if (id !== 'excavator') { // the excavator has no levels of its own; its upgrades have their own icons
+          const badge = document.createElement('span');
+          badge.className = 'badge';
+          badge.textContent = `Lv ${level}`;
+          slot.append(badge);
+        }
         toolbarEl.appendChild(slot);
       }
     }
@@ -834,8 +1703,7 @@
 
     // Capture the mouse so it turns the camera. Also switches on sound (browsers only allow it after a click or key press).
     function lockPointer() {
-      if (!audio) audio = new AudioContext();
-      audio.resume();
+      startAudio();
       const request = renderer.domElement.requestPointerLock();
       if (request && request.catch) request.catch(() => {}); // if it fails the "Click to play" screen stays up
     }
@@ -844,17 +1712,42 @@
     document.addEventListener('pointerlockchange', () => {
       playing = document.pointerLockElement === renderer.domElement;
       startScreen.style.display = playing || state.shopOpen ? 'none' : 'flex';
+      if (!playing) for (const code in keys) keys[code] = false; // let go of everything when paused
     });
     document.addEventListener('mousemove', (e) => {
       if (!playing) return;
-      yaw -= e.movementX * SETTINGS.mouseSensitivity;
-      pitch -= e.movementY * SETTINGS.mouseSensitivity;
-      pitch = Math.max(-1.5, Math.min(1.5, pitch));
+      if (state.driving) {
+        cabYaw = clamp(cabYaw - e.movementX * SETTINGS.mouseSensitivity, -2, 2);
+        cabPitch = clamp(cabPitch - e.movementY * SETTINGS.mouseSensitivity, -1.2, 1.2);
+      } else {
+        yaw -= e.movementX * SETTINGS.mouseSensitivity;
+        pitch = clamp(pitch - e.movementY * SETTINGS.mouseSensitivity, -1.5, 1.5);
+      }
     });
-    document.addEventListener('mousedown', (e) => { if (playing && e.button === 0) interact(); });
+    // Mouse buttons: left click uses things when walking. In the excavator, hold left to scoop and right to dump.
+    document.addEventListener('mousedown', (e) => {
+      if (!playing) return;
+      if (state.driving) {
+        if (e.button === 0) keys.MouseLeft = true;
+        if (e.button === 2) keys.MouseRight = true;
+      } else if (e.button === 0) {
+        interact();
+      }
+    });
+    document.addEventListener('mouseup', (e) => {
+      if (e.button === 0) keys.MouseLeft = false;
+      if (e.button === 2) keys.MouseRight = false;
+    });
+    document.addEventListener('contextmenu', (e) => e.preventDefault()); // no right-click menu
+
     addEventListener('keydown', (e) => {
       keys[e.code] = true;
       if (e.repeat) return;
+
+      if (e.code === 'KeyM') {
+        toggleMute();
+        return;
+      }
 
       if (e.code === 'KeyB') {
         if (state.shopOpen) closeShop();
@@ -870,20 +1763,12 @@
       }
 
       if (!playing) return;
-      if (e.code === 'KeyE') interact();
-      if (e.code === 'KeyM' && toolNow('detector').range) {
-        state.detectorMuted = !state.detectorMuted;
-        showMessage(state.detectorMuted ? 'Detector muted' : 'Detector sound on');
+      if (e.code === 'KeyE') {
+        if (state.driving) exitExcavator();
+        else interact();
       }
     });
     addEventListener('keyup', (e) => { keys[e.code] = false; });
-
-    // Distance from a spot on the ground to the nearest edge of an object's bounding box (ignoring height).
-    function distanceFromPoint(bounds, px, pz) {
-      const x = Math.max(bounds.min.x, Math.min(px, bounds.max.x));
-      const z = Math.max(bounds.min.z, Math.min(pz, bounds.max.z));
-      return Math.hypot(px - x, pz - z);
-    }
 
     function distanceTo(bounds) {
       return distanceFromPoint(bounds, camera.position.x, camera.position.z);
@@ -894,15 +1779,25 @@
     }
 
     function interact() {
-      const nugget = buriedNuggetHere();
-      if (nugget) {
-        digUpNugget(nugget);
-        return;
-      }
       const thing = nearbyThing();
       if (thing) thing.use();
     }
 
+    // Push the player back out of solid objects
+    function pushOutOfSolids() {
+      const playerRadius = 0.4;
+      for (const solid of solids) {
+        const p = nearestPoint(solid, camera.position.x, camera.position.z);
+        const dx = camera.position.x - p.x, dz = camera.position.z - p.z;
+        const dist = Math.hypot(dx, dz);
+        if (dist < playerRadius && dist > 0) {
+          camera.position.x = p.x + (dx / dist) * playerRadius;
+          camera.position.z = p.z + (dz / dist) * playerRadius;
+        }
+      }
+    }
+
+    let stepDistance = 0; // how far you've walked since the last footstep sound
     function movePlayer(dt) {
       let forward = 0, right = 0;
       if (keys.KeyW) forward += 1;
@@ -918,20 +1813,14 @@
       camera.position.z += (-cos * forward - sin * right) * step;
 
       // Keep inside the dig site
-      camera.position.x = Math.max(-28, Math.min(28, camera.position.x));
-      camera.position.z = Math.max(-28, Math.min(28, camera.position.z));
+      camera.position.x = clamp(camera.position.x, -28, 28);
+      camera.position.z = clamp(camera.position.z, -28, 28);
+      pushOutOfSolids();
 
-      // Push the player back out of solid objects
-      const playerRadius = 0.4;
-      for (const bounds of solids) {
-        const x = Math.max(bounds.min.x, Math.min(camera.position.x, bounds.max.x));
-        const z = Math.max(bounds.min.z, Math.min(camera.position.z, bounds.max.z));
-        const dx = camera.position.x - x, dz = camera.position.z - z;
-        const dist = Math.hypot(dx, dz);
-        if (dist < playerRadius && dist > 0) {
-          camera.position.x = x + (dx / dist) * playerRadius;
-          camera.position.z = z + (dz / dist) * playerRadius;
-        }
+      stepDistance += SETTINGS.walkSpeed * dt;
+      if (stepDistance > 1.9) {
+        stepDistance = 0;
+        sfx.step();
       }
     }
 
@@ -939,7 +1828,6 @@
     const hud = {
       wallet: document.getElementById('wallet'),
       status: document.getElementById('status'),
-      detector: document.getElementById('detector'),
       prompt: document.getElementById('prompt'),
       message: document.getElementById('message'),
     };
@@ -950,7 +1838,20 @@
       clearTimeout(messageTimeout);
       messageTimeout = setTimeout(() => { hud.message.style.opacity = 0; }, 2000);
     }
-    function updateHud(dt) {
+
+    function truckStatus() {
+      const t = state.truck;
+      if (t.mode === 'parked') {
+        if (t.load === 0) return 'Truck: empty, waiting for dirt';
+        const leavesIn = Math.max(0, Math.ceil(SETTINGS.truckWaitSeconds - t.wait));
+        return `Truck: ${t.load} / ${SETTINGS.truckCapacity} scoops (leaves in ${leavesIn} s)`;
+      }
+      if (t.mode === 'reversing') return `Truck: taking ${t.load} scoops to the sluice`;
+      if (t.mode === 'dumping') return 'Truck: dumping into the sluice';
+      return 'Truck: coming back';
+    }
+
+    function updateHud() {
       hud.wallet.textContent = `$${state.money}`;
 
       const carrier = toolNow('carrier');
@@ -960,28 +1861,20 @@
         `Shovel: ${shovel.name} (${shovel.scoops} per dig)`,
         `Sluice: ${state.sluiceQueue} scoops left to wash`,
       ];
-      const excavatorScoops = toolNow('excavator').scoopsPerLoad;
-      if (excavatorScoops) {
-        lines.push(state.sluiceQueue >= SETTINGS.sluiceMaxQueue
-          ? 'Excavator: waiting, the sluice is full'
-          : `Excavator: digging ${excavatorScoops} scoops every ${SETTINGS.excavatorSecondsPerLoad} s`);
+      if (!ownsTool('excavator')) {
+        lines.push(`Excavator: for sale in the shop ($${TOOLS.excavator.levels[1].price})`);
+      } else {
+        const bucketScoops = toolNow('digBucket').scoops;
+        lines.push(state.driving
+          ? `Excavator bucket: ${Math.round(state.exc.fill * bucketScoops)} / ${bucketScoops} scoops`
+          : 'Excavator: parked (walk up to it and press E)');
+        lines.push(truckStatus());
       }
       lines.push('Press B for the shop');
       hud.status.textContent = lines.join('\n');
 
-      // Metal detector signal bar, which flashes green on each beep
-      if (toolNow('detector').range) {
-        const bars = Math.round(state.detectorSignal * 10);
-        const muted = state.detectorMuted ? ' (muted, M)' : ' (M to mute)';
-        hud.detector.textContent = `Detector: ${'■'.repeat(bars)}${'□'.repeat(10 - bars)}${muted}`;
-      } else {
-        hud.detector.textContent = '';
-      }
-      beepFlash -= dt;
-      hud.detector.classList.toggle('beep', beepFlash > 0);
-
-      if (buriedNuggetHere()) {
-        hud.prompt.textContent = 'Your detector is going crazy! Press E to dig here';
+      if (state.driving) {
+        hud.prompt.textContent = drivingHint();
       } else {
         const thing = nearbyThing();
         hud.prompt.textContent = thing ? thing.prompt() : '';
@@ -1002,18 +1895,17 @@
     }
 
     function cheatResetEverything() {
+      if (state.driving) exitExcavator();
       state.money = 0;
       state.carrying = 0;
       state.sluiceQueue = 0;
       state.washTimer = 0;
-      state.excavatorTimer = 0;
-      for (const id of TOOL_ORDER) state.levels[id] = 0;
-      // Put the world back the way it was: small sluice, no excavator
-      upgradeSluiceModel();
-      excavator.visible = false;
-      const i = solids.indexOf(excavatorBounds);
-      if (i !== -1) solids.splice(i, 1);
-      updateToolbar();
+      // Put the world back the way it was: small sluice, excavator (for sale) and truck parked
+      state.exc = { ...EXCAVATOR_START };
+      state.truck = { load: 0, mode: 'parked', progress: 0, wait: 0, timer: 0 };
+      applyToolLevels({});
+      poseTruck();
+      pushOutOfSolids();
       showMessage('Everything reset (test cheat)');
     }
 
@@ -1033,19 +1925,29 @@
     function gameLoop() {
       const dt = Math.min(clock.getDelta(), 0.1); // seconds since last frame
 
-      if (playing) movePlayer(dt);
-      camera.rotation.set(pitch, yaw, 0, 'YXZ');
+      excavatorMoving = armMoving = false;
+      if (playing && state.driving) driveExcavator(dt);
+      else if (playing) movePlayer(dt);
+
+      if (state.driving) {
+        // Sit in the cab: the view turns with the tracks and the swing, plus wherever you look with the mouse
+        ex.seat.getWorldPosition(camera.position);
+        camera.rotation.set(cabPitch, state.exc.heading + state.exc.swing - Math.PI / 2 + cabYaw, 0, 'YXZ');
+      } else {
+        camera.rotation.set(pitch, yaw, 0, 'YXZ');
+      }
 
       updateSluice(dt);
-      updateExcavator(dt);
-      updateBuriedNuggets(dt);
-      updateDetector(dt);
+      updateTruck(dt);
       updateSparkles(dt);
-      updateHud(dt);
+      updateDirtBits(dt);
+      updateSounds(dt);
+      updateHud();
       if (state.shopOpen) updateShop();
       renderer.render(scene, camera);
       requestAnimationFrame(gameLoop);
     }
-    gameLoop();  </script>
+    gameLoop();
+  </script>
 </body>
 </html>
