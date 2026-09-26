@@ -19,12 +19,12 @@ Dig dirt, wash it in the sluice box, find gold, and buy better tools.
 | G | Switch the graphics between High and Low (Low runs faster on slower computers; the frame rate is shown in the bottom right) |
 | Esc | Pause and get your mouse back |
 
-Using the excavator (these controls are also shown on screen while you sit in it). It stays parked in one spot; you only swing its arm and tilt the bucket. The arm lowers into the pile and rises again by itself:
+Using the excavator (these controls are also shown on screen while you sit in it). It stays parked in one spot; you only swing its arm and tilt the bucket. The arm stays at one height: swing the bucket above the dirt pile and hold Q to scoop.
 
 | Control | Action |
 |---|---|
 | Arrow left / right | Swing the arm |
-| Q or hold left click | Curl the bucket in to scoop (with the bucket in the dirt pile) |
+| Q or hold left click | Curl the bucket in to scoop (with the bucket above the dirt pile) |
 | F or hold right click | Tip the bucket out to dump (over the sluice) |
 | Mouse | Look around |
 | E | Get out |

@@ -151,8 +151,7 @@
     <h3>Using the excavator</h3>
     <table>
       <tr><td><kbd>&larr;</kbd> <kbd>&rarr;</kbd></td><td>swing the arm left / right</td></tr>
-      <tr><td></td><td>(the arm lowers into the pile and rises again by itself)</td></tr>
-      <tr><td><kbd>Q</kbd> or left click</td><td>curl the bucket in: scoop (hold, in the dirt)</td></tr>
+      <tr><td><kbd>Q</kbd> or left click</td><td>curl the bucket in: scoop (hold, above the dirt pile)</td></tr>
       <tr><td><kbd>F</kbd> or right click</td><td>tip the bucket out: dump (hold, over the sluice)</td></tr>
       <tr><td>Mouse</td><td>look around</td></tr>
       <tr><td><kbd>E</kbd></td><td>get out</td></tr>
@@ -233,7 +232,6 @@
 
       // Excavator arm speeds with stock hydraulics (Speed upgrades multiply these), in radians per second
       armSwingSpeed: 0.9,
-      armLiftSpeed: 0.6,
       bucketCurlSpeed: 1.1,
     };
 
@@ -303,7 +301,7 @@
       },
       speed: {
         title: 'Excavator Speed',
-        about: 'Stronger hydraulics swing, lift and curl the arm faster.',
+        about: 'Stronger hydraulics swing the arm and curl the bucket faster.',
         needs: 'excavator',
         levels: [
           { name: 'Stock Hydraulics', speed: 1 },
@@ -325,8 +323,6 @@
     // How the arm is posed at the start. swing = the top part turned left/right, boom = arm raised up (radians),
     // bucketPitch = bucket tilt (up = holding dirt, down = dumping), load = scoops of dirt in the bucket.
     const EXCAVATOR_START = { swing: 0, boom: 0.9, bucketPitch: -0.3, load: 0 };
-    // The arm raises and lowers by itself (see armTarget()): down to ARM_LOW over the pile, up to ARM_HIGH everywhere else
-    const ARM_LOW = 0.35, ARM_HIGH = 0.9;
 
     // ---------- Game state: everything that changes while you play ----------
     const state = {
@@ -2465,7 +2461,6 @@
     let cabYaw = 0, cabPitch = 0; // where you're looking inside the cab
     let armMoving = false;        // for the engine and hydraulics sounds
     let scrapeTimer = 0;
-    let biting = false; // true while the bucket is scooping into the pile
     const excavatorHelp = document.getElementById('excavator-help');
     const crosshair = document.getElementById('crosshair');
 
@@ -2501,19 +2496,12 @@
       return Math.hypot(p.x - pileCircle.x, p.z - pileCircle.z);
     }
 
-    // Is this spot (on the bucket) in the dirt pile? The pile is a cone, so it's lower near the edge.
-    function inPile(p) {
+    // Is the bucket above the dirt pile? Then you can scoop. (It measures from the bucket's hinge,
+    // the same spot dumpTarget() uses, and the arm's height doesn't matter.)
+    function bucketOverPile() {
       if (state.pile <= 0) return false;
-      const size = pileSize();
-      const distance = distanceFromPile(p);
-      const surface = size.height * (1 - distance / size.radius);
-      return distance < size.radius + 0.1 && p.y < surface + 0.4;
-    }
-
-    // Is the bucket digging into the pile? (Its teeth, its middle or its back all count, to keep it easy.
-    // The back matters for big buckets on a tiny pile, where the teeth reach right past it.)
-    function bucketInDirt() {
-      return inPile(bucketWorld(ex.tip)) || inPile(bucketWorld(ex.belly)) || inPile(bucketWorld(ex.heel));
+      const spot = ex.bucket.getWorldPosition(new THREE.Vector3());
+      return distanceFromPile(spot) < pileSize().radius + 0.3;
     }
 
     // Where the bucket would drop its dirt: 'pile', 'sluice' or 'ground'
@@ -2543,17 +2531,8 @@
       }
     }
 
-    // How high the arm should be right now. It raises and lowers by itself:
-    // down into the dirt when the bucket is over the pile, up high everywhere else (so it clears the sluice).
-    // Once the bucket is full it lifts back out of the pile.
-    function armTarget() {
-      const spot = ex.bucket.getWorldPosition(new THREE.Vector3());
-      const overPile = state.pile > 0 && distanceFromPile(spot) < pileSize().radius + 0.5;
-      const full = state.exc.load >= toolNow('digBucket').scoops;
-      return overPile && !full ? ARM_LOW : ARM_HIGH;
-    }
-
-    // Runs every frame while you're in the excavator: the arrow keys swing the arm, Q/F tilt the bucket
+    // Runs every frame while you're in the excavator: the arrow keys swing the arm, Q/F tilt the bucket.
+    // The arm stays at one height (EXCAVATOR_START.boom), high enough to clear the sluice's sides.
     function operateExcavator(dt) {
       const exc = state.exc;
       const speed = toolNow('speed').speed;
@@ -2563,35 +2542,13 @@
       const swing = held('ArrowLeft') - held('ArrowRight');
       const curl = held('KeyQ', 'MouseLeft') - held('KeyF', 'MouseRight');
       exc.swing += swing * SETTINGS.armSwingSpeed * speed * dt;
-      // The arm moves towards its target height by itself (faster with the Speed upgrades)
-      const liftStep = SETTINGS.armLiftSpeed * speed * dt;
-      let lift = clamp(armTarget() - exc.boom, -liftStep, liftStep);
-
-      // The bucket can't go into the ground: undo a move if it pushed the bucket lower.
-      // The arm and the bucket tilt are checked one at a time, so a blocked arm doesn't stop you tilting the bucket.
-      let lowestBefore = ex.lowest;
-      exc.boom += lift;
-      poseExcavator();
-      if (ex.lowest < 0.05 && ex.lowest < lowestBefore) {
-        exc.boom = before.boom;
-        lift = 0;
-        poseExcavator();
-      }
-      lowestBefore = ex.lowest;
+      exc.boom = EXCAVATOR_START.boom;
       exc.bucketPitch = clamp(exc.bucketPitch + curl * SETTINGS.bucketCurlSpeed * speed * dt, -1.6, 1.0);
       poseExcavator();
-      if (ex.lowest < 0.05 && ex.lowest < lowestBefore) {
-        exc.bucketPitch = before.bucketPitch;
-        poseExcavator();
-      }
 
-      // Scooping: curl the bucket while its teeth are in the pile and it fills up.
-      // Once the bucket bites into the dirt, it keeps filling while you hold scoop and it's still over the pile.
+      // Scooping: curl the bucket (hold Q) while it's above the pile, and it fills up as it curls
       const capacity = toolNow('digBucket').scoops;
-      const overPile = state.pile > 0 && distanceFromPile(bucketWorld(ex.belly)) < pileSize().radius + 0.3;
-      if (curl <= 0 || !overPile) biting = false;
-      else if (bucketInDirt()) biting = true;
-      if (biting && exc.load < capacity && exc.bucketPitch > DUMP_PITCH) {
+      if (curl > 0 && bucketOverPile() && exc.load < capacity && exc.bucketPitch > DUMP_PITCH) {
         const curled = Math.max(0, exc.bucketPitch - before.bucketPitch); // full after about 1 radian of curl
         const scooped = takeFromPile(Math.min(curled * capacity, capacity - exc.load));
         exc.load += scooped;
@@ -2609,7 +2566,7 @@
         poseExcavator();
       }
 
-      armMoving = swing !== 0 || Math.abs(lift) > 0.0001 || curl !== 0;
+      armMoving = swing !== 0 || curl !== 0;
     }
 
     // A hint under the crosshair that tells you what to do next in the excavator
@@ -2617,12 +2574,15 @@
       const exc = state.exc;
       if (exc.load <= 0) {
         if (state.pile <= 0) return 'The pile is all dug up!';
-        return bucketInDirt() ? 'The bucket is in the dirt: hold Q to scoop' : 'Swing (← →) to the DIRT pile: the arm lowers by itself. Then hold Q to scoop';
+        return bucketOverPile() ? 'Over the dirt: hold Q to scoop' : 'Swing (← →) over the DIRT pile, then hold Q to scoop';
       }
       if (dumpTarget() === 'sluice') return 'Over the sluice: hold F to dump';
       if (exc.load >= toolNow('digBucket').scoops) return 'Bucket full! Swing (← →) to the sluice, then hold F';
       if (state.pile <= 0) return 'The pile is empty. Take what you have to the sluice and hold F';
-      return '';
+      if (bucketOverPile()) {
+        return exc.bucketPitch >= 1 ? 'Bucket curled all the way: tip it back a little (F), then hold Q again' : 'Over the dirt: hold Q to scoop more';
+      }
+      return 'Swing (← →) back over the DIRT pile to fill up, or to the sluice and hold F';
     }
 
     // ---------- Shop menu ----------
