@@ -150,7 +150,7 @@
   <div id="excavator-help" class="plaque" hidden>
     <h3>Using the excavator</h3>
     <table>
-      <tr><td><kbd>&larr;</kbd> <kbd>&rarr;</kbd></td><td>swing the arm left / right</td></tr>
+      <tr><td><kbd>A</kbd> <kbd>D</kbd></td><td>swing the arm left / right</td></tr>
       <tr><td><kbd>Q</kbd> or left click</td><td>curl the bucket in: scoop (hold, above the dirt pile)</td></tr>
       <tr><td><kbd>F</kbd> or right click</td><td>tip the bucket out: dump (hold, over the sluice)</td></tr>
       <tr><td>Mouse</td><td>look around</td></tr>
@@ -2531,7 +2531,7 @@
       }
     }
 
-    // Runs every frame while you're in the excavator: the arrow keys swing the arm, Q/F tilt the bucket.
+    // Runs every frame while you're in the excavator: A/D swing the arm, Q/F tilt the bucket.
     // The arm stays at one height (EXCAVATOR_START.boom), high enough to clear the sluice's sides.
     function operateExcavator(dt) {
       const exc = state.exc;
@@ -2539,7 +2539,7 @@
       const before = { ...exc };
       const held = (...codes) => (codes.some((code) => keys[code]) ? 1 : 0);
 
-      const swing = held('ArrowLeft') - held('ArrowRight');
+      const swing = held('KeyA') - held('KeyD');
       const curl = held('KeyQ', 'MouseLeft') - held('KeyF', 'MouseRight');
       exc.swing += swing * SETTINGS.armSwingSpeed * speed * dt;
       exc.boom = EXCAVATOR_START.boom;
@@ -2574,15 +2574,15 @@
       const exc = state.exc;
       if (exc.load <= 0) {
         if (state.pile <= 0) return 'The pile is all dug up!';
-        return bucketOverPile() ? 'Over the dirt: hold Q to scoop' : 'Swing (← →) over the DIRT pile, then hold Q to scoop';
+        return bucketOverPile() ? 'Over the dirt: hold Q to scoop' : 'Swing (A / D) over the DIRT pile, then hold Q to scoop';
       }
       if (dumpTarget() === 'sluice') return 'Over the sluice: hold F to dump';
-      if (exc.load >= toolNow('digBucket').scoops) return 'Bucket full! Swing (← →) to the sluice, then hold F';
+      if (exc.load >= toolNow('digBucket').scoops) return 'Bucket full! Swing (A / D) to the sluice, then hold F';
       if (state.pile <= 0) return 'The pile is empty. Take what you have to the sluice and hold F';
       if (bucketOverPile()) {
         return exc.bucketPitch >= 1 ? 'Bucket curled all the way: tip it back a little (F), then hold Q again' : 'Over the dirt: hold Q to scoop more';
       }
-      return 'Swing (← →) back over the DIRT pile to fill up, or to the sluice and hold F';
+      return 'Swing (A / D) back over the DIRT pile to fill up, or to the sluice and hold F';
     }
 
     // ---------- Shop menu ----------

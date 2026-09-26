@@ -23,7 +23,7 @@ Using the excavator (these controls are also shown on screen while you sit in it
 
 | Control | Action |
 |---|---|
-| Arrow left / right | Swing the arm |
+| A / D | Swing the arm left / right |
 | Q or hold left click | Curl the bucket in to scoop (with the bucket above the dirt pile) |
 | F or hold right click | Tip the bucket out to dump (over the sluice) |
 | Mouse | Look around |
