@@ -1,0 +1,10 @@
+# Files your operating system or editor creates that don't belong in the project
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+
+# In case we add tools later
+node_modules/

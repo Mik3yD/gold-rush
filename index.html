@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gold Rush</title>
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #87ceeb; font-family: system-ui, sans-serif; }
+    .overlay-text { color: #fff; text-shadow: 0 1px 3px #000; pointer-events: none; }
+    #hud { position: fixed; top: 12px; left: 12px; font-size: 18px; line-height: 1.5; }
+    #wallet { font-size: 32px; font-weight: bold; color: #ffd700; }
+    #crosshair { position: fixed; top: 50%; left: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; background: #fff; border-radius: 50%; pointer-events: none; }
+    #prompt { position: fixed; top: 58%; width: 100%; text-align: center; font-size: 20px; }
+    #message { position: fixed; top: 25%; width: 100%; text-align: center; font-size: 36px; font-weight: bold; color: #ffd700; opacity: 0; transition: opacity 0.4s; }
+    #start { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.65); color: #fff; cursor: pointer; text-align: center; }
+    #start h1 { font-size: 56px; color: #ffd700; margin: 0 0 16px; }
+    #start p { margin: 4px; font-size: 18px; }
+  </style>
+</head>
+<body>
+  <div id="hud" class="overlay-text">
+    <div id="wallet">$0</div>
+    <div id="bucket"></div>
+    <div id="sluice"></div>
+    <div id="shovel"></div>
+  </div>
+  <div id="crosshair"></div>
+  <div id="prompt" class="overlay-text"></div>
+  <div id="message" class="overlay-text"></div>
+
+  <div id="start">
+    <h1>Gold Rush</h1>
+    <p><b>Click to play</b></p>
+    <p>WASD to walk &middot; Mouse to look &middot; E (or left click) to use things &middot; Esc to pause</p>
+    <p>Dig dirt at the pile, carry it to the sluice box, and wash it to find gold.</p>
+    <p>Spend your money at the shop on a bigger shovel.</p>
+  </div>
+
+  <!-- Tells the browser where to download Three.js from (a CDN), so nothing needs installing. -->
+  <script type="importmap">
+    { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js" } }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+
+    // ---------- Game settings: change these numbers to tweak the game ----------
+    const SETTINGS = {
+      walkSpeed: 5,            // meters per second
+      mouseSensitivity: 0.002,
+      reach: 1.5,              // how close (in meters) you must be to use something
+      bucketSize: 10,          // most scoops of dirt you can carry at once
+      secondsPerScoop: 1,      // how long the sluice takes to wash one scoop
+      flakeChance: 0.5,        // chance (0 to 1) that a scoop has gold flakes in it
+      flakeValue: 1,           // dollars per flake
+      nuggetChance: 0.02,      // chance that a scoop has a big nugget
+      nuggetValue: 50,         // dollars per nugget
+      bigShovelCost: 25,
+      basicShovelScoops: 1,    // scoops per dig with the starting shovel
+      bigShovelScoops: 3,      // scoops per dig after buying the upgrade
+    };
+
+    // ---------- Game state: everything that changes while you play ----------
+    const state = {
+      money: 0,
+      bucket: 0,          // scoops of dirt you're carrying
+      sluiceQueue: 0,     // scoops waiting to be washed
+      washTimer: 0,
+      hasBigShovel: false,
+    };
+
+    // ---------- Scene, camera and renderer ----------
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.Fog(0x87ceeb, 30, 80);
+
+    const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 200);
+    camera.position.set(0, 1.6, 2); // 1.6 m is roughly eye height
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(innerWidth, innerHeight);
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    document.body.appendChild(renderer.domElement);
+
+    addEventListener('resize', () => {
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(innerWidth, innerHeight);
+    });
+
+    // ---------- Lights ----------
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x556633, 1.2));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.5);
+    sun.position.set(10, 20, 5);
+    scene.add(sun);
+
+    // ---------- Helpers for building plain-shape objects ----------
+    function box(w, h, d, color, x, y, z) {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
+      mesh.position.set(x, y, z);
+      return mesh;
+    }
+
+    // A wooden post with a text label on top, facing the middle of the dig site.
+    function makeSign(text, x, z) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 64;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#5b3a1a';
+      ctx.fillRect(0, 0, 256, 64);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 40px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 128, 34);
+
+      const board = new THREE.Mesh(
+        new THREE.PlaneGeometry(2, 0.5),
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), side: THREE.DoubleSide })
+      );
+      board.position.set(x, 3, z);
+      board.lookAt(0, 3, 0);
+      scene.add(board);
+      scene.add(box(0.1, 2.8, 0.1, 0x5b3a1a, x, 1.4, z));
+    }
+
+    // ---------- The dig site ----------
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(60, 60),
+      new THREE.MeshLambertMaterial({ color: 0x7a9a4a })
+    );
+    ground.rotation.x = -Math.PI / 2; // lay the plane flat
+    scene.add(ground);
+
+    // Dirt pile
+    const dirtPile = new THREE.Mesh(
+      new THREE.ConeGeometry(2, 1.5, 16),
+      new THREE.MeshLambertMaterial({ color: 0x6b4423 })
+    );
+    dirtPile.position.set(-6, 0.75, -6);
+    scene.add(dirtPile);
+    makeSign('DIRT', -6, -3.5);
+
+    // Sluice box: a tilted wooden trough with water running through it
+    const sluice = new THREE.Group();
+    sluice.add(box(4, 0.1, 1, 0x8b5a2b, 0, 1, 0));          // bottom
+    sluice.add(box(4, 0.3, 0.05, 0x8b5a2b, 0, 1.15, 0.5));  // side
+    sluice.add(box(4, 0.3, 0.05, 0x8b5a2b, 0, 1.15, -0.5)); // side
+    sluice.add(box(3.9, 0.02, 0.9, 0x3399ff, 0, 1.08, 0));  // water
+    for (let i = -1.5; i <= 1.5; i += 0.5) {
+      sluice.add(box(0.05, 0.08, 0.9, 0x5b3a1a, i, 1.1, 0)); // riffles that catch the gold
+    }
+    sluice.add(box(0.1, 1, 0.1, 0x5b3a1a, -1.8, 0.5, 0.4)); // legs
+    sluice.add(box(0.1, 1, 0.1, 0x5b3a1a, -1.8, 0.5, -0.4));
+    sluice.add(box(0.1, 1, 0.1, 0x5b3a1a, 1.8, 0.5, 0.4));
+    sluice.add(box(0.1, 1, 0.1, 0x5b3a1a, 1.8, 0.5, -0.4));
+    const sluiceDirt = box(0.8, 0.15, 0.8, 0x6b4423, -1.4, 1.15, 0); // shows when dirt is waiting
+    sluiceDirt.visible = false;
+    sluice.add(sluiceDirt);
+    sluice.position.set(6, 0, -6);
+    sluice.rotation.z = -0.08; // slight tilt so the water "flows" downhill
+    scene.add(sluice);
+    makeSign('SLUICE', 6, -3.5);
+
+    // Shop: a table with a shiny shovel on it
+    const shop = new THREE.Group();
+    shop.add(box(2, 1, 1, 0x8b5a2b, 0, 0.5, 0));
+    const shopShovel = new THREE.Group();
+    shopShovel.add(box(1.2, 0.05, 0.05, 0xaaaaaa, 0, 1.05, 0));
+    shopShovel.add(box(0.3, 0.03, 0.25, 0xffd700, 0.7, 1.05, 0));
+    shop.add(shopShovel);
+    shop.position.set(0, 0, 7);
+    scene.add(shop);
+    makeSign('SHOP', 0, 8.5);
+
+    // Every solid thing: used to stop you walking through it and to measure how close you are.
+    function boundsOf(object) {
+      return new THREE.Box3().setFromObject(object);
+    }
+    const solids = [dirtPile, sluice, shop].map(boundsOf);
+
+    // ---------- Things you can use with E ----------
+    const interactables = [
+      {
+        bounds: boundsOf(dirtPile),
+        prompt: () => state.bucket >= SETTINGS.bucketSize ? 'Bucket is full - take it to the sluice' : 'Press E to dig',
+        use: dig,
+      },
+      {
+        bounds: boundsOf(sluice),
+        prompt: () => state.bucket > 0 ? `Press E to dump ${state.bucket} scoops into the sluice` : 'Bring dirt here to wash it',
+        use: dumpIntoSluice,
+      },
+      {
+        bounds: boundsOf(shop),
+        prompt: () => state.hasBigShovel ? 'You own the Big Shovel' : `Press E to buy the Big Shovel ($${SETTINGS.bigShovelCost}) - digs ${SETTINGS.bigShovelScoops} scoops at once`,
+        use: buyBigShovel,
+      },
+    ];
+
+    function dig() {
+      const scoops = state.hasBigShovel ? SETTINGS.bigShovelScoops : SETTINGS.basicShovelScoops;
+      state.bucket = Math.min(SETTINGS.bucketSize, state.bucket + scoops);
+    }
+
+    function dumpIntoSluice() {
+      state.sluiceQueue += state.bucket;
+      state.bucket = 0;
+    }
+
+    function buyBigShovel() {
+      if (state.hasBigShovel) return;
+      if (state.money < SETTINGS.bigShovelCost) {
+        showMessage(`You need $${SETTINGS.bigShovelCost - state.money} more`);
+        return;
+      }
+      state.money -= SETTINGS.bigShovelCost;
+      state.hasBigShovel = true;
+      shopShovel.visible = false; // you took it off the table
+      showMessage('Bought the Big Shovel!');
+    }
+
+    // Wash one scoop of dirt and see what gold is in it.
+    function washOneScoop() {
+      state.sluiceQueue -= 1;
+      if (Math.random() < SETTINGS.nuggetChance) {
+        state.money += SETTINGS.nuggetValue;
+        showMessage(`BIG NUGGET! +$${SETTINGS.nuggetValue}`);
+        sparkle(0.25);
+      } else if (Math.random() < SETTINGS.flakeChance) {
+        const flakes = 1 + Math.floor(Math.random() * 3); // 1 to 3 flakes
+        state.money += flakes * SETTINGS.flakeValue;
+        for (let i = 0; i < flakes; i++) sparkle(0.07);
+      }
+    }
+
+    // ---------- Gold sparkles that float up from the sluice ----------
+    const sparkles = [];
+    const goldMaterial = new THREE.MeshBasicMaterial({ color: 0xffd700 });
+    function sparkle(size) {
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(size, 8, 8), goldMaterial);
+      mesh.position.set(sluice.position.x + (Math.random() - 0.5) * 2, 1.3, sluice.position.z + (Math.random() - 0.5) * 0.6);
+      scene.add(mesh);
+      sparkles.push({ mesh, life: 1 });
+    }
+    function updateSparkles(dt) {
+      for (let i = sparkles.length - 1; i >= 0; i--) {
+        const s = sparkles[i];
+        s.life -= dt;
+        s.mesh.position.y += dt;
+        s.mesh.scale.setScalar(Math.max(s.life, 0.01));
+        if (s.life <= 0) {
+          scene.remove(s.mesh);
+          s.mesh.geometry.dispose();
+          sparkles.splice(i, 1);
+        }
+      }
+    }
+
+    // ---------- Controls: mouse look, WASD, E to use ----------
+    let yaw = 0;    // looking left/right
+    let pitch = 0;  // looking up/down
+    let playing = false;
+    const keys = {};
+    const startScreen = document.getElementById('start');
+
+    startScreen.addEventListener('click', () => renderer.domElement.requestPointerLock());
+    document.addEventListener('pointerlockchange', () => {
+      playing = document.pointerLockElement === renderer.domElement;
+      startScreen.style.display = playing ? 'none' : 'flex';
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (!playing) return;
+      yaw -= e.movementX * SETTINGS.mouseSensitivity;
+      pitch -= e.movementY * SETTINGS.mouseSensitivity;
+      pitch = Math.max(-1.5, Math.min(1.5, pitch));
+    });
+    document.addEventListener('mousedown', (e) => { if (playing && e.button === 0) interact(); });
+    addEventListener('keydown', (e) => {
+      keys[e.code] = true;
+      if (playing && e.code === 'KeyE' && !e.repeat) interact();
+    });
+    addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+    // Distance from you to the nearest edge of an object's bounding box (ignoring height).
+    function distanceTo(bounds) {
+      const x = Math.max(bounds.min.x, Math.min(camera.position.x, bounds.max.x));
+      const z = Math.max(bounds.min.z, Math.min(camera.position.z, bounds.max.z));
+      return Math.hypot(camera.position.x - x, camera.position.z - z);
+    }
+
+    function nearbyThing() {
+      return interactables.find((thing) => distanceTo(thing.bounds) < SETTINGS.reach);
+    }
+
+    function interact() {
+      const thing = nearbyThing();
+      if (thing) thing.use();
+    }
+
+    function movePlayer(dt) {
+      let forward = 0, right = 0;
+      if (keys.KeyW) forward += 1;
+      if (keys.KeyS) forward -= 1;
+      if (keys.KeyD) right += 1;
+      if (keys.KeyA) right -= 1;
+      if (forward === 0 && right === 0) return;
+
+      const length = Math.hypot(forward, right); // so diagonal walking isn't faster
+      const step = (SETTINGS.walkSpeed * dt) / length;
+      const sin = Math.sin(yaw), cos = Math.cos(yaw);
+      camera.position.x += (-sin * forward + cos * right) * step;
+      camera.position.z += (-cos * forward - sin * right) * step;
+
+      // Keep inside the dig site
+      camera.position.x = Math.max(-28, Math.min(28, camera.position.x));
+      camera.position.z = Math.max(-28, Math.min(28, camera.position.z));
+
+      // Push the player back out of solid objects
+      const playerRadius = 0.4;
+      for (const bounds of solids) {
+        const x = Math.max(bounds.min.x, Math.min(camera.position.x, bounds.max.x));
+        const z = Math.max(bounds.min.z, Math.min(camera.position.z, bounds.max.z));
+        const dx = camera.position.x - x, dz = camera.position.z - z;
+        const dist = Math.hypot(dx, dz);
+        if (dist < playerRadius && dist > 0) {
+          camera.position.x = x + (dx / dist) * playerRadius;
+          camera.position.z = z + (dz / dist) * playerRadius;
+        }
+      }
+    }
+
+    // ---------- On-screen text ----------
+    const hud = {
+      wallet: document.getElementById('wallet'),
+      bucket: document.getElementById('bucket'),
+      sluice: document.getElementById('sluice'),
+      shovel: document.getElementById('shovel'),
+      prompt: document.getElementById('prompt'),
+      message: document.getElementById('message'),
+    };
+    let messageTimeout;
+    function showMessage(text) {
+      hud.message.textContent = text;
+      hud.message.style.opacity = 1;
+      clearTimeout(messageTimeout);
+      messageTimeout = setTimeout(() => { hud.message.style.opacity = 0; }, 2000);
+    }
+    function updateHud() {
+      hud.wallet.textContent = `$${state.money}`;
+      hud.bucket.textContent = `Bucket: ${state.bucket} / ${SETTINGS.bucketSize} scoops`;
+      hud.sluice.textContent = `Sluice: ${state.sluiceQueue} scoops left to wash`;
+      hud.shovel.textContent = state.hasBigShovel
+        ? `Shovel: Big (${SETTINGS.bigShovelScoops} scoops per dig)`
+        : `Shovel: Basic (${SETTINGS.basicShovelScoops} scoop per dig)`;
+      const thing = nearbyThing();
+      hud.prompt.textContent = thing ? thing.prompt() : '';
+    }
+
+    // ---------- Game loop: runs about 60 times per second ----------
+    const clock = new THREE.Clock();
+    function gameLoop() {
+      const dt = Math.min(clock.getDelta(), 0.1); // seconds since last frame
+
+      if (playing) movePlayer(dt);
+      camera.rotation.set(pitch, yaw, 0, 'YXZ');
+
+      if (state.sluiceQueue > 0) {
+        state.washTimer += dt;
+        while (state.washTimer >= SETTINGS.secondsPerScoop && state.sluiceQueue > 0) {
+          state.washTimer -= SETTINGS.secondsPerScoop;
+          washOneScoop();
+        }
+      } else {
+        state.washTimer = 0;
+      }
+      sluiceDirt.visible = state.sluiceQueue > 0;
+
+      updateSparkles(dt);
+      updateHud();
+      renderer.render(scene, camera);
+      requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+  </script>
+</body>
+</html>
