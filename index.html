@@ -5057,9 +5057,11 @@
     // ---------- TEST CHEATS: for trying things out without grinding ----------
     // K = add money, R = reset everything back to the start, P = dig away most of the pile (to test the end screen),
     // O = fill the tailing pond (to test the sluice slowing down).
-    // Set CHEATS_ON to false (or delete this whole block) before the game is finished.
+    // They're OFF unless you add ?cheats to the end of the game's address, for example
+    // file:///C:/.../index.html?cheats  (so the shared version has none, and you can still test with them).
+    // To have them always on while working on the game, change the line below to: const CHEATS_ON = true;
     // =====================================================================
-    const CHEATS_ON = true;
+    const CHEATS_ON = new URLSearchParams(location.search).has('cheats');
     const CHEAT_MONEY = 25000;
     const CHEAT_PILE_LEFT = 5; // tons the P cheat leaves in the pile
 
@@ -5085,6 +5087,9 @@
     }
 
     if (CHEATS_ON) {
+      // So you can tell they're on: in the browser tab's title, and a message when the page loads
+      document.title += ' (test cheats on)';
+      showMessage('Test cheats on: K money, R reset, P shrink pile, O fill pond');
       // Its own key listener, so the rest of the game doesn't need to know about cheats.
       // Works while playing and while the shop is open (but not on the end screen).
       addEventListener('keydown', (e) => {
