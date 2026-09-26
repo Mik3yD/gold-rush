@@ -14,11 +14,13 @@ Dig dirt, wash it in the sluice box, find gold, and buy better tools.
 | W A S D | Walk |
 | Mouse | Look around |
 | E or left click | Dig, dump dirt, or dig up a buried nugget (when you're close to something) |
-| B | Open or close the shop (then click an item or press 1 to 6 to buy it) |
+| B | Open or close the shop (then click an item or press 1 to 5 to buy it) |
 | M | Mute or unmute the metal detector |
 | Esc | Pause and get your mouse back |
 
-The loop: walk to the **DIRT** pile and dig until your bucket is full. Carry it to the **SLUICE** and dump it in. The sluice washes the dirt and pays you for any gold it finds. Press **B** to spend your money on a better shovel, a bigger bucket or wheelbarrow, a gold pan, a faster sluice, a metal detector for finding buried nuggets, and finally a small excavator that digs for you.
+The tools you own are shown along the bottom of the screen, each with its level. Upgraded tools get better-looking icons, and upgrading the sluice box also changes the real sluice in the game.
+
+The loop: walk to the **DIRT** pile and dig until your bucket is full. Carry it to the **SLUICE** and dump it in. The sluice washes the dirt and pays you for any gold it finds. Press **B** to spend your money on a better shovel, a bigger bucket or wheelbarrow, a bigger and faster sluice, a metal detector for finding buried nuggets, and finally a small excavator that digs for you.
 
 ## If double-clicking doesn't work
 

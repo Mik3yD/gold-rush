@@ -32,6 +32,15 @@
     .shop-item .about { color: #ddd; }
     .shop-item .price { margin-left: auto; font-size: 22px; font-weight: bold; color: #ffd700; white-space: nowrap; }
     #shop-close { margin-top: 8px; padding: 8px 16px; font: inherit; font-size: 16px; cursor: pointer; }
+
+    /* Tool bar along the bottom: one icon per tool you own */
+    #toolbar { position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; pointer-events: none; }
+    .tool-slot { position: relative; width: 64px; height: 64px; background: rgba(0, 0, 0, 0.45); border: 2px solid #999; border-radius: 10px; }
+    .tool-slot.max { border-color: #ffd700; box-shadow: 0 0 10px #ffd700; } /* fully upgraded */
+    .tool-slot canvas { display: block; width: 64px; height: 64px; }
+    .tool-slot .badge { position: absolute; top: -9px; right: -8px; padding: 1px 6px; background: #ffd700; color: #2b1d0e; border-radius: 8px; font-size: 12px; font-weight: bold; }
+    .tool-slot.upgraded { animation: pop 0.6s; } /* a little bounce right after you upgrade */
+    @keyframes pop { 50% { transform: scale(1.35); } }
   </style>
 </head>
 <body>
@@ -43,12 +52,13 @@
   <div id="crosshair"></div>
   <div id="prompt" class="overlay-text"></div>
   <div id="message" class="overlay-text"></div>
+  <div id="toolbar"></div>
 
   <div id="start">
     <h1>Gold Rush</h1>
     <p><b>Click to play</b></p>
     <p>WASD to walk &middot; Mouse to look &middot; E (or left click) to use things &middot; Esc to pause</p>
-    <p><b>B</b> opens the shop &middot; <b>M</b> mutes the metal detector</p>
+    <p><b>B</b> opens the shop (buy with 1 to 5) &middot; <b>M</b> mutes the metal detector</p>
     <p>Dig dirt at the pile, carry it to the sluice box, and wash it to find gold.</p>
     <p>Spend your money on better tools.</p>
   </div>
@@ -80,8 +90,6 @@
       flakeValue: 1,           // dollars per flake
       nuggetChance: 0.02,      // chance that a sluiced scoop has a big nugget
       nuggetValue: 50,         // dollars per nugget
-      panFlakeChance: 0.6,     // the gold pan is slower but finds a bit more gold
-      panNuggetChance: 0.025,
       buriedNuggetMin: 100,    // a nugget found with the metal detector is worth between these
       buriedNuggetMax: 250,
       maxBuriedNuggets: 3,     // how many nuggets can be hidden in the ground at once
@@ -96,6 +104,7 @@
       shovel: {
         title: 'Shovel',
         about: 'Digs dirt from the DIRT pile.',
+        startsOwned: true, // you have one from the start, so it's always on the tool bar
         levels: [
           { name: 'Basic Shovel', scoops: 1 },
           { name: 'Big Shovel', price: 60, scoops: 2 },
@@ -106,7 +115,8 @@
       },
       carrier: {
         title: 'Bucket / Wheelbarrow',
-        about: 'Carries dirt to the sluice or the pan tub.',
+        about: 'Carries dirt to the sluice.',
+        startsOwned: true,
         levels: [
           { name: 'Small Bucket', capacity: 10 },
           { name: 'Big Bucket', price: 100, capacity: 20 },
@@ -115,20 +125,10 @@
         ],
         describe: (level) => `carries ${level.capacity} scoops per trip`,
       },
-      pan: {
-        title: 'Gold Pan',
-        about: 'Dump dirt in the PAN tub and stand next to it. Slower than the sluice, but finds more gold.',
-        levels: [
-          { name: 'Not owned yet', secondsPerScoop: 0 },
-          { name: 'Gold Pan', price: 80, secondsPerScoop: 3 },
-          { name: 'Steel Pan', price: 300, secondsPerScoop: 2 },
-          { name: 'Pro Pan', price: 800, secondsPerScoop: 1.2 },
-        ],
-        describe: (level) => level.secondsPerScoop ? `pans 1 scoop every ${level.secondsPerScoop} s` : '',
-      },
       sluice: {
         title: 'Sluice Box',
         about: 'Washes the dirt you dump in it, all by itself.',
+        startsOwned: true,
         levels: [
           { name: 'Small Sluice', batch: 1, seconds: 1 },
           { name: 'Long Sluice', price: 120, batch: 2, seconds: 0.8 },
@@ -160,7 +160,9 @@
         describe: (level) => level.scoopsPerLoad ? `digs ${level.scoopsPerLoad} scoops every ${SETTINGS.excavatorSecondsPerLoad} s` : '',
       },
     };
-    const TOOL_ORDER = ['shovel', 'carrier', 'pan', 'sluice', 'detector', 'excavator']; // also the number keys 1 to 6
+    // The shop, the tool bar and the number keys (1 to 5) only ever look at the tools in this list,
+    // so an old tool that no longer exists (like the Gold Pan) is simply ignored.
+    const TOOL_ORDER = ['shovel', 'carrier', 'sluice', 'detector', 'excavator'];
 
     // ---------- Game state: everything that changes while you play ----------
     const state = {
@@ -168,9 +170,7 @@
       carrying: 0,        // scoops of dirt in your bucket or wheelbarrow
       sluiceQueue: 0,     // scoops waiting to be washed in the sluice
       washTimer: 0,
-      panQueue: 0,        // scoops waiting in the pan tub
-      panTimer: 0,
-      levels: { shovel: 0, carrier: 0, pan: 0, sluice: 0, detector: 0, excavator: 0 },
+      levels: { shovel: 0, carrier: 0, sluice: 0, detector: 0, excavator: 0 },
       buriedNuggets: [],  // hidden nuggets, each one is { x, z }
       buryTimer: 0,
       detectorSignal: 0,  // 0 = nothing nearby, 1 = standing right on a nugget
@@ -182,6 +182,8 @@
     // The level you own right now, and the one you can buy next (undefined when maxed out).
     function toolNow(id) { return TOOLS[id].levels[state.levels[id]]; }
     function toolNext(id) { return TOOLS[id].levels[state.levels[id] + 1]; }
+    // Tools you start with count as owned; the others only once you've bought level 1
+    function ownsTool(id) { return TOOLS[id].startsOwned || state.levels[id] > 0; }
 
     // ---------- Scene, camera and renderer ----------
     const scene = new THREE.Scene();
@@ -262,41 +264,86 @@
     scene.add(dirtPile);
     makeSign('DIRT', -6, -3.5);
 
-    // Sluice box: a tilted wooden trough with water running through it
+    // Sluice box: a tilted trough with water running through it. It looks different at each level.
+    // length/width in meters, riffles = the bars across the trough that catch the gold.
+    const SLUICE_LOOKS = [
+      { length: 4,   width: 1,   riffles: 6,  post: 0.1,  trough: 0x8b5a2b, frame: 0x5b3a1a }, // Small: a plain wooden box
+      { length: 5.5, width: 1,   riffles: 10, post: 0.12, trough: 0x8b5a2b, frame: 0x5b3a1a, braces: true }, // Long: cross braces
+      { length: 6.5, width: 1.5, riffles: 14, post: 0.16, trough: 0x9c6b3a, frame: 0x4a2e14, braces: true, rails: true, divider: true }, // Double: two channels
+      { length: 7.5, width: 1.6, riffles: 20, post: 0.18, trough: 0x2f6db5, frame: 0x777777, braces: true, rails: true, divider: true, machine: true }, // Power: steel, hopper and pump
+    ];
     const sluice = new THREE.Group();
-    sluice.add(box(4, 0.1, 1, 0x8b5a2b, 0, 1, 0));          // bottom
-    sluice.add(box(4, 0.3, 0.05, 0x8b5a2b, 0, 1.15, 0.5));  // side
-    sluice.add(box(4, 0.3, 0.05, 0x8b5a2b, 0, 1.15, -0.5)); // side
-    sluice.add(box(3.9, 0.02, 0.9, 0x3399ff, 0, 1.08, 0));  // water
-    for (let i = -1.5; i <= 1.5; i += 0.5) {
-      sluice.add(box(0.05, 0.08, 0.9, 0x5b3a1a, i, 1.1, 0)); // riffles that catch the gold
-    }
-    sluice.add(box(0.1, 1, 0.1, 0x5b3a1a, -1.8, 0.5, 0.4)); // legs
-    sluice.add(box(0.1, 1, 0.1, 0x5b3a1a, -1.8, 0.5, -0.4));
-    sluice.add(box(0.1, 1, 0.1, 0x5b3a1a, 1.8, 0.5, 0.4));
-    sluice.add(box(0.1, 1, 0.1, 0x5b3a1a, 1.8, 0.5, -0.4));
     const sluiceDirt = box(0.8, 0.15, 0.8, 0x6b4423, -1.4, 1.15, 0); // shows when dirt is waiting
     sluiceDirt.visible = false;
-    sluice.add(sluiceDirt);
+    const sluiceSpot = { x: 0, y: 1.3, z: -6, spread: 2 }; // where gold sparkles float up from
     sluice.position.set(6, 0, -6);
     sluice.rotation.z = -0.08; // slight tilt so the water "flows" downhill
     scene.add(sluice);
     makeSign('SLUICE', 6, -3.5);
 
-    // Pan tub: a tub of water where you pan dirt by hand (the pan appears once you buy one)
-    const tub = new THREE.Group();
-    tub.add(cylinder(0.8, 0.7, 0x8b5a2b, 0, 0.35, 0));
-    tub.add(cylinder(0.72, 0.02, 0x3399ff, 0, 0.7, 0)); // water
-    const goldPan = new THREE.Group();
-    goldPan.add(cylinder(0.35, 0.06, 0x999999, 0, 0, 0));
-    const panDirt = cylinder(0.25, 0.05, 0x6b4423, 0, 0.03, 0); // shows when dirt is waiting
-    goldPan.add(panDirt);
-    goldPan.position.set(0, 0.78, 0);
-    goldPan.visible = false;
-    tub.add(goldPan);
-    tub.position.set(-7, 0, 1);
-    scene.add(tub);
-    makeSign('PAN', -5.2, 0.8);
+    // Throw away the old sluice model and build the one for this level.
+    // The high end (where dirt goes in) stays in the same spot, so upgrades make it longer downhill.
+    function buildSluice(level) {
+      const look = SLUICE_LOOKS[level];
+      const length = look.length, width = look.width;
+      const top = -2;                 // the high end
+      const end = top + length;       // the low end
+      const mid = top + length / 2;   // the middle
+      sluice.clear();
+
+      // The trough: bottom, two sides and the water
+      sluice.add(box(length, 0.1, width, look.trough, mid, 1, 0));
+      sluice.add(box(length, 0.3, 0.05, look.trough, mid, 1.15, width / 2));
+      sluice.add(box(length, 0.3, 0.05, look.trough, mid, 1.15, -width / 2));
+      sluice.add(box(length - 0.1, 0.02, width - 0.1, 0x3399ff, mid, 1.08, 0));
+      if (look.divider) sluice.add(box(length, 0.3, 0.05, look.trough, mid, 1.15, 0)); // splits it into two channels
+
+      // Riffles, spread evenly along the trough
+      for (let i = 0; i < look.riffles; i++) {
+        const x = top + 0.5 + i * (length - 0.8) / (look.riffles - 1);
+        sluice.add(box(0.05, 0.08, width - 0.1, look.frame, x, 1.1, 0));
+      }
+
+      // Legs: a pair about every 2 meters. They reach a bit below the ground so the tilt never leaves them floating.
+      const pairs = Math.round(length / 2) + 1;
+      const legZ = width / 2 - look.post / 2;
+      for (let i = 0; i < pairs; i++) {
+        const x = top + 0.2 + i * (length - 0.4) / (pairs - 1);
+        sluice.add(box(look.post, 1.5, look.post, look.frame, x, 0.2, legZ));
+        sluice.add(box(look.post, 1.5, look.post, look.frame, x, 0.2, -legZ));
+        if (look.braces) sluice.add(box(0.06, 0.06, width, look.frame, x, 0.4, 0)); // bar between the two legs
+      }
+      if (look.braces) { // long bars along each side
+        sluice.add(box(length - 0.4, 0.06, 0.06, look.frame, mid, 0.4, legZ));
+        sluice.add(box(length - 0.4, 0.06, 0.06, look.frame, mid, 0.4, -legZ));
+      }
+      if (look.rails) { // thick rails along the top edges
+        sluice.add(box(length, 0.08, 0.1, look.frame, mid, 1.32, width / 2));
+        sluice.add(box(length, 0.08, 0.1, look.frame, mid, 1.32, -width / 2));
+      }
+
+      if (look.machine) {
+        // Hopper: a steel box at the high end that the dirt is dumped into
+        sluice.add(box(1.4, 0.35, 0.08, look.frame, top + 0.6, 1.4, width / 2));
+        sluice.add(box(1.4, 0.35, 0.08, look.frame, top + 0.6, 1.4, -width / 2));
+        sluice.add(box(0.08, 0.35, width, look.frame, top - 0.1, 1.4, 0));
+        // Water pump on the ground, with a pipe up to a spray bar over the hopper
+        sluice.add(box(0.8, 0.6, 0.6, 0xf2b705, top + 0.8, 0.3, -width / 2 - 0.6));
+        sluice.add(cylinder(0.12, 0.3, 0x333333, top + 0.8, 0.75, -width / 2 - 0.6)); // motor on top
+        sluice.add(cylinder(0.05, 1.5, 0x3355aa, top + 1.4, 0.85, -width / 2 - 0.6)); // pipe going up
+        const sprayBar = cylinder(0.05, width + 1.2, 0x3355aa, top + 1.4, 1.6, -0.6);
+        sprayBar.rotation.x = Math.PI / 2; // lay it across the sluice
+        sluice.add(sprayBar);
+        // A yellow safety stripe along the low end
+        sluice.add(box(0.1, 0.1, width, 0xf2b705, end, 1.2, 0));
+      }
+
+      sluice.add(sluiceDirt);
+      // Gold sparkles float up along the whole trough
+      sluiceSpot.x = sluice.position.x + mid;
+      sluiceSpot.spread = length * 0.8;
+    }
+    buildSluice(state.levels.sluice);
 
     // Shop: a table with a shiny shovel on it
     const shop = new THREE.Group();
@@ -335,33 +382,23 @@
     function boundsOf(object) {
       return new THREE.Box3().setFromObject(object);
     }
-    const solids = [dirtPile, sluice, tub, shop].map(boundsOf);
+    const sluiceBounds = boundsOf(sluice); // updated in place whenever the sluice is upgraded
+    const solids = [boundsOf(dirtPile), sluiceBounds, boundsOf(shop)];
     const excavatorBounds = boundsOf(excavatorBase); // becomes solid once you buy it
-    const tubBounds = boundsOf(tub);
 
     // ---------- Things you can use with E ----------
     const interactables = [
       {
         bounds: boundsOf(dirtPile),
         prompt: () => state.carrying >= toolNow('carrier').capacity
-          ? `${toolNow('carrier').name} is full - take it to the sluice or the pan tub`
+          ? `${toolNow('carrier').name} is full - take it to the sluice`
           : 'Press E to dig',
         use: dig,
       },
       {
-        bounds: boundsOf(sluice),
+        bounds: sluiceBounds,
         prompt: () => state.carrying > 0 ? `Press E to dump ${state.carrying} scoops into the sluice` : 'Bring dirt here to wash it',
         use: dumpIntoSluice,
-      },
-      {
-        bounds: tubBounds,
-        prompt: () => {
-          if (!toolNow('pan').secondsPerScoop) return 'Buy a Gold Pan in the shop (press B) to pan here';
-          if (state.carrying > 0) return `Press E to dump ${state.carrying} scoops into the pan tub`;
-          if (state.panQueue > 0) return `Panning... stay here (${state.panQueue} scoops left)`;
-          return 'Bring dirt here to pan it by hand';
-        },
-        use: dumpIntoPan,
       },
       {
         bounds: boundsOf(shop),
@@ -380,15 +417,6 @@
       state.carrying = 0;
     }
 
-    function dumpIntoPan() {
-      if (!toolNow('pan').secondsPerScoop) {
-        showMessage('Buy a Gold Pan first (press B)');
-        return;
-      }
-      state.panQueue += state.carrying;
-      state.carrying = 0;
-    }
-
     function buy(id) {
       const next = toolNext(id);
       if (!next) return; // already fully upgraded
@@ -399,11 +427,20 @@
       state.money -= next.price;
       state.levels[id] += 1;
       showMessage(`Bought the ${next.name}!`);
-      if (id === 'pan') goldPan.visible = true;
+      if (id === 'sluice') upgradeSluiceModel();
       if (id === 'excavator' && !excavator.visible) {
         excavator.visible = true;
         solids.push(excavatorBounds);
       }
+      updateToolbar(id);
+    }
+
+    // Swap in the bigger sluice model and update where you bump into it
+    function upgradeSluiceModel() {
+      buildSluice(state.levels.sluice);
+      sluiceBounds.setFromObject(sluice);
+      // A longer sluice might now sit on top of a buried nugget. Remove those; new ones get buried over time.
+      state.buriedNuggets = state.buriedNuggets.filter((n) => distanceFromPoint(sluiceBounds, n.x, n.z) >= 3);
     }
 
     // Look for gold in one scoop of dirt. "where" is the spot the sparkles float up from.
@@ -418,8 +455,6 @@
         for (let i = 0; i < flakes; i++) sparkle(0.07, where);
       }
     }
-    const sluiceSpot = { x: sluice.position.x, y: 1.3, z: sluice.position.z, spread: 2 };
-    const tubSpot = { x: tub.position.x, y: 0.9, z: tub.position.z, spread: 0.5 };
 
     // ---------- Sluice: washes dirt by itself ----------
     function updateSluice(dt) {
@@ -436,24 +471,6 @@
         state.washTimer = 0;
       }
       sluiceDirt.visible = state.sluiceQueue > 0;
-    }
-
-    // ---------- Gold pan: only works while you stand next to the tub ----------
-    function updatePan(dt) {
-      const seconds = toolNow('pan').secondsPerScoop;
-      const panning = playing && seconds && state.panQueue > 0 && distanceTo(tubBounds) < SETTINGS.reach;
-      if (panning) {
-        state.panTimer += dt;
-        if (state.panTimer >= seconds) {
-          state.panTimer = 0;
-          state.panQueue -= 1;
-          findGold(SETTINGS.panFlakeChance, SETTINGS.panNuggetChance, tubSpot);
-        }
-        goldPan.rotation.z = Math.sin(clock.elapsedTime * 12) * 0.15; // swirl the pan
-      } else {
-        goldPan.rotation.z = 0;
-      }
-      panDirt.visible = state.panQueue > 0;
     }
 
     // ---------- Excavator: digs by itself and dumps into the sluice ----------
@@ -644,6 +661,170 @@
       lockPointer();
     }
 
+    // ---------- Tool bar: an icon for every tool you own, drawn with simple shapes ----------
+    // Each icon gets better with the level: bigger, shinier metal, and a gold trim at the top level.
+    const METAL = ['#6f6f6f', '#9a9a9a', '#cfd8e2', '#eef3f8']; // dull grey -> bright steel
+    const GOLD = '#ffd700';
+
+    // Fill (and outline) a shape made of [x, y] corner points
+    function polygon(ctx, points, fill, outline = '#222', lineWidth = 1.5) {
+      ctx.beginPath();
+      points.forEach(([x, y], i) => (i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)));
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = lineWidth;
+      ctx.stroke();
+    }
+
+    function line(ctx, x1, y1, x2, y2, color, width) {
+      ctx.beginPath();
+      ctx.moveTo(x1, y1);
+      ctx.lineTo(x2, y2);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
+
+    function circle(ctx, x, y, r, fill, outline = '#222') {
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.strokeStyle = outline;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    }
+
+    // One drawing function per tool. The picture is centred on (0, 0) and fits in -32..32.
+    const ICONS = {
+      shovel(ctx, level) {
+        ctx.rotate(Math.PI / 4); // lean it diagonally
+        line(ctx, 0, -24, 0, 6, '#8b5a2b', 4);          // wooden handle
+        line(ctx, -6, -24, 6, -24, '#8b5a2b', 4);       // grip
+        const w = 7 + level * 1.5;                       // wider blade at higher levels
+        const blade = [[-w, 4], [w, 4], [w, 18], [0, 28], [-w, 18]];
+        polygon(ctx, blade, METAL[level], level === 3 ? GOLD : '#222', level === 3 ? 3 : 1.5);
+        if (level >= 2) polygon(ctx, [[-w + 2, 6], [-w + 5, 6], [-w + 5, 17], [-w + 2, 17]], 'rgba(255,255,255,0.8)', 'transparent'); // shine
+        if (level === 3) line(ctx, -4, 3, 4, 3, GOLD, 3); // gold collar
+      },
+
+      carrier(ctx, level) {
+        const dirt = '#6b4423';
+        if (level <= 1) {
+          // Bucket (the big bucket is red with a rim band)
+          ctx.beginPath();
+          ctx.arc(0, -8, 14, Math.PI, 0);  // handle
+          ctx.strokeStyle = '#333';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          circle(ctx, 0, -8, 12, dirt, 'transparent');
+          polygon(ctx, [[-15, -8], [15, -8], [11, 20], [-11, 20]], level === 0 ? METAL[0] : '#c0392b');
+          if (level === 1) line(ctx, -14, -3, 14, -3, METAL[2], 3);
+        } else {
+          // Wheelbarrow (blue, then red with gold trim)
+          line(ctx, -14, 2, -28, -4, '#8b5a2b', 3);        // handle
+          line(ctx, -12, 10, -14, 20, '#333', 3);          // leg
+          circle(ctx, 16, 16, 8, '#333', '#111');          // wheel
+          circle(ctx, 16, 16, 3, METAL[level]);
+          circle(ctx, -2, -8, 13, dirt, 'transparent');    // dirt heap
+          polygon(ctx, [[-24, -8], [22, -8], [12, 12], [-14, 12]], level === 2 ? '#2f6db5' : '#c0392b',
+            level === 3 ? GOLD : '#222', level === 3 ? 3 : 1.5);
+          polygon(ctx, [[-20, -6], [-16, -6], [-10, 10], [-12, 10]], 'rgba(255,255,255,0.5)', 'transparent'); // shine
+        }
+      },
+
+      sluice(ctx, level) {
+        ctx.rotate(0.25); // tilted downhill, like the real one
+        const half = 16 + level * 4; // longer at each level
+        const wood = level === 3 ? '#2f6db5' : '#8b5a2b';
+        const frame = level === 3 ? METAL[2] : '#5b3a1a';
+        // legs (more and thicker at higher levels)
+        const legs = level + 2;
+        for (let i = 0; i < legs; i++) {
+          const x = -half + 3 + i * (2 * half - 6) / (legs - 1);
+          line(ctx, x, 6, x, 20, frame, 2 + level);
+        }
+        polygon(ctx, [[-half, -7], [half, -7], [half, 7], [-half, 7]], wood, level === 3 ? GOLD : '#222', level === 3 ? 3 : 1.5);
+        polygon(ctx, [[-half + 2, -3], [half - 2, -3], [half - 2, 3], [-half + 2, 3]], '#3399ff', 'transparent'); // water
+        const riffles = 3 + level * 2;
+        for (let i = 0; i < riffles; i++) {
+          const x = -half + 5 + i * (2 * half - 10) / (riffles - 1);
+          line(ctx, x, -4, x, 4, frame, 1.5);
+        }
+        if (level === 3) polygon(ctx, [[-half - 2, -16], [-half + 12, -16], [-half + 10, -7], [-half, -7]], METAL[1]); // hopper
+      },
+
+      detector(ctx, level) {
+        line(ctx, 14, -22, -8, 18, METAL[level], 3);               // shaft
+        const boxColor = ['#555555', '#555555', '#2f6db5', '#222222'][level];
+        polygon(ctx, [[4, -18], [16, -18], [16, -8], [4, -8]], boxColor, level === 3 ? GOLD : '#222', level === 3 ? 2.5 : 1.5);
+        if (level >= 2) circle(ctx, 10, -13, 2, '#7fff7f', 'transparent'); // green light
+        ctx.beginPath();
+        ctx.ellipse(-10, 21, 9 + level * 2, 5, 0, 0, Math.PI * 2); // search coil
+        ctx.fillStyle = level === 3 ? '#222' : METAL[level];
+        ctx.fill();
+        ctx.strokeStyle = level === 3 ? GOLD : '#222';
+        ctx.lineWidth = level === 3 ? 3 : 1.5;
+        ctx.stroke();
+        for (let i = 1; i < level; i++) { // signal waves
+          ctx.beginPath();
+          ctx.arc(-10, 21, 10 + level * 2 + i * 5, Math.PI * 1.1, Math.PI * 1.5);
+          ctx.strokeStyle = '#7fff7f';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      },
+
+      excavator(ctx, level) {
+        const trim = level === 3 ? GOLD : '#222';
+        const width = level === 3 ? 2.5 : 1.5;
+        polygon(ctx, [[-26, 12], [8, 12], [10, 22], [-28, 22]], '#333');                 // tracks
+        polygon(ctx, [[-24, -2], [8, -2], [8, 12], [-24, 12]], '#f2b705', trim, width);  // body
+        polygon(ctx, [[-22, -18], [-8, -18], [-8, -2], [-22, -2]], '#f2b705', trim, width); // cab
+        polygon(ctx, [[-19, -15], [-11, -15], [-11, -7], [-19, -7]], '#9fd4ff');         // window
+        if (level >= 2) line(ctx, -23, 6, 7, 6, '#222', 2);                               // stripe
+        if (level === 3) line(ctx, 2, -2, 2, -12, '#555', 3);                             // exhaust pipe
+        line(ctx, 4, 0, 18, -20, '#f2b705', 4);                                           // arm
+        line(ctx, 18, -20, 26, 2, '#f2b705', 3);
+        const b = 4 + level;                                                              // bigger digging bucket
+        polygon(ctx, [[26 - b, 2], [26 + b, 2], [26, 2 + b * 1.6]], METAL[level]);
+      },
+    };
+
+    const toolbarEl = document.getElementById('toolbar');
+
+    // Redraw the whole tool bar. "justUpgraded" is the tool you just bought, so its icon can bounce.
+    function updateToolbar(justUpgraded) {
+      toolbarEl.innerHTML = '';
+      for (const id of TOOL_ORDER) {
+        if (!ownsTool(id)) continue; // tools you haven't bought don't show up
+        const level = state.levels[id];
+        const slot = document.createElement('div');
+        slot.className = 'tool-slot';
+        if (!toolNext(id)) slot.classList.add('max');
+        if (id === justUpgraded) slot.classList.add('upgraded');
+
+        const canvas = document.createElement('canvas');
+        canvas.width = canvas.height = 128; // double size, so it stays sharp on high-res screens
+        const ctx = canvas.getContext('2d');
+        ctx.scale(2, 2);
+        ctx.translate(32, 32);             // (0, 0) is now the middle of the icon
+        ctx.scale(0.75 + level * 0.06, 0.75 + level * 0.06); // better tools look a bit bigger
+        ICONS[id](ctx, level);
+
+        const badge = document.createElement('span');
+        badge.className = 'badge';
+        badge.textContent = `Lv ${level}`;
+        slot.title = toolNow(id).name;
+        slot.append(canvas, badge);
+        toolbarEl.appendChild(slot);
+      }
+    }
+    updateToolbar();
+
     // ---------- Controls: mouse look, WASD, E to use ----------
     let yaw = 0;    // looking left/right
     let pitch = 0;  // looking up/down
@@ -779,7 +960,6 @@
         `Shovel: ${shovel.name} (${shovel.scoops} per dig)`,
         `Sluice: ${state.sluiceQueue} scoops left to wash`,
       ];
-      if (toolNow('pan').secondsPerScoop) lines.push(`Pan tub: ${state.panQueue} scoops (stand next to it to pan)`);
       const excavatorScoops = toolNow('excavator').scoopsPerLoad;
       if (excavatorScoops) {
         lines.push(state.sluiceQueue >= SETTINGS.sluiceMaxQueue
@@ -817,7 +997,6 @@
       camera.rotation.set(pitch, yaw, 0, 'YXZ');
 
       updateSluice(dt);
-      updatePan(dt);
       updateExcavator(dt);
       updateBuriedNuggets(dt);
       updateDetector(dt);
@@ -827,7 +1006,6 @@
       renderer.render(scene, camera);
       requestAnimationFrame(gameLoop);
     }
-    gameLoop();
-  </script>
+    gameLoop();  </script>
 </body>
 </html>
