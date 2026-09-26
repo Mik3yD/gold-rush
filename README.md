@@ -14,26 +14,24 @@ Dig dirt, wash it in the sluice box, find gold, and buy better tools.
 | W A S D | Walk |
 | Mouse | Look around |
 | E or left click | Dig, dump dirt, or get in the excavator (when you're close to something) |
-| B | Open or close the shop (then click an item or press 1 to 7 to buy it) |
+| B | Open or close the shop (then click an item or press 1 to 8 to buy it) |
 | M | Turn all sounds off or on (or click the speaker in the top right) |
 | Esc | Pause and get your mouse back |
 
-Driving the excavator (these controls are also shown on screen while you drive):
+Using the excavator (these controls are also shown on screen while you sit in it). It stays parked in one spot; you only move its arm:
 
 | Control | Action |
 |---|---|
-| W / S | Drive forward / back |
-| A / D | Turn |
 | Arrow left / right | Swing the arm |
 | Arrow up / down | Raise / lower the arm |
-| Q or hold left click | Scoop (with the bucket in the dirt pile) |
-| F or hold right click | Dump (over the sluice or the truck) |
+| Q or hold left click | Curl the bucket in to scoop (with the bucket in the dirt pile) |
+| F or hold right click | Tip the bucket out to dump (over the sluice) |
 | Mouse | Look around |
 | E | Get out |
 
 The tools you own are shown along the bottom of the screen, each with its level. Upgraded tools get better-looking icons, and upgrading the sluice box or the excavator also changes how they look in the game.
 
-The loop: walk to the **DIRT** pile and dig until your bucket is full. Carry it to the **SLUICE** and dump it in. The sluice washes the dirt and pays you for any gold it finds. Press **B** to spend your money on a better shovel, a bigger bucket or wheelbarrow, and a bigger and faster sluice. Then save up for the excavator parked at the dig site and drive it yourself. Scoop dirt into the sluice, or into the dump truck, which takes it to the sluice for you. Upgrade the excavator's bucket, engine and arm to dig even faster.
+The loop: walk to the **DIRT** pile and dig until your bucket is full. Carry it to the **SLUICE** and dump it in. The sluice washes the dirt and pays you for any gold it finds. Press **B** to spend your money on a better shovel, a bigger bucket or wheelbarrow, and a bigger and faster sluice. The pile holds a set number of tons and shrinks as you dig. When it's empty, buy a new load of dirt in the shop (or press E at the empty pile). Then save up for the excavator parked between the pile and the sluice: climb in, scoop from the pile and swing over to dump into the sluice. Upgrade its bucket size and speed to dig even faster, and buy bigger dirt loads so the pile lasts longer.
 
 ## If double-clicking doesn't work
 

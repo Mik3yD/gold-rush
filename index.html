@@ -21,11 +21,11 @@
     #sound { position: fixed; top: 12px; right: 12px; width: 48px; height: 48px; padding: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45); border: 2px solid #999; border-radius: 10px; cursor: pointer; z-index: 20; }
     #sound .key { position: absolute; bottom: 1px; right: 4px; font-size: 10px; color: #ddd; }
 
-    /* Excavator controls, shown while you're driving */
-    #drive-help { position: fixed; top: 72px; right: 12px; padding: 10px 14px; background: rgba(0, 0, 0, 0.5); border-radius: 10px; font-size: 15px; line-height: 1.45; }
-    #drive-help[hidden] { display: none; }
-    #drive-help h3 { margin: 0 0 4px; color: #ffd700; font-size: 17px; }
-    #drive-help td:first-child { font-weight: bold; color: #ffd700; padding-right: 12px; white-space: nowrap; }
+    /* Excavator controls, shown while you're sitting in it */
+    #excavator-help { position: fixed; top: 72px; right: 12px; padding: 10px 14px; background: rgba(0, 0, 0, 0.5); border-radius: 10px; font-size: 15px; line-height: 1.45; }
+    #excavator-help[hidden] { display: none; }
+    #excavator-help h3 { margin: 0 0 4px; color: #ffd700; font-size: 17px; }
+    #excavator-help td:first-child { font-weight: bold; color: #ffd700; padding-right: 12px; white-space: nowrap; }
 
     /* Shop menu */
     #shop { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.7); z-index: 5; }
@@ -63,15 +63,13 @@
   <div id="toolbar"></div>
   <button id="sound" title="Sound on/off (M)"></button>
 
-  <div id="drive-help" class="overlay-text" hidden>
-    <h3>Driving the excavator</h3>
+  <div id="excavator-help" class="overlay-text" hidden>
+    <h3>Using the excavator</h3>
     <table>
-      <tr><td>W / S</td><td>drive forward / back</td></tr>
-      <tr><td>A / D</td><td>turn</td></tr>
-      <tr><td>&larr; / &rarr;</td><td>swing the arm</td></tr>
+      <tr><td>&larr; / &rarr;</td><td>swing the arm left / right</td></tr>
       <tr><td>&uarr; / &darr;</td><td>raise / lower the arm</td></tr>
-      <tr><td>Q or left click</td><td>scoop (hold, with the bucket in the dirt)</td></tr>
-      <tr><td>F or right click</td><td>dump (hold, over the sluice or truck)</td></tr>
+      <tr><td>Q or left click</td><td>curl the bucket in: scoop (hold, in the dirt)</td></tr>
+      <tr><td>F or right click</td><td>tip the bucket out: dump (hold, over the sluice)</td></tr>
       <tr><td>Mouse</td><td>look around</td></tr>
       <tr><td>E</td><td>get out</td></tr>
     </table>
@@ -81,9 +79,10 @@
     <h1>Gold Rush</h1>
     <p><b>Click to play</b></p>
     <p>WASD to walk &middot; Mouse to look &middot; E (or left click) to use things &middot; Esc to pause</p>
-    <p><b>B</b> opens the shop (buy with 1 to 7) &middot; <b>M</b> turns the sound on and off</p>
+    <p><b>B</b> opens the shop (buy with 1 to 8) &middot; <b>M</b> turns the sound on and off</p>
     <p>Dig dirt at the pile, carry it to the sluice box, and wash it to find gold.</p>
-    <p>Save up for the excavator, then walk up to it and press E to drive it.</p>
+    <p>When the pile runs out, buy a new load of dirt in the shop.</p>
+    <p>Save up for the excavator, then walk up to it and press E to climb in.</p>
   </div>
 
   <div id="shop" hidden>
@@ -113,17 +112,15 @@
       flakeValue: 1,           // dollars per flake
       nuggetChance: 0.02,      // chance that a sluiced scoop has a big nugget
       nuggetValue: 50,         // dollars per nugget
-      // Excavator speeds with the stock engine (engine upgrades multiply these)
-      excavatorDriveSpeed: 3,  // meters per second
-      excavatorTurnSpeed: 0.8, // radians per second (about 45 degrees)
+      tonsPerScoop: 0.1,       // how heavy one scoop of dirt is (so 10 scoops = 1 ton)
+      // Excavator arm speeds with stock hydraulics (Speed upgrades multiply these), in radians per second
       armSwingSpeed: 0.9,
       armLiftSpeed: 0.6,
       bucketCurlSpeed: 1.1,
-      // The dump truck
-      truckCapacity: 200,      // scoops
-      truckWaitSeconds: 5,     // it drives off this long after the last load (or as soon as it's full)
-      truckSpeed: 3.5,         // meters per second
     };
+
+    // Turn scoops into tons for showing on screen, like "12.5" (no ".0" on whole numbers)
+    const tons = (scoops) => String(Math.round(scoops * SETTINGS.tonsPerScoop * 10) / 10);
 
     // ---------- Tools you can buy. Level 0 is what you start with. ----------
     const plural = (n) => (n === 1 ? '' : 's');
@@ -138,7 +135,7 @@
           { name: 'Steel Shovel', price: 250, scoops: 3 },
           { name: 'Giant Shovel', price: 700, scoops: 5 },
         ],
-        describe: (level) => `digs ${level.scoops} scoop${plural(level.scoops)} each time`,
+        describe: (level) => `digs ${level.scoops} scoop${plural(level.scoops)} (${tons(level.scoops)} t) each time`,
       },
       carrier: {
         title: 'Bucket / Wheelbarrow',
@@ -166,17 +163,17 @@
       },
       excavator: {
         title: 'Small Excavator',
-        about: 'A digger you drive yourself. It is parked at the dig site: walk up to it and press E.',
+        about: 'A digger that stays parked between the DIRT pile and the sluice. Walk up to it and press E to climb in.',
         levels: [
           { name: 'Not owned yet' },
           { name: 'Small Excavator', price: 4000 },
         ],
-        describe: (level) => level.price ? 'scoops dirt into the sluice or the dump truck' : '',
+        describe: (level) => level.price ? 'scoops dirt from the pile into the sluice' : '',
       },
-      // The three excavator upgrades. "needs" means you must own the excavator first.
+      // The two excavator upgrades. "needs" means you must own the excavator first.
       digBucket: {
-        title: 'Excavator Bucket',
-        about: 'A bigger bucket digs more dirt with each scoop.',
+        title: 'Excavator Bucket Size',
+        about: 'A bigger bucket digs more tons of dirt with each scoop.',
         needs: 'excavator',
         levels: [
           { name: 'Standard Bucket', scoops: 40 },
@@ -184,40 +181,46 @@
           { name: 'Heavy Bucket', price: 4000, scoops: 90 },
           { name: 'Monster Bucket', price: 9000, scoops: 130 },
         ],
-        describe: (level) => `holds ${level.scoops} scoops`,
+        describe: (level) => `${tons(level.scoops)} t per scoop`,
       },
-      engine: {
-        title: 'Excavator Engine',
-        about: 'A stronger engine drives and moves the arm faster.',
+      speed: {
+        title: 'Excavator Speed',
+        about: 'Stronger hydraulics swing, lift and curl the arm faster.',
         needs: 'excavator',
         levels: [
-          { name: 'Stock Engine', speed: 1 },
-          { name: 'Tuned Engine', price: 2000, speed: 1.3 },
-          { name: 'Turbo Engine', price: 5000, speed: 1.65 },
-          { name: 'Twin-Turbo Engine', price: 11000, speed: 2.1 },
+          { name: 'Stock Hydraulics', speed: 1 },
+          { name: 'Tuned Hydraulics', price: 2000, speed: 1.3 },
+          { name: 'Turbo Hydraulics', price: 5000, speed: 1.65 },
+          { name: 'Twin-Turbo Hydraulics', price: 11000, speed: 2.1 },
         ],
         describe: (level) => `${Math.round(level.speed * 100)}% speed`,
       },
-      arm: {
-        title: 'Excavator Arm',
-        about: 'A longer arm reaches further, so you drive around less.',
-        needs: 'excavator',
-        levels: [ // boom = the first part of the arm, stick = the second part (in meters)
-          { name: 'Short Arm', boom: 2.8, stick: 1.8, reach: 4.3 },
-          { name: 'Long Arm', price: 1200, boom: 3.3, stick: 2.1, reach: 4.8 },
-          { name: 'Extra-Long Arm', price: 3500, boom: 3.8, stick: 2.4, reach: 5.3 },
-          { name: 'Super-Long Arm', price: 8000, boom: 4.4, stick: 2.8, reach: 5.8 },
+      // How much dirt you get each time the pile runs out and you buy a new load.
+      // price = the upgrade, loadPrice = what one load of this size costs.
+      dirtLoad: {
+        title: 'Dirt Loads',
+        about: 'Bigger loads of dirt for the DIRT pile, and cheaper per ton. Starts with the next load you buy.',
+        startsOwned: true,
+        levels: [
+          { name: 'Small Load', tons: 100, loadPrice: 300 },
+          { name: 'Big Load', price: 500, tons: 200, loadPrice: 500 },
+          { name: 'Huge Load', price: 2000, tons: 350, loadPrice: 700 },
+          { name: 'Mountain Load', price: 5000, tons: 500, loadPrice: 750 },
         ],
-        describe: (level) => `reaches about ${level.reach} m`,
+        describe: (level) => `${level.tons} t of dirt for $${level.loadPrice}`,
       },
     };
     // The shop, the tool bar and the number keys (1 to 7) only ever look at the tools in this list,
-    // so old tools that no longer exist (the Gold Pan and the Metal Detector) are simply ignored.
-    const TOOL_ORDER = ['shovel', 'carrier', 'sluice', 'excavator', 'digBucket', 'engine', 'arm'];
-    const EXCAVATOR_PARTS = ['digBucket', 'engine', 'arm'];
+    // so old tools that no longer exist (Gold Pan, Metal Detector, Excavator Engine and Arm) are simply ignored.
+    const TOOL_ORDER = ['shovel', 'carrier', 'sluice', 'excavator', 'digBucket', 'speed', 'dirtLoad'];
+    const EXCAVATOR_PARTS = ['digBucket', 'speed'];
 
-    // Where the excavator is parked at the start, and how its arm is posed
-    const EXCAVATOR_START = { x: 2.5, z: -14, heading: Math.PI, swing: 0, boom: 0.9, bucketPitch: -0.3, fill: 0 };
+    // The excavator never moves: it sits here, between the dirt pile and the sluice.
+    // heading = which way its tracks face (this way they point towards the middle of the dig site).
+    const EXCAVATOR_SPOT = { x: 0, z: -10, heading: -Math.PI / 2 };
+    // How the arm is posed at the start. swing = the top part turned left/right, boom = arm raised up (radians),
+    // bucketPitch = bucket tilt (up = holding dirt, down = dumping), load = scoops of dirt in the bucket.
+    const EXCAVATOR_START = { swing: 0, boom: 0.9, bucketPitch: -0.3, load: 0 };
 
     // ---------- Game state: everything that changes while you play ----------
     const state = {
@@ -225,17 +228,13 @@
       carrying: 0,        // scoops of dirt in your bucket or wheelbarrow
       sluiceQueue: 0,     // scoops waiting to be washed in the sluice
       washTimer: 0,
+      pile: 0,            // scoops of dirt left in the DIRT pile (set by refillPile() below)
+      pileFull: 0,        // how many scoops the pile had when it was full
       levels: Object.fromEntries(TOOL_ORDER.map((id) => [id, 0])), // { shovel: 0, carrier: 0, ... }
       shopOpen: false,
       muted: false,
-      driving: false,     // true while you're sitting in the excavator
-      // The excavator. heading = which way the tracks face, swing = the top part turned left/right,
-      // boom = arm raised up (radians), bucketPitch = bucket tilt (up = holding dirt, down = dumping),
-      // fill = how full the bucket is (0 to 1).
+      inExcavator: false, // true while you're sitting in the excavator
       exc: { ...EXCAVATOR_START },
-      // The dump truck. mode is 'parked', 'reversing' (to the sluice), 'dumping' or 'returning'.
-      // progress goes from 0 (parked) to 1 (at the sluice).
-      truck: { load: 0, mode: 'parked', progress: 0, wait: 0, timer: 0 },
     };
 
     // The level you own right now, and the one you can buy next (undefined when maxed out).
@@ -330,15 +329,32 @@
     ground.rotation.x = -Math.PI / 2; // lay the plane flat
     scene.add(ground);
 
-    // Dirt pile: a cone 2 m wide at the bottom and 1.5 m tall
-    const PILE_RADIUS = 2, PILE_HEIGHT = 1.5;
+    // Dirt pile: a cone that shrinks as you dig it. A full Small Load (100 t) is 1.8 m wide at the bottom
+    // and 1.5 m tall; bigger loads make a bigger pile. A flat patch of dirt shows where it is, even when it's empty.
+    const PILE_RADIUS = 1.8, PILE_HEIGHT = 1.5;
+    const PILE_SPOT = { x: -3, z: -6.8 };
     const dirtPile = new THREE.Mesh(
-      new THREE.ConeGeometry(PILE_RADIUS, PILE_HEIGHT, 16),
+      new THREE.ConeGeometry(1, 1, 24), // 1 m by 1 m, stretched to the right size by updatePile()
       new THREE.MeshLambertMaterial({ color: 0x6b4423 })
     );
-    dirtPile.position.set(-6, PILE_HEIGHT / 2, -6);
+    dirtPile.position.set(PILE_SPOT.x, 0, PILE_SPOT.z);
     scene.add(dirtPile);
-    makeSign('DIRT', -6, -3.5);
+    const dirtPatch = new THREE.Mesh(new THREE.CircleGeometry(PILE_RADIUS + 0.4, 24), new THREE.MeshLambertMaterial({ color: 0x5a3a1e }));
+    dirtPatch.rotation.x = -Math.PI / 2;
+    dirtPatch.position.set(PILE_SPOT.x, 0.01, PILE_SPOT.z);
+    scene.add(dirtPatch);
+    makeSign('DIRT', -6, -4.5);
+
+    // How big the pile is right now, in meters. A full pile of a bigger load is wider and taller,
+    // and it shrinks as it empties, so a nearly empty pile is small.
+    function pileSize() {
+      const loadSize = state.pileFull * SETTINGS.tonsPerScoop / 100; // 1 for a 100 t load, 5 for 500 t
+      const left = state.pileFull > 0 ? Math.sqrt(state.pile / state.pileFull) : 0; // 1 = full, 0 = empty
+      return {
+        radius: PILE_RADIUS * Math.pow(loadSize, 1 / 6) * Math.max(left, 0.2), // never thinner than a small heap
+        height: PILE_HEIGHT * Math.cbrt(loadSize) * left,
+      };
+    }
 
     // Sluice box: a tilted trough with water running through it. It looks different at each level.
     // length/width in meters, riffles = the bars across the trough that catch the gold.
@@ -351,11 +367,11 @@
     const sluice = new THREE.Group();
     const sluiceDirt = box(0.8, 0.15, 0.8, 0x6b4423, -1.4, 1.15, 0); // shows when dirt is waiting
     sluiceDirt.visible = false;
-    const sluiceSpot = { x: 0, y: 1.3, z: -6, spread: 2 }; // where gold sparkles float up from
-    sluice.position.set(6, 0, -6);
+    const sluiceSpot = { x: 0, y: 1.3, z: -7, spread: 2 }; // where gold sparkles float up from
+    sluice.position.set(4.2, 0, -7);
     sluice.rotation.z = -0.08; // slight tilt so the water "flows" downhill
     scene.add(sluice);
-    makeSign('SLUICE', 6, -3.5);
+    makeSign('SLUICE', 5.5, -4.5);
 
     // Throw away the old sluice model and build the one for this level.
     // The high end (where dirt goes in) stays in the same spot, so upgrades make it longer downhill.
@@ -430,9 +446,9 @@
     scene.add(shop);
     makeSign('SHOP', 0, 8.5);
 
-    // ---------- Solid things: stop you (and the machines) from going through them ----------
+    // ---------- Solid things: stop you from walking through them ----------
     // A solid is either a Box3 (a box lined up with the world) or a "rect": a box seen from above that
-    // can be turned, for things that drive around (the excavator and the truck).
+    // can be turned (the excavator, which sits at an angle).
     function boundsOf(object) {
       return new THREE.Box3().setFromObject(object);
     }
@@ -454,32 +470,69 @@
       return Math.hypot(px - p.x, pz - p.z);
     }
 
-    const pileBounds = boundsOf(dirtPile);
+    const pileBounds = new THREE.Box3();   // updated in place whenever the pile changes size
     const sluiceBounds = boundsOf(sluice); // updated in place whenever the sluice is upgraded
     const shopBounds = boundsOf(shop);
-    const excavatorRect = { x: 0, z: 0, heading: 0, halfLength: 1.6, halfWidth: 1.3 }; // moved by poseExcavator()
-    const truckRect = { x: 0, z: 0, heading: 0, halfLength: 2.7, halfWidth: 1.1 };     // moved by poseTruck()
-    const truckBedRect = { x: 0, z: 0, heading: 0, halfLength: 2.0, halfWidth: 1.35 }; // where the excavator can dump into the truck
-    const solids = [pileBounds, sluiceBounds, shopBounds, excavatorRect, truckRect];
+    const excavatorRect = { ...EXCAVATOR_SPOT, halfLength: 1.6, halfWidth: 1.3 }; // its tracks
+    const solids = [pileBounds, sluiceBounds, shopBounds, excavatorRect];
 
-    // ---------- The excavator: parked at the dig site. Buy it, then walk up and press E to drive it. ----------
+    // ---------- The dirt pile: how much is left, and making it look that big ----------
+    // Resize the cone to match state.pile, and update where you bump into it
+    function updatePile() {
+      const size = pileSize();
+      dirtPile.visible = state.pile > 0;
+      dirtPile.scale.set(size.radius, Math.max(size.height, 0.01), size.radius);
+      dirtPile.position.y = size.height / 2;
+      pileBounds.setFromObject(dirtPile);
+    }
+
+    // Fill the pile back up with a new load (the size depends on the Dirt Loads upgrade)
+    function refillPile() {
+      state.pile = state.pileFull = toolNow('dirtLoad').tons / SETTINGS.tonsPerScoop;
+      updatePile();
+    }
+    refillPile(); // you start with a full pile
+
+    // Take dirt out of the pile (by shovel or excavator). Returns how much you actually got.
+    function takeFromPile(scoops) {
+      const taken = Math.min(scoops, state.pile);
+      state.pile -= taken;
+      if (state.pile < 0.001) state.pile = 0; // tiny leftovers from the excavator count as empty
+      updatePile();
+      if (taken > 0 && state.pile === 0) {
+        showMessage('The dirt pile is empty! Buy a new load in the shop (B)');
+        sfx.pileEmpty();
+      }
+      return taken;
+    }
+
+    // Put dirt back on the pile (the excavator dumping over it)
+    function addToPile(scoops) {
+      state.pile += scoops;
+      state.pileFull = Math.max(state.pileFull, state.pile);
+      updatePile();
+    }
+
+    // ---------- The excavator: parked between the pile and the sluice. Buy it, then walk up and press E to use it. ----------
     // Built from plain shapes like everything else, just a lot more of them. Its own "forward" is +x and "right" is +z.
     const EXC_YELLOW = 0xf2b705, EXC_DARK = 0x2a2a2a, EXC_GREY = 0x3a3a3a, EXC_STEEL = 0x777777, CHROME = 0xdfe6ee;
     const DIRT_COLOR = 0x6b4423;
     const STICK_ANGLE = -2.0; // the second part of the arm hangs down from the first at this angle
     const DUMP_PITCH = -1.1;  // tip the bucket further down than this and the dirt falls out
+    const BOOM_LENGTH = 3.3, STICK_LENGTH = 2.1; // the two parts of the arm, in meters (reaches both the pile and the sluice)
     const glassMaterial = new THREE.MeshLambertMaterial({ color: 0x9fd4ff, transparent: true, opacity: 0.3, side: THREE.DoubleSide });
     const unitCylinder = new THREE.CylinderGeometry(1, 1, 1, 12); // stretched to fit, for the hydraulic rams
     const UP = new THREE.Vector3(0, 1, 0);
 
-    const excavator = new THREE.Group(); // the whole machine: moves and turns when you drive
+    const excavator = new THREE.Group(); // the whole machine. It never moves, only its arm does.
+    excavator.position.set(EXCAVATOR_SPOT.x, 0, EXCAVATOR_SPOT.z);
+    excavator.rotation.y = EXCAVATOR_SPOT.heading;
     scene.add(excavator);
     let ex = {}; // its moving parts (upper, boom, bucket, ...), filled in by buildExcavator()
 
     // Throw away the old excavator model and build it again with the current upgrades.
     function buildExcavator() {
-      const arm = toolNow('arm');
-      const engineLevel = state.levels.engine;
+      const engineLevel = state.levels.speed; // faster hydraulics come with a beefier engine
       const bucketLevel = state.levels.digBucket;
       excavator.clear();
       ex = {};
@@ -542,11 +595,11 @@
         cab.add(cylinder(0.02, 0.25, 0x111111, 0.05, 0.5, z));
         cab.add(cylinder(0.04, 0.08, 0x111111, 0.05, 0.65, z));
       }
-      ex.seat = new THREE.Object3D();                                   // where your eyes are when you drive
+      ex.seat = new THREE.Object3D();                                   // where your eyes are when you sit in it
       ex.seat.position.set(-0.15, 1.0, 0);
       cab.add(ex.seat);
 
-      // Engine upgrades: bigger and shinier exhaust pipes, an air filter, then a hood scoop and a warning light
+      // Speed upgrades: bigger and shinier exhaust pipes, an air filter, then a hood scoop and a warning light
       const stacks = engineLevel >= 2 ? [0.6, 0.9] : [0.75];
       const stackHeight = 0.45 + engineLevel * 0.12;
       for (const z of stacks) {
@@ -565,7 +618,7 @@
       }
 
       // --- The arm: boom (first part), stick (second part) and the bucket, joined by pins ---
-      const boomLength = arm.boom, stickLength = arm.stick;
+      const boomLength = BOOM_LENGTH, stickLength = STICK_LENGTH;
       const kneeX = boomLength * 0.55, kneeY = 0.35;                    // the boom is bent, like a banana
       const boom = new THREE.Group();
       boom.position.set(0.95, 0.5, 0.35);
@@ -574,13 +627,11 @@
       boom.add(beam(kneeX, kneeY, boomLength, 0, 0.3, 0.28, EXC_YELLOW));
       boom.add(wheel(0.1, 0.4, EXC_DARK, 0, 0, 0));                     // pins at the joints
       boom.add(wheel(0.1, 0.36, EXC_DARK, boomLength, 0, 0));
-      if (arm.price) boom.add(box(0.9, 0.24, 0.34, EXC_DARK, kneeX, kneeY, 0)); // upgraded arms: dark steel plates at the bend
-      if (state.levels.arm >= 2) {                                          // ...then hydraulic hoses along the top
-        const hose1 = beam(0.3, 0.2, kneeX, kneeY + 0.22, 0.04, 0.04, 0x111111);
-        const hose2 = beam(kneeX, kneeY + 0.22, boomLength - 0.3, 0.2, 0.04, 0.04, 0x111111);
-        hose1.position.z = hose2.position.z = 0.08;
-        boom.add(hose1, hose2);
-      }
+      boom.add(box(0.9, 0.24, 0.34, EXC_DARK, kneeX, kneeY, 0));        // dark steel plates at the bend
+      const hose1 = beam(0.3, 0.2, kneeX, kneeY + 0.22, 0.04, 0.04, 0x111111); // hydraulic hoses along the top
+      const hose2 = beam(kneeX, kneeY + 0.22, boomLength - 0.3, 0.2, 0.04, 0.04, 0x111111);
+      hose1.position.z = hose2.position.z = 0.08;
+      boom.add(hose1, hose2);
 
       const stick = new THREE.Group();
       stick.position.set(boomLength, 0, 0);
@@ -588,9 +639,6 @@
       boom.add(stick);
       stick.add(beam(-0.45, 0, stickLength, 0, 0.24, 0.22, EXC_YELLOW)); // it sticks out a bit behind the pin (the "heel")
       stick.add(wheel(0.08, 0.3, EXC_DARK, stickLength, 0, 0));
-      if (state.levels.arm >= 3) {                                        // Super-Long Arm: black and yellow stripes near the end
-        for (let i = 0; i < 3; i++) stick.add(box(0.1, 0.25, 0.23, EXC_DARK, stickLength * 0.6 + i * 0.2, 0, 0));
-      }
 
       // The bucket. With pitch 0 its floor is flat, the opening faces up and the teeth point forward.
       const size = [1, 1.15, 1.3, 1.5][bucketLevel];
@@ -665,103 +713,28 @@
       return ex.bucket.localToWorld(point.clone());
     }
 
-    // Move every part of the excavator to match state.exc
+    // Move the arm and bucket to match state.exc
     function poseExcavator() {
       const exc = state.exc;
-      excavator.position.set(exc.x, 0, exc.z);
-      excavator.rotation.y = exc.heading;
+      const fill = Math.min(1, exc.load / toolNow('digBucket').scoops); // how full the bucket looks (0 to 1)
       ex.upper.rotation.y = exc.swing;
       ex.boom.rotation.z = exc.boom;
       ex.bucket.rotation.z = exc.bucketPitch - exc.boom - STICK_ANGLE; // keeps the bucket's tilt steady while the arm moves
-      ex.dirt.visible = exc.fill > 0;
-      ex.dirt.scale.y = Math.max(exc.fill, 0.05);
-      ex.dirt.position.y = ex.dirtBottom + ex.dirtHeight * exc.fill / 2;
+      ex.dirt.visible = fill > 0;
+      ex.dirt.scale.y = Math.max(fill, 0.05);
+      ex.dirt.position.y = ex.dirtBottom + ex.dirtHeight * fill / 2;
       excavator.updateMatrixWorld(true);
       updateRams();
       ex.lowest = Math.min(bucketWorld(ex.tip).y, bucketWorld(ex.heel).y); // so the bucket can't go into the ground
-      Object.assign(excavatorRect, { x: exc.x, z: exc.z, heading: exc.heading });
     }
     buildExcavator();
     poseExcavator();
-
-    // ---------- The dump truck: fill it with the excavator and it takes the dirt to the sluice by itself ----------
-    const TRUCK_ORANGE = 0xd35400, TRUCK_WINDOW = 0x3a5f7a;
-    const TRUCK_PARK = { x: -1.5, z: -11.5 };  // where it waits to be loaded
-    const TRUCK_REAR_AT_SLUICE = { x: 3.7, z: -6.2 }; // where its back end stops, at the top of the sluice
-    // Work out its route once: it backs up in a straight line from the parking spot to the sluice
-    const truckRouteX = TRUCK_REAR_AT_SLUICE.x - TRUCK_PARK.x, truckRouteZ = TRUCK_REAR_AT_SLUICE.z - TRUCK_PARK.z;
-    const truckRouteRear = Math.hypot(truckRouteX, truckRouteZ);
-    const truckDir = { x: truckRouteX / truckRouteRear, z: truckRouteZ / truckRouteRear }; // pointing to the sluice
-    const truckDumpSpot = { x: TRUCK_REAR_AT_SLUICE.x - truckDir.x * 2.7, z: TRUCK_REAR_AT_SLUICE.z - truckDir.z * 2.7 };
-    const truckRouteLength = Math.hypot(truckDumpSpot.x - TRUCK_PARK.x, truckDumpSpot.z - TRUCK_PARK.z);
-    const truckHeading = Math.atan2(truckDir.z, -truckDir.x); // the cab faces away from the sluice
-
-    const truck = new THREE.Group();
-    truck.rotation.y = truckHeading;
-    scene.add(truck);
-    truck.add(box(5.0, 0.3, 1.6, EXC_GREY, -0.2, 0.75, 0));             // chassis
-    for (const x of [1.6, -1.1, -2.0]) {
-      for (const z of [-0.95, 0.95]) {
-        truck.add(wheel(0.45, 0.35, 0x1a1a1a, x, 0.45, z));             // tyre
-        truck.add(wheel(0.2, 0.37, 0x999999, x, 0.45, z));              // hub
-      }
-    }
-    truck.add(box(1.4, 1.4, 2.0, TRUCK_ORANGE, 1.6, 1.6, 0));           // cab
-    truck.add(box(0.05, 0.6, 1.7, TRUCK_WINDOW, 2.31, 1.95, 0));        // windscreen
-    for (const z of [-1.0, 1.0]) truck.add(box(0.8, 0.55, 0.05, TRUCK_WINDOW, 1.7, 1.95, z)); // side windows
-    truck.add(box(0.1, 0.35, 2.0, 0x222222, 2.35, 1.05, 0));            // bumper
-    for (const z of [-0.7, 0.7]) truck.add(box(0.05, 0.15, 0.3, 0xffffcc, 2.4, 1.2, z)); // headlights
-
-    // The tipping bed. It's hinged at the back, so turning it lifts the front end.
-    const truckBed = new THREE.Group();
-    truckBed.position.set(-2.6, 1.0, 0);
-    truck.add(truckBed);
-    truckBed.add(box(3.4, 0.1, 2.1, TRUCK_ORANGE, 1.7, 0.05, 0));       // floor
-    for (const z of [-1.05, 1.05]) {
-      truckBed.add(box(3.4, 0.8, 0.08, TRUCK_ORANGE, 1.7, 0.45, z));    // sides
-      for (const x of [0.4, 1.3, 2.2, 3.1]) truckBed.add(box(0.08, 0.8, 0.06, EXC_DARK, x, 0.45, z * 1.04)); // dark ribs
-    }
-    truckBed.add(box(0.08, 1.0, 2.1, TRUCK_ORANGE, 3.4, 0.55, 0));      // front wall
-    truckBed.add(box(0.5, 0.08, 2.1, TRUCK_ORANGE, 3.6, 1.05, 0));      // guard over the cab
-    const tailgate = new THREE.Group();                                  // hinged at the top, swings open when tipping
-    tailgate.position.set(0, 0.85, 0);
-    tailgate.add(box(0.08, 0.8, 2.1, TRUCK_ORANGE, 0, -0.4, 0));
-    truckBed.add(tailgate);
-    const truckDirt = box(3.2, 0.7, 1.95, DIRT_COLOR, 1.7, 0.45, 0);
-    truckBed.add(truckDirt);
-
-    function truckSpot(progress) {
-      return {
-        x: TRUCK_PARK.x + (truckDumpSpot.x - TRUCK_PARK.x) * progress,
-        z: TRUCK_PARK.z + (truckDumpSpot.z - TRUCK_PARK.z) * progress,
-      };
-    }
-
-    // Move the truck, its bed and the dirt in it to match state.truck
-    function poseTruck() {
-      const t = state.truck;
-      const spot = truckSpot(t.progress);
-      truck.position.set(spot.x, 0, spot.z);
-      // Bed: up over 1.2 s, stays up for 0.6 s, then down over 1 s
-      let tilt = 0;
-      if (t.mode === 'dumping') tilt = t.timer < 1.2 ? t.timer / 1.2 : t.timer < 1.8 ? 1 : Math.max(0, 2.8 - t.timer);
-      truckBed.rotation.z = tilt * 0.9;
-      tailgate.rotation.z = -tilt * 0.9; // hangs straight down, so the dirt can slide out
-      const full = t.load / SETTINGS.truckCapacity;
-      truckDirt.visible = t.load > 0;
-      truckDirt.scale.y = Math.max(full, 0.05);
-      truckDirt.position.y = 0.1 + 0.35 * full;
-      Object.assign(truckRect, { x: spot.x, z: spot.z, heading: truckHeading });
-      // The bed is towards the back of the truck
-      Object.assign(truckBedRect, { x: spot.x + truckDir.x * 0.9, z: spot.z + truckDir.z * 0.9, heading: truckHeading });
-    }
-    poseTruck();
 
     // ---------- Sounds: every sound is made in code with the Web Audio API, so no sound files are needed ----------
     let audio = null;        // the browser's sound maker. Browsers only allow it after a click, so it starts in lockPointer()
     let master = null;       // every sound goes through this volume knob, so muting is one switch
     let noiseBuffer = null;  // one second of random hiss: the raw material for dirt, footsteps and water
-    const loops = {};        // sounds that keep running: the sluice water, the engines and the hydraulics
+    const loops = {};        // sounds that keep running: the sluice water, the excavator engine and its hydraulics
 
     function startAudio() {
       if (!audio) {
@@ -774,7 +747,6 @@
         for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
         loops.water = makeWaterSound();
         loops.excavator = makeEngineSound(38);
-        loops.truck = makeEngineSound(55);
         loops.hydraulics = makeHumSound(420);
       }
       audio.resume();
@@ -910,7 +882,7 @@
         tone(110, 0.15, { volume: 0.2, slideTo: 60 });
       },
       full() { tone(160, 0.12, { type: 'triangle', volume: 0.15 }); }, // "bonk": your bucket is already full
-      dump(size = 1, v = 1) { // size 1 = a bucketful, 2 = an excavator or truck load
+      dump(size = 1, v = 1) { // size 1 = a bucketful, 2 = an excavator load
         noise(0.4 + 0.4 * size, { volume: 0.3 * v, freq: 2000, freqTo: 150, attack: 0.04 });
         tone(80, 0.3 + 0.2 * size, { volume: 0.2 * v, slideTo: 40, delay: 0.05 });
       },
@@ -953,11 +925,14 @@
         noise(0.12, { volume: 0.25, filter: 'bandpass', freq: 700 + Math.random() * 500, q: 0.8 });
         noise(0.05, { volume: 0.08, filter: 'highpass', freq: 3000, delay: 0.03 });
       },
-      clank() { noise(0.04, { volume: 0.1, filter: 'bandpass', freq: 2500, q: 4 }); }, // tracks rolling
-      reverseBeep(v) { tone(1050, 0.22, { type: 'square', volume: 0.04 * v }); },
-      honk(v) {
-        tone(330, 0.4, { type: 'square', volume: 0.06 * v });
-        tone(415, 0.4, { type: 'square', volume: 0.05 * v });
+      pileEmpty() { // a hollow "thunk" and two falling notes: nothing left to dig
+        noise(0.15, { volume: 0.2, freq: 300 });
+        tone(392, 0.2, { type: 'triangle', volume: 0.12, delay: 0.1 });
+        tone(262, 0.35, { type: 'triangle', volume: 0.12, delay: 0.3 });
+      },
+      newLoad() { // a big load of dirt pouring onto the pile: a long rumble with thumps in it
+        noise(1.6, { volume: 0.35, freq: 1500, freqTo: 120, attack: 0.2 });
+        for (let i = 0; i < 4; i++) tone(70 - i * 6, 0.35, { volume: 0.2, slideTo: 35, delay: 0.15 + i * 0.3 });
       },
     };
 
@@ -970,16 +945,13 @@
       const washing = state.sluiceQueue > 0;
       const near = nearness(sluiceSpot.x, sluiceSpot.z, 25);
       loops.water.set(washing ? 1400 : 900, near * (washing ? 0.16 + 0.03 * state.levels.sluice : 0.05));
-      if (state.driving) {
-        const rpm = Math.min(1, 0.1 + (excavatorMoving ? 0.5 : 0) + (armMoving ? 0.4 : 0));
-        loops.excavator.set(rpm, 0.12 + 0.02 * state.levels.engine);
+      if (state.inExcavator) {
+        loops.excavator.set(armMoving ? 0.7 : 0.1, 0.12 + 0.02 * state.levels.speed); // revs up while the arm moves
         loops.hydraulics.set(armMoving ? 480 : 380, armMoving ? 0.025 : 0);
       } else {
         loops.excavator.set(0, 0);
         loops.hydraulics.set(380, 0);
       }
-      const truckBusy = state.truck.mode !== 'parked';
-      loops.truck.set(state.truck.mode === 'dumping' ? 0.7 : 0.4, truckBusy ? 0.1 * nearness(truckRect.x, truckRect.z) : 0);
     }
 
     function toggleMute() {
@@ -1057,10 +1029,12 @@
     const interactables = [
       {
         bounds: pileBounds,
-        prompt: () => state.carrying >= toolNow('carrier').capacity
-          ? `${toolNow('carrier').name} is full - take it to the sluice`
-          : 'Press E to dig',
-        use: dig,
+        prompt: () => {
+          if (state.pile <= 0) return `The pile is empty. Press E to buy a new load (${toolNow('dirtLoad').tons} t for $${dirtLoadPrice()})`;
+          if (state.carrying >= toolNow('carrier').capacity) return `${toolNow('carrier').name} is full - take it to the sluice`;
+          return `Press E to dig (${tons(state.pile)} t left)`;
+        },
+        use: () => (state.pile <= 0 ? buyDirtLoad() : dig()),
       },
       {
         bounds: sluiceBounds,
@@ -1087,8 +1061,38 @@
         sfx.full();
         return;
       }
-      state.carrying = Math.min(capacity, state.carrying + toolNow('shovel').scoops);
+      // Each scoop comes out of the pile (a nearly empty pile may give you less than a full shovel)
+      state.carrying += takeFromPile(Math.min(toolNow('shovel').scoops, capacity - state.carrying));
       sfx.dig();
+    }
+
+    // What a new load of dirt costs. If you're broke and have no dirt left anywhere, it's free,
+    // so you can never get stuck with nothing to dig.
+    function dirtLoadPrice() {
+      const price = toolNow('dirtLoad').loadPrice;
+      const noDirtAnywhere = state.carrying === 0 && state.sluiceQueue === 0 && state.exc.load === 0;
+      return state.money < price && noDirtAnywhere ? 0 : price;
+    }
+
+    // Buy a new load of dirt. You can only do this once the pile is empty.
+    function buyDirtLoad() {
+      if (state.pile > 0) {
+        showMessage(`The pile still has ${tons(state.pile)} t of dirt. Dig it all first`);
+        sfx.denied();
+        return;
+      }
+      const price = dirtLoadPrice();
+      if (state.money < price) {
+        showMessage(`You need $${price - state.money} more`);
+        sfx.denied();
+        return;
+      }
+      state.money -= price;
+      refillPile();
+      pushOutOfSolids(); // in case you were standing where the new pile landed
+      showMessage(price ? `New load: ${tons(state.pile)} t of dirt!` : `Free load: ${tons(state.pile)} t of dirt!`);
+      sfx.buy();
+      sfx.newLoad();
     }
 
     function dumpIntoSluice() {
@@ -1131,15 +1135,15 @@
       sluiceBounds.setFromObject(sluice);
     }
 
-    // Rebuild the excavator with its new upgrades, in the same spot and pose
+    // Rebuild the excavator with its new upgrades, in the same pose
     function rebuildExcavator() {
       buildExcavator();
       poseExcavator();
     }
 
     // Set every tool's level from a list like { shovel: 2, sluice: 1 } (for example from a saved game).
-    // Only tools in TOOL_ORDER are read, so tools that no longer exist (like the old Metal Detector
-    // or Gold Pan) are ignored. Levels are kept in range, so a save from when the excavator had 3 levels still works.
+    // Only tools in TOOL_ORDER are read, so tools that no longer exist (like the old Metal Detector, Gold Pan,
+    // Excavator Engine or Arm) are ignored. Levels are kept in range, so a save from when the excavator had 3 levels still works.
     function applyToolLevels(saved) {
       for (const id of TOOL_ORDER) {
         const level = Math.floor(Number(saved[id]) || 0);
@@ -1187,29 +1191,28 @@
       sluiceDirt.visible = state.sluiceQueue > 0;
     }
 
-    // ---------- Driving the excavator ----------
-    let cabYaw = 0, cabPitch = 0;          // where you're looking inside the cab
-    let excavatorMoving = false, armMoving = false; // for the engine sound
-    let scrapeTimer = 0, clankTimer = 0;
+    // ---------- Using the excavator: it stays put, you swing and move the arm ----------
+    let cabYaw = 0, cabPitch = 0; // where you're looking inside the cab
+    let armMoving = false;        // for the engine and hydraulics sounds
+    let scrapeTimer = 0;
     let biting = false; // true while the bucket is scooping into the pile
-    const driveHelp = document.getElementById('drive-help');
+    const excavatorHelp = document.getElementById('excavator-help');
     const crosshair = document.getElementById('crosshair');
 
     function enterExcavator() {
-      state.driving = true;
+      state.inExcavator = true;
       cabYaw = 0;
       cabPitch = -0.3; // look a bit down, at the bucket
       for (const code in keys) keys[code] = false;
-      driveHelp.hidden = false;
+      excavatorHelp.hidden = false;
       crosshair.style.display = 'none';
       sfx.engineStart();
     }
 
     function exitExcavator() {
-      const exc = state.exc;
-      state.driving = false;
+      state.inExcavator = false;
       for (const code in keys) keys[code] = false;
-      driveHelp.hidden = true;
+      excavatorHelp.hidden = true;
       crosshair.style.display = '';
       sfx.engineStop();
       // Climb out next to the cab door (left side). If something is in the way, try the right side, then the back.
@@ -1219,22 +1222,22 @@
       const spot = free || spots[0];
       camera.position.set(clamp(spot.x, -28, 28), 1.6, clamp(spot.z, -28, 28));
       pushOutOfSolids();
-      yaw = exc.heading + exc.swing - Math.PI / 2 + cabYaw; // keep looking the same way
+      yaw = EXCAVATOR_SPOT.heading + state.exc.swing - Math.PI / 2 + cabYaw; // keep looking the same way
       pitch = 0;
     }
 
-    // Would the excavator hit something at its current spot?
-    function excavatorBumps() {
-      const exc = state.exc;
-      if (Math.abs(exc.x) > 27 || Math.abs(exc.z) > 27) return true;
-      return solids.some((solid) => solid !== excavatorRect && distanceFromPoint(solid, exc.x, exc.z) < 1.6);
+    // How far a spot on the ground is from the middle of the pile
+    function distanceFromPile(p) {
+      return Math.hypot(p.x - PILE_SPOT.x, p.z - PILE_SPOT.z);
     }
 
-    // Is this spot (the tip of the bucket) in the dirt pile? The pile is a cone, so it's lower near the edge.
+    // Is this spot (on the bucket) in the dirt pile? The pile is a cone, so it's lower near the edge.
     function inPile(p) {
-      const distance = Math.hypot(p.x - dirtPile.position.x, p.z - dirtPile.position.z);
-      const surface = PILE_HEIGHT * (1 - distance / PILE_RADIUS);
-      return distance < PILE_RADIUS + 0.1 && p.y < surface + 0.4;
+      if (state.pile <= 0) return false;
+      const size = pileSize();
+      const distance = distanceFromPile(p);
+      const surface = size.height * (1 - distance / size.radius);
+      return distance < size.radius + 0.1 && p.y < surface + 0.4;
     }
 
     // Is the bucket digging into the pile? (Either its teeth or its middle count, to keep it easy.)
@@ -1242,56 +1245,40 @@
       return inPile(bucketWorld(ex.tip)) || inPile(bucketWorld(ex.belly));
     }
 
-    // Where the bucket would drop its dirt: 'pile', 'sluice', 'truck', 'truck away' or 'ground'
+    // Where the bucket would drop its dirt: 'pile', 'sluice' or 'ground'
     // (It measures from the bucket's hinge, which doesn't move while you tip the bucket.)
     function dumpTarget() {
       const spot = ex.bucket.getWorldPosition(new THREE.Vector3());
-      if (Math.hypot(spot.x - dirtPile.position.x, spot.z - dirtPile.position.z) < PILE_RADIUS + 0.3) return 'pile';
+      if (distanceFromPile(spot) < pileSize().radius + 0.3) return 'pile';
       if (distanceFromPoint(sluiceBounds, spot.x, spot.z) < 0.3) return 'sluice';
-      if (distanceFromPoint(truckBedRect, spot.x, spot.z) === 0) return state.truck.mode === 'parked' ? 'truck' : 'truck away';
       return 'ground';
     }
 
     function dumpBucket() {
       const exc = state.exc;
-      const scoops = Math.round(exc.fill * toolNow('digBucket').scoops);
-      exc.fill = 0;
-      if (scoops === 0) return;
+      const scoops = exc.load;
+      exc.load = 0;
+      if (scoops <= 0) return;
       dirtFalls(bucketWorld(ex.belly), scoops);
       sfx.dump(2);
       const target = dumpTarget();
       if (target === 'sluice') {
-        state.sluiceQueue += scoops;
-        showMessage(`+${scoops} scoops in the sluice`);
-      } else if (target === 'truck') {
-        const added = Math.min(scoops, SETTINGS.truckCapacity - state.truck.load);
-        state.truck.load += added;
-        state.truck.wait = 0;
-        showMessage(added < scoops ? `The truck is full! ${scoops - added} scoops spilled` : `+${scoops} scoops in the truck`);
-      } else if (target !== 'pile') { // dumping back onto the pile is fine, anywhere else it's lost
-        showMessage('Spilled! Dump over the sluice or the truck');
+        state.sluiceQueue += Math.round(scoops);
+        showMessage(`+${tons(scoops)} t in the sluice`);
+      } else if (target === 'pile') {
+        addToPile(scoops); // dumped back onto the pile: nothing lost
+      } else {
+        showMessage('Spilled! Dump it over the sluice');
       }
     }
 
-    function driveExcavator(dt) {
+    // Runs every frame while you're in the excavator: the arrow keys move the arm, Q/F tilt the bucket
+    function operateExcavator(dt) {
       const exc = state.exc;
-      const speed = toolNow('engine').speed;
+      const speed = toolNow('speed').speed;
       const before = { ...exc };
       const held = (...codes) => (codes.some((code) => keys[code]) ? 1 : 0);
 
-      // Tracks: W/S drive, A/D turn. If that bumps into something, don't move.
-      const drive = held('KeyW') - held('KeyS');
-      const turn = held('KeyA') - held('KeyD');
-      exc.heading += turn * SETTINGS.excavatorTurnSpeed * speed * dt;
-      exc.x += Math.cos(exc.heading) * drive * SETTINGS.excavatorDriveSpeed * speed * dt;
-      exc.z -= Math.sin(exc.heading) * drive * SETTINGS.excavatorDriveSpeed * speed * dt;
-      if (excavatorBumps()) {
-        exc.x = before.x;
-        exc.z = before.z;
-        exc.heading = before.heading;
-      }
-
-      // Arm: arrows swing it and raise/lower it, Q/F (or the mouse buttons) tilt the bucket
       const swing = held('ArrowLeft') - held('ArrowRight');
       const lift = held('ArrowUp') - held('ArrowDown');
       const curl = held('KeyQ', 'MouseLeft') - held('KeyF', 'MouseRight');
@@ -1308,135 +1295,79 @@
         poseExcavator();
       }
 
-      // Scooping: curl the bucket while its teeth are in the pile and it fills up
-      // Once the bucket bites into the dirt, it keeps filling while you hold scoop and it's still over the pile
-      const overPile = Math.hypot(bucketWorld(ex.belly).x - dirtPile.position.x, bucketWorld(ex.belly).z - dirtPile.position.z) < PILE_RADIUS + 0.3;
+      // Scooping: curl the bucket while its teeth are in the pile and it fills up.
+      // Once the bucket bites into the dirt, it keeps filling while you hold scoop and it's still over the pile.
+      const capacity = toolNow('digBucket').scoops;
+      const overPile = state.pile > 0 && distanceFromPile(bucketWorld(ex.belly)) < pileSize().radius + 0.3;
       if (curl <= 0 || !overPile) biting = false;
       else if (bucketInDirt()) biting = true;
-      if (biting && exc.fill < 1 && exc.bucketPitch > DUMP_PITCH) {
-        exc.fill = Math.min(1, exc.fill + Math.max(0, exc.bucketPitch - before.bucketPitch)); // full after about 1 radian of curl
+      if (biting && exc.load < capacity && exc.bucketPitch > DUMP_PITCH) {
+        const curled = Math.max(0, exc.bucketPitch - before.bucketPitch); // full after about 1 radian of curl
+        const scooped = takeFromPile(Math.min(curled * capacity, capacity - exc.load));
+        exc.load += scooped;
         scrapeTimer -= dt;
-        if (scrapeTimer <= 0) {
+        if (scooped > 0 && scrapeTimer <= 0) {
           sfx.scrape();
           scrapeTimer = 0.13;
         }
+        poseExcavator(); // show the new dirt in the bucket
       }
       // Dumping: tip the bucket far enough down and everything falls out
-      if (exc.bucketPitch <= DUMP_PITCH && exc.fill > 0) dumpBucket();
+      if (exc.bucketPitch <= DUMP_PITCH && exc.load > 0) {
+        dumpBucket();
+        poseExcavator();
+      }
 
-      excavatorMoving = drive !== 0 || turn !== 0;
       armMoving = swing !== 0 || lift !== 0 || curl !== 0;
-      if (excavatorMoving) {
-        clankTimer -= dt;
-        if (clankTimer <= 0) {
-          sfx.clank();
-          clankTimer = 0.28 / speed;
-        }
-      }
     }
 
-    // A hint under the crosshair that tells you what to do next while driving
-    function drivingHint() {
+    // A hint under the crosshair that tells you what to do next in the excavator
+    function excavatorHint() {
       const exc = state.exc;
-      if (exc.fill <= 0) {
-        return bucketInDirt() ? 'The bucket is in the dirt: hold Q to scoop' : 'Lower the bucket (↓) into the DIRT pile, then hold Q to scoop';
+      if (exc.load <= 0) {
+        if (state.pile <= 0) return 'The dirt pile is empty: press B to buy a new load';
+        return bucketInDirt() ? 'The bucket is in the dirt: hold Q to scoop' : 'Swing (← →) to the DIRT pile, lower the arm (↓), then hold Q to scoop';
       }
-      const target = dumpTarget();
-      if (target === 'sluice') return 'Over the sluice: hold F to dump';
-      if (target === 'truck') return 'Over the truck: hold F to dump';
-      if (target === 'truck away') return 'The truck is away. Wait for it to come back';
-      if (exc.fill >= 1) return 'Bucket full! Raise it (↑), swing (← →) to the sluice or the truck, then hold F';
+      if (dumpTarget() === 'sluice') return 'Over the sluice: hold F to dump';
+      if (exc.load >= toolNow('digBucket').scoops) return 'Bucket full! Raise the arm (↑), swing (← →) to the sluice, then hold F';
+      if (state.pile <= 0) return 'The pile is empty. Take what you have to the sluice and hold F';
       return '';
-    }
-
-    // ---------- Dump truck: waits to be loaded, then backs up to the sluice and tips the dirt in ----------
-    let truckBeepTimer = 0, truckHonkTimer = 0;
-
-    // Would moving the truck to "progress" bump into the excavator or you? (Moving away is always allowed.)
-    function truckBlocked(progress) {
-      const spot = truckSpot(progress);
-      const next = { ...truckRect, x: spot.x, z: spot.z };
-      const nextToExcavator = distanceFromPoint(next, state.exc.x, state.exc.z);
-      if (nextToExcavator < 1.5 &&nextToExcavator < distanceFromPoint(truckRect, state.exc.x, state.exc.z)) return true;
-      if (state.driving) return false;
-      const nextToYou = distanceFromPoint(next, camera.position.x, camera.position.z);
-      return nextToYou < 0.6 && nextToYou < distanceFromPoint(truckRect, camera.position.x, camera.position.z);
-    }
-
-    function updateTruck(dt) {
-      const t = state.truck;
-      const near = nearness(truckRect.x, truckRect.z);
-      if (t.mode === 'parked') {
-        if (t.load > 0) {
-          t.wait += dt;
-          if (t.load >= SETTINGS.truckCapacity || t.wait >= SETTINGS.truckWaitSeconds) t.mode = 'reversing';
-        }
-      } else if (t.mode === 'reversing' || t.mode === 'returning') {
-        const direction = t.mode === 'reversing' ? 1 : -1;
-        const next = clamp(t.progress + direction * SETTINGS.truckSpeed * dt / truckRouteLength, 0, 1);
-        if (truckBlocked(next)) {
-          truckHonkTimer -= dt;
-          if (truckHonkTimer <= 0) {
-            sfx.honk(Math.max(0.3, near));
-            truckHonkTimer = 2;
-          }
-        } else {
-          t.progress = next;
-        }
-        if (t.mode === 'reversing') {
-          truckBeepTimer -= dt;
-          if (truckBeepTimer <= 0) {
-            sfx.reverseBeep(near);
-            truckBeepTimer = 0.6;
-          }
-          if (t.progress >= 1) {
-            t.mode = 'dumping';
-            t.timer = 0;
-          }
-        } else if (t.progress <= 0) {
-          t.mode = 'parked';
-          t.wait = 0;
-        }
-      } else if (t.mode === 'dumping') {
-        const before = t.timer;
-        t.timer += dt;
-        if (before < 1.2 && t.timer >= 1.2) { // the bed is all the way up: the dirt slides into the sluice
-          dirtFalls(truck.localToWorld(new THREE.Vector3(-3, 1.3, 0)), t.load);
-          state.sluiceQueue += t.load;
-          t.load = 0;
-          sfx.dump(2, Math.max(0.3, near));
-        }
-        if (t.timer >= 2.8) t.mode = 'returning';
-      }
-      poseTruck();
     }
 
     // ---------- Shop menu ----------
     const shopEl = document.getElementById('shop');
     const shopMoney = document.getElementById('shop-money');
-    const shopRows = {};
-    TOOL_ORDER.forEach((id, i) => {
+    // Add one row to the shop. "key" is the number key that buys it, onBuy runs when you click it.
+    function makeShopRow(key, title, about, onBuy) {
       const button = document.createElement('button');
       button.className = 'shop-item';
       button.innerHTML = `
-        <span class="key">${i + 1}</span>
+        <span class="key">${key}</span>
         <span>
-          <b class="title">${TOOLS[id].title}</b> &middot; <span class="level"></span><br>
-          <span class="about">${TOOLS[id].about}</span><br>
+          <b class="title">${title}</b> &middot; <span class="level"></span><br>
+          <span class="about">${about}</span><br>
           <span class="now"></span><br>
           <span class="next"></span>
         </span>
         <span class="price"></span>`;
-      button.addEventListener('click', () => buy(id));
+      button.addEventListener('click', onBuy);
       document.getElementById('shop-items').appendChild(button);
-      shopRows[id] = {
+      return {
         button,
         level: button.querySelector('.level'),
         now: button.querySelector('.now'),
         next: button.querySelector('.next'),
         price: button.querySelector('.price'),
       };
+    }
+
+    // One row per tool (keys 1 to 7), then a last row for buying a new load of dirt (key 8)
+    const shopRows = {};
+    TOOL_ORDER.forEach((id, i) => {
+      shopRows[id] = makeShopRow(i + 1, TOOLS[id].title, TOOLS[id].about, () => buy(id));
     });
+    const LOAD_KEY = TOOL_ORDER.length + 1;
+    const loadRow = makeShopRow(LOAD_KEY, 'New Dirt Load', 'Fills the DIRT pile back up. You can buy one when the pile is empty.', buyDirtLoad);
     document.getElementById('shop-close').addEventListener('click', () => closeShop());
 
     // Refresh the text and greyed-out state of every shop row
@@ -1457,6 +1388,15 @@
         // Greyed out, but still clickable, so you hear the "not enough money" sound
         row.button.classList.toggle('cant', !next || locked || state.money < next.price);
       }
+
+      // The "New Dirt Load" row
+      const load = toolNow('dirtLoad');
+      const loadPrice = dirtLoadPrice();
+      loadRow.level.textContent = load.name;
+      loadRow.now.textContent = state.pile > 0 ? `The pile still has ${tons(state.pile)} t of dirt` : 'The pile is empty!';
+      loadRow.next.textContent = `Gives you ${load.tons} t of dirt${loadPrice === 0 ? ' (free this time, because you are out of money)' : ''}`;
+      loadRow.price.textContent = `$${loadPrice}`;
+      loadRow.button.classList.toggle('cant', state.pile > 0 || state.money < loadPrice);
     }
 
     function openShop() {
@@ -1574,9 +1514,9 @@
         if (level === 3) polygon(ctx, [[-half - 2, -16], [-half + 12, -16], [-half + 10, -7], [-half, -7]], METAL[1]); // hopper
       },
 
-      // The excavator icon shows all three excavator upgrades at once
+      // The excavator icon shows both excavator upgrades at once
       excavator(ctx) {
-        const armLevel = state.levels.arm, bucketLevel = state.levels.digBucket, engineLevel = state.levels.engine;
+        const bucketLevel = state.levels.digBucket, engineLevel = state.levels.speed;
         const allMax = EXCAVATOR_PARTS.every((id) => !toolNext(id));
         const trim = allMax ? GOLD : '#222';
         const width = allMax ? 2.5 : 1.5;
@@ -1588,8 +1528,8 @@
         line(ctx, -25, 6, 5, 6, '#222', 2);                                               // dark stripe
         const stacks = engineLevel >= 2 ? 2 : 1;                                          // exhaust pipes
         for (let i = 0; i < stacks; i++) line(ctx, -5 + i * 4, -2, -5 + i * 4, -8 - engineLevel * 2, engineLevel ? METAL[3] : '#333', 2.5);
-        const knee = [14 + armLevel * 2.5, -22 - armLevel];                               // longer arm
-        const tip = [22 + armLevel * 2.5, 2 + armLevel];
+        const knee = [16, -23];                                                           // arm
+        const tip = [24, 3];
         line(ctx, 4, 0, knee[0], knee[1], YELLOW, 4);
         line(ctx, knee[0], knee[1], tip[0], tip[1], YELLOW, 3);
         const b = 4 + bucketLevel * 1.5;                                                  // bigger bucket
@@ -1612,7 +1552,7 @@
         if (level >= 2) line(ctx, -14, 2, 12, 6, '#222', 3);                              // wear strip
       },
 
-      engine(ctx, level) {
+      speed(ctx, level) { // an engine with a lightning bolt
         const trim = level === 3 ? GOLD : '#222';
         const lw = level === 3 ? 3 : 1.5;
         polygon(ctx, [[-22, -6], [16, -6], [16, 18], [-22, 18]], level === 0 ? METAL[0] : YELLOW, trim, lw); // engine block
@@ -1636,26 +1576,30 @@
         if (level >= 1) polygon(ctx, [[-4, -2], [-10, 8], [-4, 8], [-8, 16], [4, 4], [-2, 4], [2, -2]], '#fff', '#222', 1); // lightning bolt
       },
 
-      arm(ctx, level) {
-        const len = 1 + level * 0.18;                                                      // longer at each level
-        const base = [-26, 20], knee = [-26 + 26 * len, 20 - 30 * len], tip = [knee[0] + 8 * len, knee[1] + 28 * len];
-        if (level === 3) {                                                                 // gold glow under the arm
-          line(ctx, ...base, ...knee, GOLD, 9);
-          line(ctx, ...knee, ...tip, GOLD, 7);
+      dirtLoad(ctx, level) { // a heap of dirt that's bigger at each level
+        const w = 18 + level * 3, h = 14 + level * 5;
+        ctx.beginPath();
+        ctx.moveTo(-w, 20);
+        ctx.quadraticCurveTo(0, 20 - h * 2, w, 20); // a rounded heap, h tall
+        ctx.closePath();
+        ctx.fillStyle = '#6b4423';
+        ctx.fill();
+        ctx.strokeStyle = level === 3 ? GOLD : '#222';
+        ctx.lineWidth = level === 3 ? 3 : 1.5;
+        ctx.stroke();
+        for (let i = 0; i < 3 + level; i++) circle(ctx, -w * 0.6 + i * w * 1.2 / (2 + level), 14 - (i % 2) * 5, 2, '#8a6440', 'transparent'); // pebbles
+        if (level >= 1) circle(ctx, w * 0.3, 16 - h * 0.4, 2.5, GOLD, '#8a6d00');         // a glint of gold
+        if (level >= 2) circle(ctx, -w * 0.25, 18 - h * 0.6, 2.5, GOLD, '#8a6d00');
+        if (level === 3) {                                                                 // a little flag on top
+          line(ctx, 0, 20 - h, 0, 20 - h - 14, '#333', 2);
+          polygon(ctx, [[0, 20 - h - 14], [10, 20 - h - 10], [0, 20 - h - 6]], GOLD, '#8a6d00', 1);
         }
-        line(ctx, base[0] + 4, base[1] + 2, (base[0] + knee[0]) / 2 + 3, (base[1] + knee[1]) / 2 + 3, METAL[3], 2.5); // hydraulic ram
-        line(ctx, ...base, ...knee, YELLOW, 5);                                            // boom
-        line(ctx, ...knee, ...tip, YELLOW, 4);                                             // stick
-        if (level >= 1) line(ctx, (base[0] + knee[0]) / 2, (base[1] + knee[1]) / 2, knee[0], knee[1], '#222', 1.5); // dark plates
-        circle(ctx, ...base, 3, '#333');                                                   // pins
-        circle(ctx, ...knee, 3, '#333');
-        polygon(ctx, [[tip[0] - 4, tip[1] - 2], [tip[0] + 4, tip[1] - 2], [tip[0] + 2, tip[1] + 6], [tip[0] - 4, tip[1] + 4]], '#555'); // bucket
       },
     };
 
     const toolbarEl = document.getElementById('toolbar');
 
-    // Is this tool as good as it gets? (The excavator is when all three of its upgrades are.)
+    // Is this tool as good as it gets? (The excavator is when both of its upgrades are.)
     function isMaxed(id) {
       if (id === 'excavator') return EXCAVATOR_PARTS.every((part) => !toolNext(part));
       return !toolNext(id);
@@ -1716,7 +1660,7 @@
     });
     document.addEventListener('mousemove', (e) => {
       if (!playing) return;
-      if (state.driving) {
+      if (state.inExcavator) {
         cabYaw = clamp(cabYaw - e.movementX * SETTINGS.mouseSensitivity, -2, 2);
         cabPitch = clamp(cabPitch - e.movementY * SETTINGS.mouseSensitivity, -1.2, 1.2);
       } else {
@@ -1727,7 +1671,7 @@
     // Mouse buttons: left click uses things when walking. In the excavator, hold left to scoop and right to dump.
     document.addEventListener('mousedown', (e) => {
       if (!playing) return;
-      if (state.driving) {
+      if (state.inExcavator) {
         if (e.button === 0) keys.MouseLeft = true;
         if (e.button === 2) keys.MouseRight = true;
       } else if (e.button === 0) {
@@ -1758,13 +1702,14 @@
       if (state.shopOpen) {
         const number = Number(e.key);
         if (number >= 1 && number <= TOOL_ORDER.length) buy(TOOL_ORDER[number - 1]);
+        if (number === LOAD_KEY) buyDirtLoad();
         if (e.code === 'Escape') closeShop();
         return;
       }
 
       if (!playing) return;
       if (e.code === 'KeyE') {
-        if (state.driving) exitExcavator();
+        if (state.inExcavator) exitExcavator();
         else interact();
       }
     });
@@ -1839,24 +1784,15 @@
       messageTimeout = setTimeout(() => { hud.message.style.opacity = 0; }, 2000);
     }
 
-    function truckStatus() {
-      const t = state.truck;
-      if (t.mode === 'parked') {
-        if (t.load === 0) return 'Truck: empty, waiting for dirt';
-        const leavesIn = Math.max(0, Math.ceil(SETTINGS.truckWaitSeconds - t.wait));
-        return `Truck: ${t.load} / ${SETTINGS.truckCapacity} scoops (leaves in ${leavesIn} s)`;
-      }
-      if (t.mode === 'reversing') return `Truck: taking ${t.load} scoops to the sluice`;
-      if (t.mode === 'dumping') return 'Truck: dumping into the sluice';
-      return 'Truck: coming back';
-    }
-
     function updateHud() {
       hud.wallet.textContent = `$${state.money}`;
 
       const carrier = toolNow('carrier');
       const shovel = toolNow('shovel');
       const lines = [
+        state.pile > 0
+          ? `Dirt pile: ${tons(state.pile)} t left (of ${tons(state.pileFull)} t)`
+          : 'Dirt pile: EMPTY - buy a new load in the shop (B)',
         `${carrier.name}: ${state.carrying} / ${carrier.capacity} scoops`,
         `Shovel: ${shovel.name} (${shovel.scoops} per dig)`,
         `Sluice: ${state.sluiceQueue} scoops left to wash`,
@@ -1865,16 +1801,15 @@
         lines.push(`Excavator: for sale in the shop ($${TOOLS.excavator.levels[1].price})`);
       } else {
         const bucketScoops = toolNow('digBucket').scoops;
-        lines.push(state.driving
-          ? `Excavator bucket: ${Math.round(state.exc.fill * bucketScoops)} / ${bucketScoops} scoops`
+        lines.push(state.inExcavator
+          ? `Excavator bucket: ${tons(state.exc.load)} / ${tons(bucketScoops)} t`
           : 'Excavator: parked (walk up to it and press E)');
-        lines.push(truckStatus());
       }
       lines.push('Press B for the shop');
       hud.status.textContent = lines.join('\n');
 
-      if (state.driving) {
-        hud.prompt.textContent = drivingHint();
+      if (state.inExcavator) {
+        hud.prompt.textContent = excavatorHint();
       } else {
         const thing = nearbyThing();
         hud.prompt.textContent = thing ? thing.prompt() : '';
@@ -1895,16 +1830,15 @@
     }
 
     function cheatResetEverything() {
-      if (state.driving) exitExcavator();
+      if (state.inExcavator) exitExcavator();
       state.money = 0;
       state.carrying = 0;
       state.sluiceQueue = 0;
       state.washTimer = 0;
-      // Put the world back the way it was: small sluice, excavator (for sale) and truck parked
+      // Put the world back the way it was: small sluice, excavator (for sale) and a full Small Load pile
       state.exc = { ...EXCAVATOR_START };
-      state.truck = { load: 0, mode: 'parked', progress: 0, wait: 0, timer: 0 };
       applyToolLevels({});
-      poseTruck();
+      refillPile();
       pushOutOfSolids();
       showMessage('Everything reset (test cheat)');
     }
@@ -1925,20 +1859,19 @@
     function gameLoop() {
       const dt = Math.min(clock.getDelta(), 0.1); // seconds since last frame
 
-      excavatorMoving = armMoving = false;
-      if (playing && state.driving) driveExcavator(dt);
+      armMoving = false;
+      if (playing && state.inExcavator) operateExcavator(dt);
       else if (playing) movePlayer(dt);
 
-      if (state.driving) {
-        // Sit in the cab: the view turns with the tracks and the swing, plus wherever you look with the mouse
+      if (state.inExcavator) {
+        // Sit in the cab: the view turns with the swing, plus wherever you look with the mouse
         ex.seat.getWorldPosition(camera.position);
-        camera.rotation.set(cabPitch, state.exc.heading + state.exc.swing - Math.PI / 2 + cabYaw, 0, 'YXZ');
+        camera.rotation.set(cabPitch, EXCAVATOR_SPOT.heading + state.exc.swing - Math.PI / 2 + cabYaw, 0, 'YXZ');
       } else {
         camera.rotation.set(pitch, yaw, 0, 'YXZ');
       }
 
       updateSluice(dt);
-      updateTruck(dt);
       updateSparkles(dt);
       updateDirtBits(dt);
       updateSounds(dt);
