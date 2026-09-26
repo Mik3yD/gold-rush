@@ -142,7 +142,7 @@ Future ideas: saving progress.
   3. maths and noise helpers (`fbm()` makes the natural bumps)
   4. textures (`TEX`) and materials
   5. sky and lights
-  6. positions of the big things (pile, `POND_SPOT`, `PAD`, `HIGHBANKER_SPOT`), then the ground (`groundHeight()`, `grassiness()`, `groundColor()`)
+  6. positions of the big things (pile, `POND_SPOT`, `PAD`), then the ground (`groundHeight()`, `grassiness()`, `groundColor()`)
   7. grass, rocks, trees, fence, pile
   8. sluice, pond, equipment pad, classifier (`buildSluiceArea()` builds all four in the right order)
   9. signs, shop, camp props, solids
