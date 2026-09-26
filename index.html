@@ -473,8 +473,8 @@
     const pileBounds = new THREE.Box3();   // updated in place whenever the pile changes size
     const sluiceBounds = boundsOf(sluice); // updated in place whenever the sluice is upgraded
     const shopBounds = boundsOf(shop);
-    const excavatorRect = { ...EXCAVATOR_SPOT, halfLength: 1.6, halfWidth: 1.3 }; // its tracks
-    const solids = [pileBounds, sluiceBounds, shopBounds, excavatorRect];
+    const excavatorRect = { ...EXCAVATOR_SPOT, halfLength: 1.6, halfWidth: 1.3 }; // its tracks (only solid once you own it)
+    const solids = [pileBounds, sluiceBounds, shopBounds];
 
     // ---------- The dirt pile: how much is left, and making it look that big ----------
     // Resize the cone to match state.pile, and update where you bump into it
@@ -729,6 +729,19 @@
     }
     buildExcavator();
     poseExcavator();
+
+    // The excavator only shows up (and gets in your way) once you've bought it
+    function showExcavatorIfOwned() {
+      const owned = ownsTool('excavator');
+      excavator.visible = owned;
+      const index = solids.indexOf(excavatorRect);
+      if (owned && index === -1) {
+        solids.push(excavatorRect);
+        pushOutOfSolids(); // in case you're standing where it appears
+      }
+      if (!owned && index !== -1) solids.splice(index, 1);
+    }
+    showExcavatorIfOwned();
 
     // ---------- Sounds: every sound is made in code with the Web Audio API, so no sound files are needed ----------
     let audio = null;        // the browser's sound maker. Browsers only allow it after a click, so it starts in lockPointer()
@@ -1048,10 +1061,9 @@
       },
       {
         bounds: excavatorRect,
-        prompt: () => ownsTool('excavator')
-          ? 'Press E to get in the excavator'
-          : `Excavator for sale: $${TOOLS.excavator.levels[1].price} in the shop (press E)`,
-        use: () => (ownsTool('excavator') ? enterExcavator() : openShop()),
+        onlyIf: () => ownsTool('excavator'), // it isn't there until you buy it
+        prompt: () => 'Press E to get in the excavator',
+        use: enterExcavator,
       },
     ];
 
@@ -1121,11 +1133,11 @@
       const brandNew = !tool.startsOwned && !tool.needs && state.levels[id] === 0;
       state.money -= next.price;
       state.levels[id] += 1;
-      showMessage(`Bought the ${next.name}!`);
+      showMessage(id === 'excavator' ? 'Bought the excavator! It is parked between the pile and the sluice' : `Bought the ${next.name}!`);
       if (brandNew) sfx.buy();
       else sfx.upgrade();
       if (id === 'sluice') upgradeSluiceModel();
-      if (EXCAVATOR_PARTS.includes(id)) rebuildExcavator();
+      if (id === 'excavator' || EXCAVATOR_PARTS.includes(id)) rebuildExcavator();
       updateToolbar(id);
     }
 
@@ -1139,6 +1151,7 @@
     function rebuildExcavator() {
       buildExcavator();
       poseExcavator();
+      showExcavatorIfOwned();
     }
 
     // Set every tool's level from a list like { shovel: 2, sluice: 1 } (for example from a saved game).
@@ -1720,7 +1733,7 @@
     }
 
     function nearbyThing() {
-      return interactables.find((thing) => distanceTo(thing.bounds) < SETTINGS.reach);
+      return interactables.find((thing) => (!thing.onlyIf || thing.onlyIf()) && distanceTo(thing.bounds) < SETTINGS.reach);
     }
 
     function interact() {
