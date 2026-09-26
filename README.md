@@ -16,6 +16,7 @@ Dig dirt, wash it in the sluice box, find gold, and buy better tools.
 | E or left click | Dig, dump dirt, or get in the excavator (when you're close to something) |
 | B | Open or close the shop (then click an item or press 1 to 6 to buy it) |
 | M | Turn all sounds off or on (or click the speaker in the top right) |
+| G | Switch the graphics between High and Low (Low runs faster on slower computers; the frame rate is shown in the bottom right) |
 | Esc | Pause and get your mouse back |
 
 Using the excavator (these controls are also shown on screen while you sit in it). It stays parked in one spot; you only move its arm:
