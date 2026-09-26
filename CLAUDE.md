@@ -16,28 +16,27 @@ Core loop:
 
 ## Current state (version 8: deep upgrades)
 
-- **Upgrades:** 18 things to buy, each with **12 levels** (the excavator itself is one purchase): 205 purchases, **$248,420** in total. They're in four shop tabs:
-  - **Tools:** Shovel, Bucket / Wheelbarrow (both owned from the start), then three new tools you unlock in order: **Pickaxe → Classifier Screen → Highbanker**.
+- **Upgrades:** 17 things to buy, each with **12 levels** (the excavator itself is one purchase): 193 purchases, **$220,120** in total. They're in four shop tabs:
+  - **Tools:** Shovel, Bucket / Wheelbarrow (both owned from the start), then two new tools you unlock in order: **Pickaxe → Classifier Screen**.
   - **Sluice:** an upgrade tree with 8 categories: Mesh, Nozzles, Extended Length, Extra Water, Higher Pressure, More Pumps, Hoses, Generators. Some need others first (see below).
   - **Tailing Pond:** Pond Size and Filters.
-  - **Excavator:** the Small Excavator (needs the Highbanker; the last and most expensive tool), then Bucket Size and Speed.
-- **Gold:** every scoop of dirt holds about $2.00 of gold on average: a 1% nugget worth $50 ($0.50; nuggets are heavy and always caught) and a 75% chance of 1 to 3 flakes at $1 ($1.50, but only the flakes the washer catches). The sluice catches **Mesh % × Nozzles %** of the flakes (45% × 70% = 31.5% at the start, 95% × 100% at the top). Missed flakes go to the pond, where **Filters %** of them collect on the filters; walk to the pond and press **E** to collect them (`state.pondGold`, `collectPondGold()`). The highbanker has its own catch rate and its missed gold is lost.
+  - **Excavator:** the Small Excavator (needs the Classifier Screen; the last and most expensive tool), then Bucket Size and Speed.
+- **Gold:** every scoop of dirt holds about $2.00 of gold on average: a 1% nugget worth $50 ($0.50; nuggets are heavy and always caught) and a 75% chance of 1 to 3 flakes at $1 ($1.50, but only the flakes the washer catches). The sluice catches **Mesh % × Nozzles %** of the flakes (45% × 70% = 31.5% at the start, 95% × 100% at the top). Missed flakes go to the pond, where **Filters %** of them collect on the filters; walk to the pond and press **E** to collect them (`state.pondGold`, `collectPondGold()`).
 - **Sluice speed** (scoops a second) = `SETTINGS.sluiceBaseSpeed` (1.5) × the boost from Length, Extra Water, Pressure, Pumps, Hoses and Generators (each ×1.04 per level, ×1.58 at 12, from `SLUICE_BOOST`) ÷ (1 − the classifier's rock share). So 1.5/s at the start and 40/s (4 t/s) fully upgraded (`sluiceSpeed()`).
 - **Sluice dependencies** (`needs(n)` in `TOOLS`; the shop shows "Needs Generators Lv 4" on locked rows and plays `sfx.locked()`):
   - More Pumps Lv N needs Generators Lv N.
   - Higher Pressure Lv N needs Hoses Lv N and Nozzles Lv N.
   - Extra Water Lv N needs More Pumps Lv ⌊N/2⌋.
   - Extended Length Lv N needs Extra Water Lv ⌊N/2⌋.
-  - The new tools: Classifier needs the Pickaxe, Highbanker needs the Classifier, Excavator needs the Highbanker, Bucket Size and Speed need the Excavator ("Buy the ... first").
+  - The new tools: Classifier needs the Pickaxe, Excavator needs the Classifier, Bucket Size and Speed need the Excavator ("Buy the ... first").
 - **Tailing pond:** past the sluice's low end at `POND_SPOT` (18.2, -7), fed by a wooden flume. Every washed scoop sends 0.1 t of mud in (minus the rocks the classifier took out, `state.pond` in tons); it settles at Pond Size's `settles` t a minute. When it's full (`pondFull()`), the sluice washes at `SETTINGS.pondFullSpeed` (30%), the HUD warns, the water overflows and `sfx.pondFull()` plays. The water gets muddier and a silt heap rises as it fills.
 - **Pickaxe:** without it you dig once per click, at most 2 a second (`SETTINGS.digPause`, `state.digTimer`). With it, hold E or the left mouse button at the pile to keep digging (`keepDigging()`), 2.5 to 7 digs a second.
 - **Classifier Screen:** stands beside the sluice's high end and removes 8% to 42% rocks from all dirt going into the sluice (`addToSluice()`), which makes the sluice wash faster and puts less mud in the pond. The rocks go on a rock pile that grows (`state.rocks`, `rockPile`, solid once it's there). It shakes from level 6 and becomes a spinning trommel at 11.
-- **Highbanker:** a second washer at `HIGHBANKER_SPOT` (-2.5, -7.4), next to the pile and on the excavator's swing circle between the pile and the sluice. Dump into it by hand (E) or with the excavator; it washes `state.highbankerQueue` on its own (`updateHighbanker()`), 1 to 7 scoops a second.
 - **Graphics** (everything is built in code: no image files and no downloaded models):
   - **World:** an outdoor dig site with a sky (gradient, drifting clouds and a sun, in a shader), soft sunlight with shadows, haze in the distance, dusty ground in the middle that turns to grass at the edges, gentle hills far away, rocks, grass tufts, pine and leafy trees in the distance, a rail fence around the edge (with a gap where the pile spills over it), a tent, crates and barrels.
   - **Textures** are painted on hidden canvases when the page loads (`TEX`: ground specks and pebbles, loose dirt, wood planks, worn yellow paint, grimy steel, scratched metal, water ripples, foam, awning stripes, sluice mat, wire mesh grid, particle pictures).
   - **Materials:** `materialFor(color)` gives every colour one shared material, and `SURFACES` says which colours get a special surface (worn paint, wood grain, shiny metal, chrome, gold...). `box()` and `cylinder()` take a colour or a ready-made material.
-  - **Dirt pile:** a lumpy heap (`makeHeapGeometry()`, bumpiness `PILE_LUMPS`) with clods and stones on it. It still shrinks with the tonnage. Small heaps of the same kind show the dirt waiting in the sluice and highbanker and the dirt in the excavator bucket.
+  - **Dirt pile:** a lumpy heap (`makeHeapGeometry()`, bumpiness `PILE_LUMPS`) with clods and stones on it. It still shrinks with the tonnage. Small heaps of the same kind show the dirt waiting in the sluice and the dirt in the excavator bucket.
   - **Sluice** (`buildSluice()`), every level of every category changes it:
     - Length: 4 m to 10 m (+0.5 m a level, growing downhill from the fixed high end), 6 to 26 riffles and more legs. It's wood at 0-3, braced wood at 4-7, steel with rails at 8-11, and a blue power box with a hopper grate and safety stripes at 12.
     - Extra Water: wider, two channels from 6, deeper and faster water.
@@ -59,7 +58,7 @@ Core loop:
     - flying dirt and dust when digging, scooping and dumping (`dirtBurst()`, `dirtFalls()`)
     - twinkling gold sparkles for flakes (`sparkle()`)
     - for nuggets, `nuggetShine()`: a gold nugget pops up spinning, with rays of light, a sparkle burst, a flash of golden light and a golden glow around the screen
-    - splashes into the flume, the pond and at the highbanker, spray from the spray bars, generator smoke (`generatorSmoke()`), and overflow splashes when the pond is full
+    - splashes into the flume and the pond, spray from the spray bars, generator smoke (`generatorSmoke()`), and overflow splashes when the pond is full
   - **Screen display:** gold-rush style: dark wood panels with brass edges, the Rye (western) and Bitter fonts from Google Fonts, a gold coin wallet that counts up with a "+$" popup, keyboard keys drawn as keycaps, a tabbed shop with parchment cards, tool icons, level pips and gold price tags.
   - **Graphics quality:** press **G** to switch between High and Low (`QUALITY`, `setQuality()`). Low draws fewer pixels on high-resolution screens, turns off shadows, and shows a third of the grass and half the particles. The frame rate is shown in the bottom right corner (`countFps()`); if it stays under 30 on High, the game suggests pressing G.
 - **Shop:** press **B** anywhere (or E at the shop table).
@@ -68,20 +67,20 @@ Core loop:
   - Each row shows "Lv N / 12" with 12 pips, Now / Next, the price, and a red "Needs ..." line when it's locked.
   - Rows you can't buy are greyed out; clicking them plays the buzzer or the "locked" sound and says why.
   - A summary line at the top of each tab: tool unlock order, sluice speed / catch % / pond, pond fill and gold, excavator stats.
-- **Tool bar** along the bottom (`TOOLBAR`): Shovel, Bucket, Pickaxe, Classifier, Highbanker, **Sluice**, **Pond**, Excavator (only the ones you own).
+- **Tool bar** along the bottom (`TOOLBAR`): Shovel, Bucket, Pickaxe, Classifier, **Sluice**, **Pond**, Excavator (only the ones you own).
   - The Sluice and Pond icons show all their upgrades at once, with badges like "Lv 34/96".
   - Icons are drawn with the 2D canvas in code (`ICONS`) for levels 0 to 12: the metal goes from grey to chrome (`metal(level)`), details appear every few levels, and there's a gold trim plus a glowing gold border when maxed.
   - The shop has its own icon for every sluice and pond category too.
-- **HUD** (top left): wallet, tons left in the pile (with a bar), carrying, shovel, sluice queue and speed, highbanker queue, pond fill (with a bar), gold waiting on the filters, a "Pond FULL" warning, and the excavator.
-- **Dirt amounts:** the game counts dirt in scoops, and **1 scoop = 0.1 ton** (`SETTINGS.tonsPerScoop`). The pile and the excavator bucket are shown in tons; the shovel, bucket/wheelbarrow and the sluice and highbanker queues in scoops. The pond is in tons. `tons(scoops)` turns scoops into a number for the screen (with commas).
+- **HUD** (top left): wallet, tons left in the pile (with a bar), carrying, shovel, sluice queue and speed, pond fill (with a bar), gold waiting on the filters, a "Pond FULL" warning, and the excavator.
+- **Dirt amounts:** the game counts dirt in scoops, and **1 scoop = 0.1 ton** (`SETTINGS.tonsPerScoop`). The pile and the excavator bucket are shown in tons; the shovel, bucket/wheelbarrow and the sluice queue in scoops. The pond is in tons. `tons(scoops)` turns scoops into a number for the screen (with commas).
 - **The giant dirt pile:** all the dirt in the game.
-  - Its total is **`SETTINGS.pileTons` = 22,000 t** (change it there).
+  - Its total is **`SETTINGS.pileTons` = 19,000 t** (change it there).
   - It starts as a cone 14 m tall and 26 m across.
   - It shrinks as it empties (`pileSize()`: size goes with the square root of what's left), towards its "dig face" (`PILE_FACE`) next to the excavator, so the excavator can reach it at every size.
   - A bare dirt patch the size of the full pile shows how much has been dug away. Dumping the excavator bucket back over the pile puts the dirt back.
-  - How 22,000 t was chosen: a simulated player (buying the cheapest thing available and saving up for each new tool) needs about **13,000 t** of washed dirt to buy everything ($248,420, at about $19 a ton including pond gold). That's about 2¼ hours: the pickaxe at about 2 min, the classifier at about 12, the highbanker at about 37, the excavator at about 100.
-  - Fully upgraded, the sluice (40/s) and highbanker (7/s) wash about 4.7 t/s, so 30 more minutes is about 8,500 t. 13,000 + 8,500 ≈ 21,500, rounded to 22,000 (a player who doesn't keep the sluice full gets closer to an hour).
-- **End of the game:** once the pile is empty, the HUD says to wash the last of your dirt. When there's no dirt left anywhere (pile, carried, sluice and highbanker queues and excavator bucket: `checkForEnd()`), the end screen shows total gold found (`state.goldFound`, which spending doesn't lower), the number of big nuggets (`state.nuggets`) and time played (`state.timePlayed`, which doesn't count time on the pause screen). **Play again** starts a fresh game (`resetGame()`); **Keep walking around** closes it and lets you carry on (it won't show again).
+  - How 19,000 t was chosen: a simulated player (buying the cheapest thing available and saving up for each new tool) needs about **11,400 t** of washed dirt to buy everything ($220,120, at about $19 a ton including pond gold). That's about 2¼ hours: the pickaxe at about 2 min, the classifier at about 13, the excavator at about 105.
+  - Fully upgraded, the sluice washes 40 scoops a second (4 t/s), so 30 more minutes is about 7,200 t. 11,400 + 7,200 ≈ 18,600, rounded to 19,000 (a player who doesn't keep the sluice full gets closer to an hour).
+- **End of the game:** once the pile is empty, the HUD says to wash the last of your dirt. When there's no dirt left anywhere (pile, carried, sluice queue and excavator bucket: `checkForEnd()`), the end screen shows total gold found (`state.goldFound`, which spending doesn't lower), the number of big nuggets (`state.nuggets`) and time played (`state.timePlayed`, which doesn't count time on the pause screen). **Play again** starts a fresh game (`resetGame()`); **Keep walking around** closes it and lets you carry on (it won't show again).
 - **Sounds:** every sound is made in code with the Web Audio API (no sound files).
   - Running sounds (`loops`, adjusted by distance in `updateSounds()`):
     - sluice water (fuller with Extra Water / Length, brighter with Pressure)
@@ -89,7 +88,6 @@ Core loop:
     - generators (a chugging engine, louder with more generators, revving while washing)
     - spray hiss (`makeHissSound()`, sharper with pressure)
     - water trickling into the pond
-    - the highbanker's water and little pump
     - the excavator engine and hydraulics
   - One-off sounds (`sfx`): footsteps, digging, dumping, flake "tings", a nugget fanfare, "ka-ching" for buying, a power-up for upgrading, a buzzer for not enough money, a "locked" sound, a tab click, shop open/close chimes, pond gold (splash and coins), rocks rattling down the classifier, a pond-full gurgle, a "thunk" when the pile runs out, bucket scraping, and a drum roll and victory tune on the end screen.
   - **M** (or the speaker button) mutes everything. Sound starts after the first click, because browsers require that.
@@ -97,8 +95,8 @@ Core loop:
   - It isn't there at all until you buy it: `showExcavatorIfOwned()` hides the model and takes it out of `solids`.
   - Walk up and press **E** to climb into the cab. Controls: **A/D** swing the arm, **Q** (or hold left click) curls the bucket in to scoop, **F** (or hold right click) tips it out to dump, mouse looks around, **E** gets out. A controls panel and a hint under the crosshair help.
   - Scooping: swing the bucket above the dirt pile and hold Q. It fills as it curls, for as long as it's above the pile (`bucketOverPile()`, measured at the bucket's hinge).
-  - Dumping: tip the bucket past `DUMP_PITCH`. Over the sluice it goes into the sluice (through the classifier); over the highbanker into its queue; over the pile back on the pile; anywhere else it's spilled (`dumpTarget()`).
-  - The arm stays at `EXCAVATOR_START.boom` and has one fixed length (`BOOM_LENGTH`, `STICK_LENGTH`). Swinging all the way round, the bucket passes the pile (swing about -2.46 to -1.42), the highbanker (-0.9 to -0.15) and the sluice (0.55 to 1.15), at the smallest and largest upgrades. If you move the pile, sluice, highbanker or excavator, check it can still reach all three.
+  - Dumping: tip the bucket past `DUMP_PITCH`. Over the sluice it goes into the sluice (through the classifier); over the pile back on the pile; anywhere else it's spilled (`dumpTarget()`).
+  - The arm stays at `EXCAVATOR_START.boom` and has one fixed length (`BOOM_LENGTH`, `STICK_LENGTH`). Swinging all the way round, the bucket passes the pile (swing about -2.46 to -1.42) and the sluice (0.55 to 1.15), at the smallest and largest upgrades. If you move the pile, sluice or excavator, check it can still reach both.
   - Upgrades change its look (`buildExcavator()`):
     - Bucket Size: 15 to 30 t and 4.5% bigger per level, 4 → 8 teeth, wear strips, side plates, side cutters, a lip plate, chrome teeth, and gold trim at 12.
     - Speed: chrome exhaust, air filter, vents, taller stack, twin stacks, a turbo pipe, a hood scoop, stripes, a beacon, triple stacks, chrome rams (`ramColor`), and gold stripes at 12.
@@ -115,7 +113,6 @@ Level 0 is what you start with (or "not owned"). Prices for levels 1 to 12:
 | Tools | Bucket / Wheelbarrow | scoops per trip 10 → 120 (buckets, wheelbarrows, Mini Dumper) | 60, 75, 94, 120, 150, 190, 230, 290, 370, 460, 570, 720 |
 | Tools | Pickaxe | hold to dig, 2.5 → 7 digs a second | 150, 180, 220, 260, 320, 390, 470, 560, 680, 820, 990, 1,200 |
 | Tools | Classifier Screen (needs Pickaxe) | removes 8% → 42% rocks (sluice x1.09 → x1.72) | 400, 470, 550, 650, 770, 900, 1,100, 1,300, 1,500, 1,700, 2,000, 2,400 |
-| Tools | Highbanker (needs Classifier) | washes 1 → 7 scoops/s, catches 60% → 85% | 1,000, 1,100, 1,300, 1,500, 1,700, 2,000, 2,300, 2,600, 3,000, 3,400, 3,900, 4,500 |
 | Sluice | Mesh | catches 45% → 95% of the fine gold | 30, 43, 61, 87, 120, 180, 250, 360, 520, 740, 1,100, 1,500 |
 | Sluice | Nozzles | breaks up 70% → 100% of the clay; 0 → 14 nozzles | 40, 57, 80, 110, 160, 230, 320, 450, 640, 900, 1,300, 1,800 |
 | Sluice | Extended Length | 4 m → 10 m, washing x1.58 | 40, 57, 80, 110, 160, 230, 320, 450, 640, 900, 1,300, 1,800 |
@@ -126,13 +123,13 @@ Level 0 is what you start with (or "not owned"). Prices for levels 1 to 12:
 | Sluice | Generators | 0 → 60 kW (1 → 3 generators), washing x1.58 | 80, 110, 150, 210, 290, 400, 550, 750, 1,000, 1,400, 2,000, 2,700 |
 | Pond | Pond Size | holds 40 → 2,000 t, settles 3 → 100 t a minute | 60, 83, 110, 160, 220, 300, 420, 580, 800, 1,100, 1,500, 2,100 |
 | Pond | Filters | gets back 10% → 85% of the gold the sluice misses | 50, 69, 96, 130, 180, 250, 350, 490, 680, 940, 1,300, 1,800 |
-| Excavator | Small Excavator (needs Highbanker) | one purchase | 12,000 |
+| Excavator | Small Excavator (needs Classifier) | one purchase | 12,000 |
 | Excavator | Bucket Size | 15 t → 30 t per scoop | 2,000, 2,200, 2,500, 2,800, 3,200, 3,600, 4,000, 4,500, 5,100, 5,700, 6,400, 7,200 |
 | Excavator | Speed | 100% → 220% arm speed | 2,500, 2,800, 3,100, 3,500, 3,900, 4,300, 4,800, 5,400, 6,000, 6,700, 7,500, 8,400 |
 
-Totals: Tools $54,174, Sluice $60,378, Pond $13,768, Excavator $120,100, everything **$248,420**. If you change prices or gold values, redo the sum for `SETTINGS.pileTons` (the working is in the comment next to it).
+Totals: Tools $25,874, Sluice $60,378, Pond $13,768, Excavator $120,100, everything **$220,120**. If you change prices or gold values, redo the sum for `SETTINGS.pileTons` (the working is in the comment next to it).
 
-Removed features: the Gold Pan and pan tub (version 3), the Metal Detector with its buried nuggets (version 4), in version 5 the dump truck, driving the excavator, the Excavator Arm upgrade and the old Excavator Engine upgrade (now Excavator Speed), in version 6 buying new loads of dirt and the Dirt Loads upgrade, and in version 8 the one-piece Sluice Box upgrade (now the Sluice tab) and the sluice's puddle (the water now runs down a flume into the pond). The excavator used to dig by itself (version 3).
+Removed features: the Gold Pan and pan tub (version 3), the Metal Detector with its buried nuggets (version 4), in version 5 the dump truck, driving the excavator, the Excavator Arm upgrade and the old Excavator Engine upgrade (now Excavator Speed), in version 6 buying new loads of dirt and the Dirt Loads upgrade, and in version 8 the one-piece Sluice Box upgrade (now the Sluice tab) and the sluice's puddle (the water now runs down a flume into the pond). A Highbanker (a second washer next to the pile) was added in version 8 and then taken out again. The excavator used to dig by itself (version 3).
 
 Future ideas: saving progress.
 
@@ -147,12 +144,12 @@ Future ideas: saving progress.
   5. sky and lights
   6. positions of the big things (pile, `POND_SPOT`, `PAD`, `HIGHBANKER_SPOT`), then the ground (`groundHeight()`, `grassiness()`, `groundColor()`)
   7. grass, rocks, trees, fence, pile
-  8. sluice, pond, equipment pad, classifier, highbanker (`buildSluiceArea()` builds all five in the right order)
+  8. sluice, pond, equipment pad, classifier (`buildSluiceArea()` builds all four in the right order)
   9. signs, shop, camp props, solids
   10. excavator, sounds, effects
   11. game logic, shop, tool bar, controls, HUD
   12. quality setting, end of game, cheats and the game loop
-- The camp props (tent, crates, barrels) are solid: their boxes are added to `solids`. `crowded()` keeps rocks and grass off the pile, sluice, pad, pond, highbanker, shop and excavator.
+- The camp props (tent, crates, barrels) are solid: their boxes are added to `solids`. `crowded()` keeps rocks and grass off the pile, sluice, pad, pond, shop and excavator.
 - Three.js is loaded through an import map from jsDelivr (version pinned to 0.170.0).
 - The `SETTINGS` object at the top of the script holds the general tuning numbers: gold chances and values, `sluiceBaseSpeed`, `pondFullSpeed`, `digPause`, walking, tons per scoop, **the total dirt in the game (`pileTons`)**, excavator arm speeds.
 - The `TOOLS` object right below it lists every upgrade's levels (one line each: name, price, stats), plus its `tab`, `title`, `about`, `describe(level)` and `needs(n)`. Change prices there.
@@ -161,7 +158,7 @@ Future ideas: saving progress.
   - `SLUICE_BOOST` is the shared ×1.04-per-level speed boost.
 - The `state` object holds everything that changes during play:
   - money, carried dirt, the sluice queue (`washTimer` adds up partly washed scoops)
-  - the highbanker queue, the pond (`pond` tons, `pondGold` dollars), `rocks`, `digTimer`
+  - the pond (`pond` tons, `pondGold` dollars), `rocks`, `digTimer`
   - the pile, the end-screen numbers (`goldFound`, `nuggets`, `timePlayed`, `finished`)
   - tool levels, whether you're in the excavator (`inExcavator`), and the arm's pose and bucket load in `state.exc`
 - **Saving (for later):** load tool levels with `applyToolLevels(saved)`. It only reads the ids in `TOOL_ORDER`, so old `pan`, `detector`, `engine`, `arm`, `dirtLoad` and `sluice` (the old one-piece sluice) entries are ignored, and it keeps each level in range. It also rebuilds the sluice area, the excavator and the tool bar. `resetGame()` uses it with `{}`. A save should also store `state.pile`, `pond`, `pondGold`, `rocks`, `goldFound`, `nuggets` and `timePlayed` (then call `updatePile()`).
@@ -171,14 +168,14 @@ Future ideas: saving progress.
   - `missingNeed(id)` returns the "Needs ..." text, or ''.
   - `sluiceSpeed()`, `sluiceRecovery()` and `pondFull()` give the sluice's numbers.
 - **Sluice area:**
-  - `buildSluice()` (reads the levels itself), `buildPond()` + `buildFlume()`, `buildSluiceGear()` (its machines' boxes are `gearSolids`, swapped in and out of `solids`), `buildClassifier()` and `buildHighbanker()`.
-  - `upgradeSluiceModel()` rebuilds them all and refreshes `sluiceBounds` and `updateSolids()` (the highbanker's box and the rock pile's circle join `solids` once they exist).
+  - `buildSluice()` (reads the levels itself), `buildPond()` + `buildFlume()`, `buildSluiceGear()` (its machines' boxes are `gearSolids`, swapped in and out of `solids`), and `buildClassifier()`.
+  - `upgradeSluiceModel()` rebuilds them all and refreshes `sluiceBounds` and `updateSolids()` (the rock pile's circle joins `solids` once it exists).
   - `sluiceBounds` is just the trough (the excavator's "over the sluice" check uses it); `sluiceInlets` are where hoses plug in.
-- **Washing:** `updateSluice(dt)` (speed, pond fill, pond slowdown, rock pile size), `updateHighbanker(dt)`, `updatePond(dt)` (settling, water colour, silt, twinkles). `addToSluice(scoops)` is how all dirt enters the sluice (the classifier's rocks come off there). `findGold(where, catches, toPond)` finds gold in one scoop, and `earn()` pays it.
+- **Washing:** `updateSluice(dt)` (speed, pond fill, pond slowdown, rock pile size), `updatePond(dt)` (settling, water colour, silt, twinkles). `addToSluice(scoops)` is how all dirt enters the sluice (the classifier's rocks come off there). `findGold(where, catches, toPond)` finds gold in one scoop, and `earn()` pays it.
 - **Dirt pile:** `pileSize()` works out its radius and height, `updatePile()` resizes and moves the cone and its footprint (`pileCircle`), `takeFromPile(scoops)` removes dirt (and announces when it's empty), `addToPile(scoops)` puts some back. `PILE_RADIUS`/`PILE_HEIGHT` are its full size, `PILE_FACE`/`PILE_DIRECTION` where it sits relative to the excavator.
 - **End of the game:** `checkForEnd()` runs every frame, `showEndScreen()` and `closeEndScreen()` show and hide it, `resetGame()` starts over, `formatTime()` writes the time played.
 - **Solids:** `solids` is the list of things you can't walk through (created at the start of the sluice section, filled in under "Solid things"). Each one is a `Box3`, a turnable "rect" (`excavatorRect`) or a "circle" (`pileCircle`, `pondCircle`, `rockCircle`); `nearestPoint()` and `distanceFromPoint()` work with all three.
-- **Interacting:** `interactables` lists what E works on (pile, sluice, highbanker, pond, shop, excavator); `nearbyThing()` picks the **closest** one in reach. `keepDigging()` handles holding E with a pickaxe.
+- **Interacting:** `interactables` lists what E works on (pile, sluice, pond, shop, excavator); `nearbyThing()` picks the **closest** one in reach. `keepDigging()` handles holding E with a pickaxe.
 - **Excavator:** `buildExcavator()` rebuilds the model from the current upgrades (the moving parts end up in `ex`), `poseExcavator()` moves the arm and bucket to match `state.exc` (including the hydraulic rams), and `operateExcavator(dt)` handles the controls, scooping and dumping. The excavator's own "forward" is +x. `enterExcavator()` and `exitExcavator()` get you in and out; `excavatorHint()` is the hint under the crosshair.
 - **Sounds:** `startAudio()` creates the sound system on the first click. `tone()` and `noise()` make one-off sounds, `sfx` has one function per game sound, and `loops` holds the sounds that keep running, which `updateSounds()` adjusts 10 times a second. `toggleMute()` switches everything on or off.
 - **Shop:** `makeShopRow()` makes one row per upgrade, `showShopTab(id)` / `switchShopTab(step)` switch tabs, `shopSummaryText()` is the line at the top, `updateShop()` refreshes the open tab.

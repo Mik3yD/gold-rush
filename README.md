@@ -25,7 +25,7 @@ Using the excavator (these controls are also shown on screen while you sit in it
 |---|---|
 | A / D | Swing the arm left / right |
 | Q or hold left click | Curl the bucket in to scoop (with the bucket above the dirt pile) |
-| F or hold right click | Tip the bucket out to dump (over the sluice or the highbanker) |
+| F or hold right click | Tip the bucket out to dump (over the sluice) |
 | Mouse | Look around |
 | E | Get out |
 
@@ -34,14 +34,14 @@ The tools you own are shown along the bottom of the screen, each with its level.
 The loop: walk to the **DIRT** pile and dig until your bucket is full. Carry it to the **SLUICE** and dump it in. The sluice washes the dirt and pays you for any gold it finds. The gold it misses flows into the **tailing pond** with the muddy water: walk up to the pond and press E to collect what the filters caught. If the pond fills up, the sluice slows down until you make the pond bigger.
 
 Press **B** to open the shop. It has four tabs:
-- **Tools:** shovel, bucket/wheelbarrow, and three new tools that unlock in order: the pickaxe (hold to dig), the classifier screen (screens out rocks) and the highbanker (a second washer next to the pile).
+- **Tools:** shovel, bucket/wheelbarrow, and two new tools that unlock in order: the pickaxe (hold to dig) and the classifier screen (screens out rocks).
 - **Sluice:** mesh, nozzles, length, extra water, pressure, pumps, hoses and generators. Some need others first (for example, more pumps need a bigger generator).
 - **Tailing Pond:** pond size and filters.
-- **Excavator:** the last and most expensive tool, plus its bucket size and speed. It parks between the pile and the sluice: climb in, scoop from the pile and swing over to dump into the sluice or the highbanker.
+- **Excavator:** the last and most expensive tool, plus its bucket size and speed. It parks between the pile and the sluice: climb in, scoop from the pile and swing over to dump into the sluice.
 
 Every upgrade has 12 levels.
 
-There is one giant pile of dirt (22,000 tons) for the whole game. The tons left are always shown in the top left, and the pile shrinks as you dig. When every last ton has been dug up and washed, the game ends and shows how much gold you found, how many big nuggets, and how long you played.
+There is one giant pile of dirt (19,000 tons) for the whole game. The tons left are always shown in the top left, and the pile shrinks as you dig. When every last ton has been dug up and washed, the game ends and shows how much gold you found, how many big nuggets, and how long you played.
 
 ## If double-clicking doesn't work
 

@@ -174,7 +174,7 @@
     <table>
       <tr><td><kbd>A</kbd> <kbd>D</kbd></td><td>swing the arm left / right</td></tr>
       <tr><td><kbd>Q</kbd> or left click</td><td>curl the bucket in: scoop (hold, above the dirt pile)</td></tr>
-      <tr><td><kbd>F</kbd> or right click</td><td>tip the bucket out: dump (hold, over the sluice or highbanker)</td></tr>
+      <tr><td><kbd>F</kbd> or right click</td><td>tip the bucket out: dump (hold, over the sluice)</td></tr>
       <tr><td>Mouse</td><td>look around</td></tr>
       <tr><td><kbd>E</kbd></td><td>get out</td></tr>
     </table>
@@ -195,7 +195,7 @@
       </div>
       <p>Dig dirt at the giant pile, carry it to the sluice box, and wash it to find gold.</p>
       <p>Gold the sluice misses ends up in the tailing pond: press <kbd>E</kbd> there to collect it.</p>
-      <p>Unlock the pickaxe, classifier and highbanker, then save up for the excavator.</p>
+      <p>Unlock the pickaxe and the classifier, then save up for the excavator.</p>
       <p>The game ends when the whole pile has been dug up and washed.</p>
     </div>
   </div>
@@ -253,15 +253,15 @@
       digPause: 0.5,           // seconds between digs without a pickaxe (so at most 2 digs a second)
 
       // ===== TOTAL DIRT IN THE GAME: the one giant pile, in tons. The game ends when it's all dug and washed. =====
-      // How 22,000 was worked out (with a simulated player who buys the cheapest thing and saves up for new tools):
-      //   Every tool and upgrade costs $248,420 in total. Gold per ton averages about $19 over the game
+      // How 19,000 was worked out (with a simulated player who buys the cheapest thing and saves up for new tools):
+      //   Every tool and upgrade costs $220,120 in total. Gold per ton averages about $19 over the game
       //   (the sluice misses a lot of flakes early on; the pond gets some of them back), so buying
-      //   everything takes about 13,000 t of washed dirt (about 2 1/4 hours of play).
-      //   Fully upgraded, the sluice washes 40 scoops a second and the highbanker 7, about 4.7 t/s,
-      //   so 30 more minutes of play is about 8,500 t (a player who doesn't keep the sluice busy takes up to an hour).
-      //   13,000 + 8,500 = about 21,500, rounded to 22,000.
+      //   everything takes about 11,400 t of washed dirt (about 2 1/4 hours of play).
+      //   Fully upgraded, the sluice washes 40 scoops a second = 4 t/s,
+      //   so 30 more minutes of play is about 7,200 t (a player who doesn't keep the sluice busy takes up to an hour).
+      //   11,400 + 7,200 = about 18,600, rounded to 19,000.
       // If you change prices or gold values, redo this sum.
-      pileTons: 22000,
+      pileTons: 19000,
 
       // Excavator arm speeds with stock hydraulics (Speed upgrades multiply these), in radians per second
       armSwingSpeed: 0.9,
@@ -309,7 +309,7 @@
       carrier: {
         tab: 'tools',
         title: 'Bucket / Wheelbarrow',
-        about: 'Carries dirt to the sluice or the highbanker.',
+        about: 'Carries dirt to the sluice.',
         startsOwned: true,
         levels: [
           { name: 'Small Bucket', capacity: 10 },
@@ -370,28 +370,6 @@
           { name: 'Big Trommel', price: 2400, rocks: 0.42 },
         ],
         describe: (level) => level.rocks ? `removes ${percent(level.rocks)} rocks: sluice washes x${(1 / (1 - level.rocks)).toFixed(2)}` : '',
-      },
-      highbanker: {
-        tab: 'tools',
-        title: 'Highbanker',
-        about: 'A second, smaller washer right next to the DIRT pile. Dump into it by hand or with the excavator.',
-        needs: () => ({ classifier: 1 }),
-        levels: [
-          { name: 'No highbanker', speed: 0, catches: 0 },
-          { name: 'Small Highbanker', price: 1000, speed: 1.0, catches: 0.60 },
-          { name: 'Hopper Highbanker', price: 1100, speed: 1.5, catches: 0.62 },
-          { name: 'Twin-Tray Highbanker', price: 1300, speed: 2.0, catches: 0.64 },
-          { name: 'Steel Highbanker', price: 1500, speed: 2.5, catches: 0.67 },
-          { name: 'Pumped Highbanker', price: 1700, speed: 3.0, catches: 0.69 },
-          { name: 'Long-Tray Highbanker', price: 2000, speed: 3.5, catches: 0.71 },
-          { name: 'Big-Hopper Highbanker', price: 2300, speed: 4.0, catches: 0.73 },
-          { name: 'Spray-Bar Highbanker', price: 2600, speed: 4.5, catches: 0.76 },
-          { name: 'Double-Deck Highbanker', price: 3000, speed: 5.0, catches: 0.78 },
-          { name: 'Pro Highbanker', price: 3400, speed: 5.5, catches: 0.80 },
-          { name: 'Power Highbanker', price: 3900, speed: 6.0, catches: 0.82 },
-          { name: 'Gold-Series Highbanker', price: 4500, speed: 7.0, catches: 0.85 },
-        ],
-        describe: (level) => level.speed ? `washes ${level.speed} scoops a second, catches ${percent(level.catches)} of the flakes` : '',
       },
 
       // ===== Tab 2: Sluice. Some upgrades need others first. =====
@@ -607,12 +585,12 @@
         tab: 'excavator',
         title: 'Small Excavator',
         about: 'A digger parked between the DIRT pile and the sluice. Walk up to it and press E to climb in.',
-        needs: () => ({ highbanker: 1 }),
+        needs: () => ({ classifier: 1 }),
         levels: [
           { name: 'Not owned yet' },
           { name: 'Small Excavator', price: 12000 },
         ],
-        describe: (level) => level.price ? 'scoops dirt from the pile into the sluice or highbanker' : '',
+        describe: (level) => level.price ? 'scoops dirt from the pile into the sluice' : '',
       },
       digBucket: {
         tab: 'excavator',
@@ -661,7 +639,7 @@
     };
     // The shop tabs, and which upgrades are on each (in order: the number keys 1 to 8 buy them)
     const TABS = [
-      { id: 'tools', title: 'Tools', items: ['shovel', 'carrier', 'pickaxe', 'classifier', 'highbanker'] },
+      { id: 'tools', title: 'Tools', items: ['shovel', 'carrier', 'pickaxe', 'classifier'] },
       { id: 'sluice', title: 'Sluice', items: ['mesh', 'nozzles', 'length', 'water', 'pressure', 'pumps', 'hoses', 'generators'] },
       { id: 'pond', title: 'Tailing Pond', items: ['pondSize', 'filters'] },
       { id: 'excavator', title: 'Excavator', items: ['excavator', 'digBucket', 'speed'] },
@@ -686,8 +664,6 @@
       carrying: 0,        // scoops of dirt in your bucket or wheelbarrow
       sluiceQueue: 0,     // scoops waiting to be washed in the sluice
       washTimer: 0,       // (the sluice washes a bit at a time; this adds up the part of a scoop still to wash)
-      highbankerQueue: 0, // scoops waiting in the highbanker
-      highbankerTimer: 0,
       pond: 0,            // tons of mud in the tailing pond
       pondGold: 0,        // dollars of gold waiting on the pond's filters (press E at the pond to collect it)
       rocks: 0,           // scoops of rocks the classifier has screened out (only for the size of the rock pile)
@@ -720,7 +696,7 @@
       const needs = tool.needs(state.levels[id] + 1);
       for (const [other, level] of Object.entries(needs)) {
         if (state.levels[other] >= level) continue;
-        // A tool you don't own at all: "Buy the Highbanker first". An upgrade: "Needs Generators Lv 4".
+        // A tool you don't own at all: "Buy the Classifier Screen first". An upgrade: "Needs Generators Lv 4".
         const buyFirst = level === 1 && TOOLS[other].tab !== 'sluice' && TOOLS[other].tab !== 'pond';
         return buyFirst ? `Buy the ${TOOLS[other].title} first` : `Needs ${TOOLS[other].title} Lv ${level}`;
       }
@@ -1102,7 +1078,7 @@
       softSpot(ctx, 0, 0, c * 0.45, grey(255, 1), grey(255, 0));
     });
     // A shape for a see-through patch (white = solid, black = see-through):
-    // wet ground where water runs out of the sluice and the highbanker (soft, ragged edge)
+    // wet ground where water runs out of the sluice (soft, ragged edge)
     TEX.wet = canvasTexture(128, (ctx, size) => {
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, size, size);
@@ -1316,7 +1292,6 @@
     // The sluice's high end (where dirt goes in) is always at x = 2.2; it grows downhill (+x) up to 10 m long.
     const POND_SPOT = { x: 18.2, z: -7 };        // middle of the tailing pond, past the sluice's low end (radius 2.5 to 5.5 m)
     const PAD = { x1: 4, x2: 13, z1: -5.6, z2: -2.9 }; // the gravel equipment pad for pumps, generators and tanks
-    const HIGHBANKER_SPOT = { x: -2.5, z: -7.4 }; // next to the pile, on the excavator's swing circle
 
     // ---------- The ground: dusty dirt in the middle, grass around it, hills further out ----------
     // How high the ground is at (x, z). The dig site only has tiny bumps (so walking stays flat); hills rise far away.
@@ -1378,7 +1353,6 @@
       if (x > 0.5 - margin && x < 13 + margin && z > -9.8 - margin && z < -4 + margin) return true; // the sluice
       if (x > PAD.x1 - margin && x < PAD.x2 + margin && z > PAD.z1 - margin && z < PAD.z2 + margin) return true; // equipment pad
       if (Math.hypot(x - POND_SPOT.x, z - POND_SPOT.z) < 6.8 + margin) return true;               // the tailing pond
-      if (Math.hypot(x - HIGHBANKER_SPOT.x, z - (HIGHBANKER_SPOT.z + 1.2)) < 2.6 + margin) return true; // the highbanker
       if (Math.abs(x) < 4.5 + margin && z > 5 - margin && z < 10 + margin) return true;          // the shop
       return Math.hypot(x - 0, z + 10) < 3.5 + margin;                                          // the excavator
     }
@@ -1599,7 +1573,7 @@
       pileClods.castShadow = true;
       dirtPile.add(pileClods);
     }
-    makeSign('DIRT', -5.6, -4.4);
+    makeSign('DIRT', -4, -6);
 
     // How big the pile is right now, in meters. It shrinks as it empties, so a nearly empty pile is small.
     function pileSize() {
@@ -2291,85 +2265,6 @@
       addShadows(classifier);
     }
 
-    // ---------- Highbanker: a second, smaller washer next to the pile ----------
-    // Its hopper sits on the excavator's swing circle (so the excavator can dump into it); the tray runs down towards the camp.
-    const highbanker = new THREE.Group();
-    highbanker.position.set(HIGHBANKER_SPOT.x, 0, HIGHBANKER_SPOT.z);
-    scene.add(highbanker);
-    const highbankerDirt = new THREE.Mesh(smallHeap, heapMaterial);
-    const highbankerBounds = new THREE.Box3(); // updated when it's built (empty until you own one)
-    const highbankerSpot = { x: HIGHBANKER_SPOT.x, y: 1.2, z: HIGHBANKER_SPOT.z + 0.8, spread: 0.8 }; // sparkles
-    const highbankerEnd = new THREE.Vector3();
-    const highbankerWet = wetGround.clone();
-    scene.add(highbankerWet);
-    let highbankerSprays = 0;
-
-    function buildHighbanker() {
-      const h = state.levels.highbanker;
-      highbanker.clear();
-      highbanker.visible = highbankerWet.visible = h > 0;
-      if (!h) {
-        highbankerBounds.makeEmpty();
-        return;
-      }
-      const len = 1.3 + 0.08 * h, w = 0.55 + 0.02 * h;
-      const body = h >= 10 ? SLUICE_BLUE : h >= 4 ? EXC_STEEL : WOOD;
-      const legs = h >= 4 ? EXC_GREY : WOOD_DARK;
-      const trim = h >= 12 ? GOLD_METAL : body;
-      // The tray: slopes down towards +z, with riffles, a mat and water
-      const trays = h >= 3 ? 2 : 1; // twin tray from level 3
-      for (let t = 0; t < trays; t++) {
-        const tray = new THREE.Group();
-        tray.position.set(trays === 2 ? (t - 0.5) * (w + 0.06) : 0, 0.95 - t * (h >= 9 ? 0.25 : 0), 0.35);
-        tray.rotation.x = 0.18;
-        const tw = trays === 2 ? w * 0.95 : w;
-        const tl = h >= 6 ? len + 0.3 : len; // longer tray from level 6
-        tray.add(box(tw, 0.04, tl, body, 0, 0, tl / 2));
-        for (const x of [-tw / 2, tw / 2]) tray.add(box(0.03, 0.2, tl, trim, x, 0.1, tl / 2));
-        tray.add(box(tw - 0.06, 0.01, tl - 0.1, matMaterials[Math.min(12, h)], 0, 0.025, tl / 2));
-        for (let i = 0; i < 4 + h; i++) tray.add(box(tw - 0.06, 0.05, 0.02, h >= 4 ? CHROME : WOOD_DARK, 0, 0.05, 0.15 + i * (tl - 0.25) / (3 + h)));
-        const water = new THREE.Mesh(scaleUVs(new THREE.PlaneGeometry(tw - 0.06, tl), 1, tl / 1.5), waterMaterial);
-        water.rotation.x = -Math.PI / 2;
-        water.position.set(0, 0.07, tl / 2);
-        tray.add(water);
-        highbanker.add(tray);
-        if (t === 0) {
-          tray.updateMatrix();
-          highbankerEnd.set(0, 0, tl).applyMatrix4(tray.matrix).add(highbanker.position);
-        }
-      }
-      // The hopper on top, with a grate (bigger from level 2, and again from level 7)
-      const hs = 0.6 + (h >= 2 ? 0.12 : 0) + (h >= 7 ? 0.2 : 0);
-      for (const x of [-hs / 2, hs / 2]) highbanker.add(box(0.04, 0.35, hs, body, x, 1.25, 0));
-      for (const z of [-hs / 2, hs / 2]) highbanker.add(box(hs, 0.35, 0.04, body, 0, 1.25, z));
-      for (let i = 0; i < 5; i++) highbanker.add(box(0.025, 0.025, hs, EXC_DARK, -hs / 2 + 0.1 + i * (hs - 0.2) / 4, 1.42, 0));
-      if (h >= 12) for (const z of [-hs / 2, hs / 2]) highbanker.add(box(hs + 0.04, 0.05, 0.05, GOLD_METAL, 0, 1.44, z));
-      // Legs
-      for (const x of [-hs / 2, hs / 2]) for (const z of [-hs / 2, hs / 2]) highbanker.add(box(0.06, 1.1, 0.06, legs, x, 0.55, z));
-      for (const x of [-w / 2, w / 2]) highbanker.add(box(0.05, 0.75, 0.05, legs, x, 0.37, 0.35 + len));
-      // Its own little pump and hose (bigger from level 5 and again at 11), and a spray bar from level 8
-      const ps = 0.55 + (h >= 5 ? 0.15 : 0) + (h >= 11 ? 0.15 : 0);
-      const pump = makePump(h >= 10 ? SLUICE_BLUE : EXC_YELLOW, ps);
-      flywheels.pop(); // (its flywheel doesn't need to spin with the big sluice)
-      pump.position.set(hs / 2 + 0.6, 0, 0.3);
-      pump.rotation.y = Math.PI / 2;
-      highbanker.add(pump);
-      highbanker.add(hose([new THREE.Vector3(hs / 2 + 0.6, 0.8 * ps, 0.3), new THREE.Vector3(hs / 2 + 0.4, 1.6, 0.1), new THREE.Vector3(0, 1.62, -hs / 2 + 0.05)], 0.03, RUBBER));
-      highbankerSprays = h >= 8 ? 5 : 0;
-      if (h >= 8) {
-        const bar = cylinder(0.03, hs, 0x3355aa, 0, 1.6, -hs / 2 + 0.08);
-        bar.rotation.z = Math.PI / 2;
-        highbanker.add(bar);
-      }
-      highbankerDirt.position.set(0, 1.08, 0);
-      highbanker.add(highbankerDirt);
-      addShadows(highbanker);
-      highbanker.updateMatrixWorld(true);
-      highbankerBounds.setFromObject(highbanker);
-      highbankerWet.position.set(highbankerEnd.x, 0.044, highbankerEnd.z + 0.4);
-      highbankerWet.scale.set(1.1, 1.3, 1);
-    }
-
     // Build everything around the sluice from the current levels (the order matters: the hoses and flume
     // need to know where the sluice and the pond are)
     function buildSluiceArea() {
@@ -2377,7 +2272,6 @@
       buildPond();
       buildSluiceGear();
       buildClassifier();
-      buildHighbanker();
     }
     buildSluiceArea();
 
@@ -2529,9 +2423,9 @@
     const excavatorRect = { ...EXCAVATOR_SPOT, halfLength: 1.6, halfWidth: 1.3 }; // its tracks (only solid once you own it)
     solids.push(pileCircle, sluiceBounds, shopBounds, pondCircle, ...props.map(boundsOf)); // (the equipment pad's machines are already in)
 
-    // The highbanker and the rock pile are only solid once they're there
+    // The classifier's rock pile is only solid once it's there
     function updateSolids() {
-      const want = [[highbankerBounds, ownsTool('highbanker')], [rockCircle, state.levels.classifier > 0 && rockCircle.radius > 0]];
+      const want = [[rockCircle, state.levels.classifier > 0 && rockCircle.radius > 0]];
       for (const [solid, on] of want) {
         const index = solids.indexOf(solid);
         if (on && index === -1) solids.push(solid);
@@ -2864,7 +2758,7 @@
     let audio = null;        // the browser's sound maker. Browsers only allow it after a click, so it starts in lockPointer()
     let master = null;       // every sound goes through this volume knob, so muting is one switch
     let noiseBuffer = null;  // one second of random hiss: the raw material for dirt, footsteps and water
-    const loops = {};        // sounds that keep running: water, the excavator, pumps, generators, spray, the pond, the highbanker
+    const loops = {};        // sounds that keep running: water, the excavator, pumps, generators, spray, the pond
 
     function startAudio() {
       if (!audio) {
@@ -2882,8 +2776,6 @@
         loops.generators = makeEngineSound(62);    // the generators (a higher, busier engine than the excavator)
         loops.spray = makeHissSound();             // the spray bars
         loops.pond = makeWaterSound();             // water trickling into the pond
-        loops.highbanker = makeWaterSound();       // the highbanker's water
-        loops.highbankerPump = makeEngineSound(90); // ...and its little pump
       }
       audio.resume();
     }
@@ -3170,11 +3062,6 @@
       loops.spray.set(2500 + L.pressure * 250, nearSpray * (washing ? 0.03 + 0.004 * L.pressure + 0.002 * L.nozzles : 0.008));
       // Water trickling into the pond (louder while washing)
       loops.pond.set(600, nearness(pondInlet.x, pondInlet.z, 18) * (washing ? 0.08 : 0.02));
-      // The highbanker: water and a little pump putter, while it's washing
-      const hbWashing = state.highbankerQueue > 0 && L.highbanker > 0;
-      const nearHb = L.highbanker ? nearness(HIGHBANKER_SPOT.x, HIGHBANKER_SPOT.z, 20) : 0;
-      loops.highbanker.set(hbWashing ? 1500 : 1000, nearHb * (hbWashing ? 0.09 : 0.02));
-      loops.highbankerPump.set(hbWashing ? 0.6 : 0.2, nearHb * 0.04);
       if (state.inExcavator) {
         loops.excavator.set(armMoving ? 0.7 : 0.1, 0.12 + 0.02 * state.levels.speed); // revs up while the arm moves
         loops.hydraulics.set(armMoving ? 480 : 380, armMoving ? 0.025 : 0);
@@ -3425,18 +3312,6 @@
       splashTimer -= dt;
       if (splashTimer > 0) return;
       splashTimer = 0.05;
-      // The highbanker splashes onto the ground while it's washing
-      if (state.highbankerQueue > 0 && state.levels.highbanker > 0) {
-        dust.add({
-          x: highbankerEnd.x + rand(-0.2, 0.2), y: highbankerEnd.y, z: highbankerEnd.z + 0.05,
-          vx: rand(-0.3, 0.3), vy: rand(0.2, 0.8), vz: rand(0.3, 1), gravity: 6, floor: 0.05,
-          size: rand(0.06, 0.12), life: 0.5, fade: 0.3, alpha: 0.55, color: 0xd8c8b0,
-        });
-        for (let i = 0; i < highbankerSprays / 2; i++) {
-          const p = highbanker.localToWorld(new THREE.Vector3(rand(-0.3, 0.3), 1.55, -0.2));
-          dust.add({ x: p.x, y: p.y, z: p.z, vx: rand(-0.2, 0.2), vy: -1.5, gravity: 9.8, floor: 1.1, size: 0.05, life: 0.3, fade: 0.2, alpha: 0.7, color: 0xdff2ff });
-        }
-      }
       if (waterFlow < 0.3) return;
       dust.add({ // splashes where the water falls into the flume
         x: sluiceEnd.x + rand(0, 0.3), y: 0.4, z: sluiceEnd.z + rand(-0.4, 0.4),
@@ -3515,9 +3390,7 @@
         bounds: pileCircle,
         prompt: () => {
           if (state.pile <= 0) return 'The pile is all dug up!';
-          if (state.carrying >= toolNow('carrier').capacity) {
-            return `${toolNow('carrier').name} is full - take it to the sluice${ownsTool('highbanker') ? ' or the highbanker' : ''}`;
-          }
+          if (state.carrying >= toolNow('carrier').capacity) return `${toolNow('carrier').name} is full - take it to the sluice`;
           return ownsTool('pickaxe') ? 'Hold E to dig' : 'Press E to dig';
         },
         use: () => { if (state.pile > 0) dig(); },
@@ -3527,12 +3400,6 @@
         bounds: sluiceBounds,
         prompt: () => state.carrying > 0 ? `Press E to dump ${state.carrying} scoops into the sluice` : 'Bring dirt here to wash it',
         use: dumpIntoSluice,
-      },
-      {
-        bounds: highbankerBounds,
-        onlyIf: () => ownsTool('highbanker'), // it isn't there until you buy it
-        prompt: () => state.carrying > 0 ? `Press E to dump ${state.carrying} scoops into the highbanker` : 'Highbanker: bring dirt here to wash it',
-        use: dumpIntoHighbanker,
       },
       {
         bounds: pondCircle,
@@ -3595,14 +3462,6 @@
       }
     }
 
-    function dumpIntoHighbanker() {
-      if (state.carrying === 0) return;
-      dirtFalls({ x: HIGHBANKER_SPOT.x, y: 1.6, z: HIGHBANKER_SPOT.z }, state.carrying, 1.1);
-      state.highbankerQueue += state.carrying;
-      state.carrying = 0;
-      sfx.dump(1);
-    }
-
     // Walk up to the pond and press E: the gold caught on the filters goes into your wallet
     function collectPondGold() {
       const amount = Math.floor(state.pondGold);
@@ -3637,18 +3496,17 @@
       const where = {
         excavator: 'Bought the excavator! It is parked between the pile and the sluice',
         classifier: 'Bought the classifier! It is next to the sluice',
-        highbanker: 'Bought the highbanker! It is next to the DIRT pile',
         pickaxe: 'Bought a pickaxe! Hold E at the pile to keep digging',
       };
       showMessage(firstOne && where[id] ? where[id] : `Bought the ${next.name}!`);
       if (firstOne) sfx.buy();
       else sfx.upgrade();
-      if (SLUICE_PARTS.includes(id) || POND_PARTS.includes(id) || id === 'classifier' || id === 'highbanker') upgradeSluiceModel();
+      if (SLUICE_PARTS.includes(id) || POND_PARTS.includes(id) || id === 'classifier') upgradeSluiceModel();
       if (id === 'excavator' || EXCAVATOR_PARTS.includes(id)) rebuildExcavator();
       updateToolbar(id);
     }
 
-    // Rebuild the sluice, pond, equipment pad, classifier and highbanker with their new upgrades,
+    // Rebuild the sluice, pond, equipment pad and classifier with their new upgrades,
     // and update where you bump into them
     function upgradeSluiceModel() {
       buildSluiceArea();
@@ -3742,25 +3600,6 @@
       updateSolids();
     }
 
-    // ---------- Highbanker: washes its own dirt, a bit slower than the sluice. Its tailings go on the ground, not the pond. ----------
-    function updateHighbanker(dt) {
-      const level = toolNow('highbanker');
-      if (level.speed > 0 && state.highbankerQueue > 0) {
-        state.highbankerTimer += level.speed * dt;
-        while (state.highbankerTimer >= 1 && state.highbankerQueue > 0) {
-          state.highbankerTimer -= 1;
-          state.highbankerQueue = Math.max(0, state.highbankerQueue - 1);
-          if (state.highbankerQueue < 0.001) state.highbankerQueue = 0;
-          findGold(highbankerSpot, level.catches, false);
-        }
-      } else {
-        state.highbankerTimer = 0;
-      }
-      highbankerDirt.visible = state.highbankerQueue > 0;
-      const heap = 0.5 + 0.5 * Math.min(1, state.highbankerQueue / 60);
-      highbankerDirt.scale.set(0.3 * heap, 0.2 * heap, 0.3 * heap);
-    }
-
     // ---------- Tailing pond: slowly settles, gets muddier as it fills, and its filters twinkle with waiting gold ----------
     let pondWarned = false, pondTwinkle = 0;
     function updatePond(dt) {
@@ -3831,13 +3670,12 @@
       return distanceFromPile(spot) < pileSize().radius + 0.3;
     }
 
-    // Where the bucket would drop its dirt: 'pile', 'sluice', 'highbanker' or 'ground'
+    // Where the bucket would drop its dirt: 'pile', 'sluice' or 'ground'
     // (It measures from the bucket's hinge, which doesn't move while you tip the bucket.)
     function dumpTarget() {
       const spot = ex.bucket.getWorldPosition(new THREE.Vector3());
       if (distanceFromPile(spot) < pileSize().radius + 0.3) return 'pile';
       if (distanceFromPoint(sluiceBounds, spot.x, spot.z) < 0.3) return 'sluice';
-      if (ownsTool('highbanker') && distanceFromPoint(highbankerBounds, spot.x, spot.z) < 0.3) return 'highbanker';
       return 'ground';
     }
 
@@ -3847,18 +3685,15 @@
       exc.load = 0;
       if (scoops <= 0) return;
       const target = dumpTarget();
-      dirtFalls(bucketWorld(ex.belly), scoops, target === 'sluice' || target === 'highbanker' ? 1.15 : 0.04); // lands in it or on the ground
+      dirtFalls(bucketWorld(ex.belly), scoops, target === 'sluice' ? 1.15 : 0.04); // lands in the sluice or on the ground
       sfx.dump(2);
       if (target === 'sluice') {
         addToSluice(Math.round(scoops));
         showMessage(`+${tons(scoops)} t in the sluice`);
-      } else if (target === 'highbanker') {
-        state.highbankerQueue += Math.round(scoops);
-        showMessage(`+${tons(scoops)} t in the highbanker`);
       } else if (target === 'pile') {
         addToPile(scoops); // dumped back onto the pile: nothing lost
       } else {
-        showMessage(ownsTool('highbanker') ? 'Spilled! Dump it over the sluice or the highbanker' : 'Spilled! Dump it over the sluice');
+        showMessage('Spilled! Dump it over the sluice');
       }
     }
 
@@ -3908,7 +3743,6 @@
         return bucketOverPile() ? 'Over the dirt: hold Q to scoop' : 'Swing (A / D) over the DIRT pile, then hold Q to scoop';
       }
       if (dumpTarget() === 'sluice') return 'Over the sluice: hold F to dump';
-      if (dumpTarget() === 'highbanker') return 'Over the highbanker: hold F to dump';
       if (exc.load >= toolNow('digBucket').scoops) return 'Bucket full! Swing (A / D) to the sluice, then hold F';
       if (state.pile <= 0) return 'The pile is empty. Take what you have to the sluice and hold F';
       if (bucketOverPile()) {
@@ -3988,7 +3822,7 @@
       const pondSize = toolNow('pondSize');
       const pondText = `pond <b>${Math.floor(state.pond).toLocaleString('en-US')}</b> / ${pondSize.holds.toLocaleString('en-US')} t`;
       if (shopTab === 'tools') {
-        return 'New tools unlock in order: Pickaxe &rarr; Classifier Screen &rarr; Highbanker &rarr; Excavator (Excavator tab)';
+        return 'New tools unlock in order: Pickaxe &rarr; Classifier Screen &rarr; Excavator (Excavator tab)';
       }
       if (shopTab === 'sluice') {
         return `Washes <b>${sluiceSpeed().toFixed(1)}</b> scoops a second${pondFull() ? ' (<b>pond full: 30% speed</b>)' : ''}`
@@ -3998,7 +3832,7 @@
         return `${pondText[0].toUpperCase()}${pondText.slice(1)} (${pondFull() ? '<b>FULL: the sluice is at 30%</b>' : `settles ${pondSize.settles} t a minute`})`
           + ` &middot; <b>$${Math.floor(state.pondGold).toLocaleString('en-US')}</b> of gold on the filters`;
       }
-      if (!ownsTool('excavator')) return 'The last and biggest tool. Buy the Highbanker first.';
+      if (!ownsTool('excavator')) return 'The last and biggest tool. Buy the Classifier Screen first.';
       return `Bucket <b>${tons(toolNow('digBucket').scoops)} t</b> &middot; arm speed <b>${percent(toolNow('speed').speed)}</b>`;
     }
 
@@ -4223,18 +4057,6 @@
         }
         for (const x of [-w + 3, w - 3]) line(ctx, x, 0, x, 22, '#5b3a1a', 3); // legs
         for (let i = 0; i < 2 + Math.floor(level / 3); i++) circle(ctx, w + 4 - i * 5, 18 - (i % 2) * 5, 3.5, '#9a948a'); // rocks
-      },
-
-      highbanker(ctx, level) {
-        const body = level >= 10 ? '#2f6db5' : level >= 4 ? metal(level) : '#8b5a2b';
-        const len = 22 + level;
-        polygon(ctx, [[-24, -22], [-6, -22], [-9, -8], [-21, -8]], body, edge(level), edgeWidth(level)); // hopper
-        polygon(ctx, [[-20, -8], [-20 + len, 6], [-20 + len, 11], [-20, -3]], body, edge(level), edgeWidth(level)); // tray
-        line(ctx, -18, -5, -22 + len, 8, WATER, 2);                                          // water
-        for (let i = 1; i < 3 + level / 2; i++) line(ctx, -20 + i * 5, -6 + i * 3.1, -20 + i * 5, -2 + i * 3.1, '#333', 1); // riffles
-        for (const x of [-20, -8, -22 + len]) line(ctx, x, -6 + (x + 20) * 0.6, x, 24, '#555', 2); // legs
-        pumpShape(ctx, 16, -18, 0.6 + level * 0.03, level >= 10 ? '#2f6db5' : YELLOW);
-        if (level >= 8) line(ctx, -24, -26, -6, -26, '#3355aa', 2);                          // spray bar
       },
 
       // ----- Sluice upgrades (shop icons) -----
@@ -4468,7 +4290,7 @@
     }
 
     // The tool bar: the tools you own, then the sluice and the pond (each showing all their upgrades), then the excavator
-    const TOOLBAR = ['shovel', 'carrier', 'pickaxe', 'classifier', 'highbanker', 'sluiceAll', 'pondAll', 'excavator'];
+    const TOOLBAR = ['shovel', 'carrier', 'pickaxe', 'classifier', 'sluiceAll', 'pondAll', 'excavator'];
     const toolbarTitle = { sluiceAll: 'Sluice Box', pondAll: 'Tailing Pond' };
     // Levels bought out of all there are, for the sluice and the pond (like 34 of 96)
     const levelsOf = (ids) => ids.reduce((sum, id) => sum + state.levels[id], 0);
@@ -4744,9 +4566,6 @@
       html += row('Sluice', state.sluiceQueue > 0
         ? `${Math.ceil(state.sluiceQueue).toLocaleString('en-US')} to wash (${(sluiceSpeed() * slowed).toFixed(1)}/s)`
         : `waiting for dirt (${sluiceSpeed().toFixed(1)}/s)`);
-      if (ownsTool('highbanker')) {
-        html += row('Highbanker', state.highbankerQueue > 0 ? `${Math.ceil(state.highbankerQueue).toLocaleString('en-US')} to wash` : 'waiting for dirt');
-      }
       // The tailing pond: how full it is, and the gold waiting on its filters
       const pondSize = toolNow('pondSize');
       html += row('Tailing pond', `${Math.floor(state.pond).toLocaleString('en-US')} / ${pondSize.holds.toLocaleString('en-US')} t`) + bar(state.pond / pondSize.holds);
@@ -4820,7 +4639,7 @@
     // The game is over once the pile is empty and there's no dirt left anywhere to wash
     function checkForEnd() {
       if (state.finished) return;
-      const dirtLeft = state.pile + state.carrying + state.sluiceQueue + state.highbankerQueue + state.exc.load;
+      const dirtLeft = state.pile + state.carrying + state.sluiceQueue + state.exc.load;
       if (dirtLeft <= 0) showEndScreen();
     }
 
@@ -4852,7 +4671,7 @@
     function resetGame() {
       if (state.inExcavator) exitExcavator();
       Object.assign(state, {
-        money: 0, carrying: 0, sluiceQueue: 0, washTimer: 0, highbankerQueue: 0, highbankerTimer: 0,
+        money: 0, carrying: 0, sluiceQueue: 0, washTimer: 0,
         pond: 0, pondGold: 0, rocks: 0, digTimer: 0,
         pile: SETTINGS.pileTons / SETTINGS.tonsPerScoop,
         goldFound: 0, nuggets: 0, timePlayed: 0, finished: false,
@@ -4938,7 +4757,6 @@
       if ((playing || state.shopOpen) && !state.finished) state.timePlayed += dt; // not while paused
       keepDigging(dt);
       updateSluice(dt);
-      updateHighbanker(dt);
       updatePond(dt);
       checkForEnd();
       updateEffects(dt);
