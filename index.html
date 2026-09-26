@@ -68,10 +68,16 @@
     /* ---- Top right: speaker button, excavator controls; bottom right: graphics quality ---- */
     #sound { position: fixed; top: 12px; right: 12px; width: 48px; height: 48px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 20; }
     #sound .k { position: absolute; bottom: 1px; right: 4px; font-size: 10px; color: var(--tan); }
-    #excavator-help { position: fixed; top: 72px; right: 12px; padding: 10px 14px; font-size: 14px; line-height: 1.6; pointer-events: none; }
+    /* z-index 7 keeps it above the pause screen, so you can click its tab while the mouse is free */
+    #excavator-help { position: fixed; top: 72px; right: 12px; padding: 10px 14px; font-size: 14px; line-height: 1.6; pointer-events: none; z-index: 7; }
     #excavator-help[hidden] { display: none; }
-    #excavator-help h3 { margin: 0 0 4px; color: var(--gold); font: 17px Rye, Georgia, serif; }
+    #help-toggle { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 4px; padding: 0; background: none; border: none; color: var(--gold); font: 17px Rye, Georgia, serif; text-align: left; cursor: pointer; pointer-events: auto; }
+    #help-toggle .arrow { margin-left: auto; font: 13px Bitter, Georgia, serif; color: var(--tan); }
     #excavator-help td:first-child { padding-right: 12px; white-space: nowrap; }
+    /* Folded away: just a tiny "H: show controls" tab in the corner */
+    #excavator-help.collapsed { padding: 4px 10px; }
+    #excavator-help.collapsed table { display: none; }
+    #excavator-help.collapsed #help-toggle { margin: 0; font: 12px Bitter, Georgia, serif; color: #e6d3a8; }
     #gfx { position: fixed; right: 12px; bottom: 12px; padding: 4px 10px; font-size: 12px; color: #e6d3a8; pointer-events: none; }
     /* Bottom left: how many of the hidden cash bundles you've found */
     #cash-count { position: fixed; left: 12px; bottom: 12px; padding: 4px 10px; font-size: 12px; color: #e6d3a8; pointer-events: none; }
@@ -152,13 +158,15 @@
   <div id="cash-count" class="plaque"></div>
 
   <div id="excavator-help" class="plaque" hidden>
-    <h3>Using the excavator</h3>
+    <!-- The title doubles as a button that folds the guide away (its text is set by updateExcavatorHelp()) -->
+    <button id="help-toggle" type="button"></button>
     <table>
       <tr><td><kbd>A</kbd> <kbd>D</kbd></td><td>swing the arm left / right</td></tr>
       <tr><td><kbd>Q</kbd> or left click</td><td>curl the bucket in: scoop (hold, above the dirt pile)</td></tr>
       <tr><td><kbd>F</kbd> or right click</td><td>tip the bucket out: dump (hold, over the sluice)</td></tr>
       <tr><td>Mouse</td><td>look around</td></tr>
       <tr><td><kbd>E</kbd></td><td>get out</td></tr>
+      <tr><td><kbd>H</kbd></td><td>hide this guide</td></tr>
     </table>
   </div>
 
@@ -2668,7 +2676,36 @@
     let armMoving = false;        // for the engine and hydraulics sounds
     let scrapeTimer = 0;
     const excavatorHelp = document.getElementById('excavator-help');
+    const helpToggle = document.getElementById('help-toggle');
     const crosshair = document.getElementById('crosshair');
+
+    // The controls guide can be folded away with H (or by clicking its title while the mouse is free).
+    // The browser remembers your choice, even after a reload. The very first time, it starts open.
+    const HELP_STORAGE_KEY = 'goldRush.excavatorHelp';
+    let helpOpen = true;
+    try {
+      helpOpen = localStorage.getItem(HELP_STORAGE_KEY) !== 'closed';
+    } catch (e) { /* storage blocked (like in a private window): just start open */ }
+
+    function updateExcavatorHelp() {
+      excavatorHelp.classList.toggle('collapsed', !helpOpen);
+      helpToggle.innerHTML = helpOpen
+        ? 'Using the excavator <span class="arrow">&#9650; hide (H)</span>'
+        : '<kbd>H</kbd> show controls <span class="arrow">&#9660;</span>';
+    }
+    updateExcavatorHelp();
+
+    function toggleExcavatorHelp() {
+      helpOpen = !helpOpen;
+      try {
+        localStorage.setItem(HELP_STORAGE_KEY, helpOpen ? 'open' : 'closed');
+      } catch (e) { /* can't remember it: it still works until you reload */ }
+      updateExcavatorHelp();
+    }
+    helpToggle.addEventListener('click', () => {
+      toggleExcavatorHelp();
+      helpToggle.blur(); // so a later Space or Enter doesn't press it again
+    });
 
     function enterExcavator() {
       state.inExcavator = true;
@@ -3165,6 +3202,7 @@
         if (state.inExcavator) exitExcavator();
         else interact();
       }
+      if (e.code === 'KeyH' && state.inExcavator) toggleExcavatorHelp();
     });
     addEventListener('keyup', (e) => { keys[e.code] = false; });
 
