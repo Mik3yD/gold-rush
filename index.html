@@ -88,12 +88,24 @@
     /* ---- Shop menu: parchment cards on a wooden board ---- */
     #shop { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.8)); z-index: 5; }
     #shop[hidden] { display: none; }
-    #shop-panel { width: min(780px, 94vw); max-height: 92vh; overflow-y: auto; box-sizing: border-box; padding: 14px 20px 16px; border: 3px solid var(--brass); border-radius: 14px; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 2px, transparent 2px 40px), linear-gradient(180deg, #4a2d14, #2c1a0a); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), inset 0 0 0 2px rgba(255, 220, 140, 0.15); }
+    #shop-panel { width: min(1060px, 96vw); max-height: 94vh; overflow-y: auto; box-sizing: border-box; padding: 14px 20px 16px; border: 3px solid var(--brass); border-radius: 14px; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 2px, transparent 2px 40px), linear-gradient(180deg, #4a2d14, #2c1a0a); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), inset 0 0 0 2px rgba(255, 220, 140, 0.15); }
     #shop-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 8px; margin-bottom: 4px; border-bottom: 2px solid rgba(200, 154, 58, 0.5); }
     #shop h2 { margin: 0; font: 34px Rye, Georgia, serif; }
     #shop-money { display: flex; align-items: center; gap: 8px; font: 26px Rye, Georgia, serif; color: var(--gold); }
     #shop-money .coin { width: 30px; height: 30px; font-size: 16px; }
-    .shop-item { display: flex; gap: 12px; align-items: center; width: 100%; margin: 8px 0; padding: 8px 12px; text-align: left; background: linear-gradient(180deg, #f7e9c6, #e6cf98); color: var(--ink); border: 2px solid #b8862b; border-radius: 8px; font: inherit; font-size: 14px; line-height: 1.35; cursor: pointer; box-shadow: 0 2px 0 #7a5516; transition: transform 0.1s, box-shadow 0.1s; }
+    /* Tabs across the top: Tools, Sluice, Tailing Pond, Excavator */
+    #shop-tabs { display: flex; gap: 6px; margin: 8px 0 4px; }
+    .shop-tab { flex: 1; padding: 7px 10px; cursor: pointer; font: 18px Rye, Georgia, serif; color: #e6d3a8; background: linear-gradient(180deg, #5a3a1c, #2e1c0c); border: 2px solid #7d5a26; border-radius: 8px 8px 0 0; }
+    .shop-tab:hover { color: #fff3c8; }
+    .shop-tab.on { color: var(--ink); background: linear-gradient(180deg, #ffe680, #d49a1c); border-color: #7a5208; }
+    .shop-tab kbd { font-size: 12px; margin-left: 6px; }
+    #shop-summary { margin: 6px 0 2px; padding: 6px 12px; border-radius: 6px; background: rgba(0, 0, 0, 0.35); color: #f1e4c4; font-size: 14px; }
+    #shop-summary:empty { display: none; }
+    #shop-summary b { color: var(--gold); }
+    /* The rows sit in two columns on wide screens */
+    #shop-items { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    @media (max-width: 820px) { #shop-items { grid-template-columns: 1fr; } }
+    .shop-item { display: flex; gap: 12px; align-items: center; width: 100%; margin: 6px 0; padding: 8px 12px; text-align: left; background: linear-gradient(180deg, #f7e9c6, #e6cf98); color: var(--ink); border: 2px solid #b8862b; border-radius: 8px; font: inherit; font-size: 14px; line-height: 1.35; cursor: pointer; box-shadow: 0 2px 0 #7a5516; transition: transform 0.1s, box-shadow 0.1s; }
     .shop-item:hover:not(.cant) { transform: translateY(-2px); box-shadow: 0 4px 0 #7a5516, 0 0 14px rgba(255, 213, 74, 0.6); }
     .shop-item.cant { opacity: 0.5; filter: grayscale(0.9); cursor: not-allowed; } /* can't buy it (yet) */
     .shop-item kbd { font-size: 18px; }
@@ -102,6 +114,16 @@
     .shop-item .level { color: #9a6a1c; letter-spacing: 2px; }
     .shop-item .about { color: #5a4028; }
     .shop-item .next { color: #22601f; font-weight: 600; }
+    .shop-item .need { display: block; color: #a8261c; font-weight: 700; }   /* what you have to buy first */
+    .shop-item .need:empty { display: none; }
+    .shop-item .pips { display: inline-flex; gap: 2px; vertical-align: middle; margin-left: 4px; }
+    .shop-item .pips i { width: 6px; height: 9px; border-radius: 2px; background: rgba(90, 60, 20, 0.25); border: 1px solid rgba(90, 60, 20, 0.4); }
+    .shop-item .pips i.on { background: linear-gradient(180deg, #ffe27a, #c98a12); border-color: #7a5208; }
+    .shop-item.locked .price { background: linear-gradient(180deg, #d8c8a8, #a89878); }
+    .shop-item.cant.locked { filter: grayscale(0.5); } /* keep the red "Needs ..." line readable */
+    .shop-item { font-size: 13px; line-height: 1.3; padding: 6px 10px; }
+    .shop-item .title { font-size: 16px; }
+    .shop-item canvas { width: 46px; height: 46px; }
     .shop-item .price { margin-left: auto; padding: 4px 12px; font: 20px Rye, Georgia, serif; color: var(--ink); white-space: nowrap; background: linear-gradient(180deg, #ffe27a, #d49a1c); border: 1px solid #7a5208; border-radius: 6px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6); }
     #shop-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; font-size: 13px; color: #e6d3a8; }
 
@@ -152,7 +174,7 @@
     <table>
       <tr><td><kbd>A</kbd> <kbd>D</kbd></td><td>swing the arm left / right</td></tr>
       <tr><td><kbd>Q</kbd> or left click</td><td>curl the bucket in: scoop (hold, above the dirt pile)</td></tr>
-      <tr><td><kbd>F</kbd> or right click</td><td>tip the bucket out: dump (hold, over the sluice)</td></tr>
+      <tr><td><kbd>F</kbd> or right click</td><td>tip the bucket out: dump (hold, over the sluice or highbanker)</td></tr>
       <tr><td>Mouse</td><td>look around</td></tr>
       <tr><td><kbd>E</kbd></td><td>get out</td></tr>
     </table>
@@ -166,13 +188,14 @@
       <div class="controls">
         <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>walk</span>
         <span>Mouse</span><span>look around</span>
-        <span><kbd>E</kbd> or left click</span><span>use things (dig, dump, climb in)</span>
-        <span><kbd>B</kbd></span><span>open the shop (buy with <kbd>1</kbd> to <kbd>6</kbd>)</span>
+        <span><kbd>E</kbd> or left click</span><span>use things (dig, dump, collect, climb in)</span>
+        <span><kbd>B</kbd></span><span>open the shop (<kbd>&larr;</kbd> <kbd>&rarr;</kbd> tabs, buy with <kbd>1</kbd> to <kbd>8</kbd>)</span>
         <span><kbd>M</kbd> / <kbd>G</kbd></span><span>sound on/off &middot; graphics high/low</span>
         <span><kbd>Esc</kbd></span><span>pause</span>
       </div>
       <p>Dig dirt at the giant pile, carry it to the sluice box, and wash it to find gold.</p>
-      <p>Save up for the excavator, then walk up to it and press <kbd>E</kbd> to climb in.</p>
+      <p>Gold the sluice misses ends up in the tailing pond: press <kbd>E</kbd> there to collect it.</p>
+      <p>Unlock the pickaxe, classifier and highbanker, then save up for the excavator.</p>
       <p>The game ends when the whole pile has been dug up and washed.</p>
     </div>
   </div>
@@ -193,9 +216,11 @@
         <h2 class="gold-text">Miner's Supply Shop</h2>
         <div id="shop-money"></div>
       </div>
+      <div id="shop-tabs"></div>
+      <div id="shop-summary"></div>
       <div id="shop-items"></div>
       <div id="shop-foot">
-        <span>Click an item or press its number key to buy it. Greyed out = you can't buy it yet.</span>
+        <span>Click an item or press its number key to buy it. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch tabs. Greyed out = you can't buy it yet.</span>
         <button id="shop-close" class="btn">Back to the game (B)</button>
       </div>
     </div>
@@ -214,21 +239,29 @@
       walkSpeed: 5,            // meters per second
       mouseSensitivity: 0.002,
       reach: 1.5,              // how close (in meters) you must be to use something
-      flakeChance: 0.5,        // chance (0 to 1) that a sluiced scoop has gold flakes in it
+      // Gold in the dirt. Every scoop holds about $2.00 of gold on average:
+      //   nuggets: 1% x $50 = $0.50 (heavy, so the sluice always catches them)
+      //   flakes: 75% chance of 1 to 3 flakes x $1 = $1.50 (only if the sluice catches them all: see Mesh and Nozzles)
+      flakeChance: 0.75,       // chance (0 to 1) that a washed scoop has gold flakes in it
       flakeValue: 1,           // dollars per flake
-      nuggetChance: 0.02,      // chance that a sluiced scoop has a big nugget
+      nuggetChance: 0.01,      // chance that a washed scoop has a big nugget
       nuggetValue: 50,         // dollars per nugget
       tonsPerScoop: 0.1,       // how heavy one scoop of dirt is (so 10 scoops = 1 ton)
 
+      sluiceBaseSpeed: 1.5,    // scoops a second the sluice washes before any upgrades
+      pondFullSpeed: 0.3,      // when the tailing pond is full, the sluice only washes at 30% speed
+      digPause: 0.5,           // seconds between digs without a pickaxe (so at most 2 digs a second)
+
       // ===== TOTAL DIRT IN THE GAME: the one giant pile, in tons. The game ends when it's all dug and washed. =====
-      // How 5,000 was worked out:
-      //   Gold per scoop, on average: 2% nuggets x $50 = $1.00, plus the other 98% x 50% flake chance
-      //   x 2 flakes x $1 = $0.98. So about $1.98 per scoop, or $19.80 per ton.
-      //   Every tool and upgrade costs $40,630 in total, which needs about 2,050 t.
-      //   The fully upgraded sluice washes at most 16 scoops a second = 1.6 t/s = 96 t a minute,
-      //   so about 30 more minutes of play after that is about 2,900 t (slower digging makes it last longer).
-      //   2,050 + 2,900 = about 4,950, rounded to 5,000.
-      pileTons: 5000,
+      // How 22,000 was worked out (with a simulated player who buys the cheapest thing and saves up for new tools):
+      //   Every tool and upgrade costs $248,420 in total. Gold per ton averages about $19 over the game
+      //   (the sluice misses a lot of flakes early on; the pond gets some of them back), so buying
+      //   everything takes about 13,000 t of washed dirt (about 2 1/4 hours of play).
+      //   Fully upgraded, the sluice washes 40 scoops a second and the highbanker 7, about 4.7 t/s,
+      //   so 30 more minutes of play is about 8,500 t (a player who doesn't keep the sluice busy takes up to an hour).
+      //   13,000 + 8,500 = about 21,500, rounded to 22,000.
+      // If you change prices or gold values, redo this sum.
+      pileTons: 22000,
 
       // Excavator arm speeds with stock hydraulics (Speed upgrades multiply these), in radians per second
       armSwingSpeed: 0.9,
@@ -238,83 +271,406 @@
     // Turn scoops into tons for showing on screen, like "4,012.5" (no ".0" on whole numbers)
     const tons = (scoops) => (Math.round(scoops * SETTINGS.tonsPerScoop * 10) / 10).toLocaleString('en-US');
 
-    // ---------- Tools you can buy. Level 0 is what you start with. ----------
+    // ---------- Tools and upgrades you can buy. Level 0 is what you start with (or "not owned"). ----------
+    // Each level is one line: its name, its price and what it does. Change prices here.
+    // tab = which shop tab it's on. needs(n) = what you must own before you can buy level n,
+    // like { generators: 4 } ("Needs Generators Lv 4").
     const plural = (n) => (n === 1 ? '' : 's');
+    const percent = (x) => `${Math.round(x * 100)}%`;
+    // The six sluice speed upgrades all make it wash about 4% faster per level (x1.58 at level 12)
+    const SLUICE_BOOST = [1, 1.04, 1.08, 1.12, 1.16, 1.21, 1.26, 1.31, 1.36, 1.41, 1.46, 1.52, 1.58];
+    const boost = (levels) => levels.map((level, i) => ({ ...level, boost: SLUICE_BOOST[i] }));
+    const faster = (level) => `washing x${level.boost.toFixed(2)}`;
+
     const TOOLS = {
+      // ===== Tab 1: Tools =====
       shovel: {
+        tab: 'tools',
         title: 'Shovel',
         about: 'Digs dirt from the DIRT pile.',
         startsOwned: true, // you have one from the start, so it's always on the tool bar
         levels: [
           { name: 'Basic Shovel', scoops: 1 },
-          { name: 'Big Shovel', price: 60, scoops: 2 },
-          { name: 'Steel Shovel', price: 250, scoops: 3 },
-          { name: 'Giant Shovel', price: 700, scoops: 5 },
+          { name: 'Garden Spade', price: 50, scoops: 2 },
+          { name: 'Big Shovel', price: 62, scoops: 3 },
+          { name: 'Steel Shovel', price: 77, scoops: 4 },
+          { name: 'Square-Point Shovel', price: 96, scoops: 5 },
+          { name: 'Long-Handle Shovel', price: 120, scoops: 6 },
+          { name: "Miner's Shovel", price: 150, scoops: 7 },
+          { name: 'Wide Scoop', price: 180, scoops: 8 },
+          { name: 'Forged Shovel', price: 230, scoops: 9 },
+          { name: 'Grain Scoop', price: 280, scoops: 10 },
+          { name: 'Titanium Shovel', price: 350, scoops: 12 },
+          { name: 'Giant Shovel', price: 430, scoops: 14 },
+          { name: 'Golden Shovel', price: 540, scoops: 16 },
         ],
         describe: (level) => `digs ${level.scoops} scoop${plural(level.scoops)} (${tons(level.scoops)} t) each time`,
       },
       carrier: {
+        tab: 'tools',
         title: 'Bucket / Wheelbarrow',
-        about: 'Carries dirt to the sluice.',
+        about: 'Carries dirt to the sluice or the highbanker.',
         startsOwned: true,
         levels: [
           { name: 'Small Bucket', capacity: 10 },
-          { name: 'Big Bucket', price: 100, capacity: 20 },
-          { name: 'Wheelbarrow', price: 350, capacity: 35 },
-          { name: 'Big Wheelbarrow', price: 900, capacity: 60 },
+          { name: 'Big Bucket', price: 60, capacity: 14 },
+          { name: 'Steel Bucket', price: 75, capacity: 18 },
+          { name: 'Two Buckets & Yoke', price: 94, capacity: 24 },
+          { name: 'Wooden Wheelbarrow', price: 120, capacity: 30 },
+          { name: 'Steel Wheelbarrow', price: 150, capacity: 38 },
+          { name: 'Big Wheelbarrow', price: 190, capacity: 46 },
+          { name: 'Twin-Wheel Barrow', price: 230, capacity: 55 },
+          { name: 'Contractor Barrow', price: 290, capacity: 65 },
+          { name: 'Heavy-Duty Barrow', price: 370, capacity: 75 },
+          { name: 'Power Barrow', price: 460, capacity: 85 },
+          { name: 'Motor Barrow', price: 570, capacity: 100 },
+          { name: 'Mini Dumper', price: 720, capacity: 120 },
         ],
         describe: (level) => `carries ${level.capacity} scoops per trip`,
       },
-      sluice: {
-        title: 'Sluice Box',
-        about: 'Washes the dirt you dump in it, all by itself.',
-        startsOwned: true,
+      pickaxe: {
+        tab: 'tools',
+        title: 'Pickaxe',
+        about: 'Loosens the pile: hold E (or the left mouse button) at the pile to keep digging.',
         levels: [
-          { name: 'Small Sluice', batch: 1, seconds: 1 },
-          { name: 'Long Sluice', price: 120, batch: 2, seconds: 0.8 },
-          { name: 'Double Sluice', price: 450, batch: 4, seconds: 0.6 },
-          { name: 'Power Sluice', price: 1200, batch: 8, seconds: 0.5 },
+          { name: 'No pickaxe', digs: 0 },
+          { name: 'Rusty Pick', price: 150, digs: 2.5 },
+          { name: "Miner's Pick", price: 180, digs: 2.8 },
+          { name: 'Steel Pick', price: 220, digs: 3.1 },
+          { name: 'Balanced Pick', price: 260, digs: 3.4 },
+          { name: 'Forged Pick', price: 320, digs: 3.7 },
+          { name: 'Double Pick', price: 390, digs: 4.0 },
+          { name: 'Tempered Pick', price: 470, digs: 4.4 },
+          { name: 'Pro Pick', price: 560, digs: 4.8 },
+          { name: 'Mattock', price: 680, digs: 5.2 },
+          { name: 'Chrome Pick', price: 820, digs: 5.6 },
+          { name: 'Diamond-Tip Pick', price: 990, digs: 6.2 },
+          { name: 'Golden Pick', price: 1200, digs: 7.0 },
         ],
-        describe: (level) => `washes ${level.batch} scoop${plural(level.batch)} every ${level.seconds} s`,
+        describe: (level) => level.digs ? `hold to dig ${level.digs} times a second` : 'one dig per click, at most 2 a second',
       },
+      classifier: {
+        tab: 'tools',
+        title: 'Classifier Screen',
+        about: 'Screens the rocks out before the dirt reaches the sluice: same gold, less to wash, less mud in the pond.',
+        needs: () => ({ pickaxe: 1 }),
+        levels: [
+          { name: 'No classifier', rocks: 0 },
+          { name: 'Hand Screen', price: 400, rocks: 0.08 },
+          { name: 'Wire Screen', price: 470, rocks: 0.11 },
+          { name: 'Double Wire Screen', price: 550, rocks: 0.14 },
+          { name: 'Punch-Plate Screen', price: 650, rocks: 0.17 },
+          { name: 'Rocker Screen', price: 770, rocks: 0.20 },
+          { name: 'Shaker Screen', price: 900, rocks: 0.23 },
+          { name: 'Two-Deck Shaker', price: 1100, rocks: 0.26 },
+          { name: 'Vibrating Screen', price: 1300, rocks: 0.29 },
+          { name: 'Grizzly Bars + Screen', price: 1500, rocks: 0.32 },
+          { name: 'Power Shaker', price: 1700, rocks: 0.35 },
+          { name: 'Trommel', price: 2000, rocks: 0.38 },
+          { name: 'Big Trommel', price: 2400, rocks: 0.42 },
+        ],
+        describe: (level) => level.rocks ? `removes ${percent(level.rocks)} rocks: sluice washes x${(1 / (1 - level.rocks)).toFixed(2)}` : '',
+      },
+      highbanker: {
+        tab: 'tools',
+        title: 'Highbanker',
+        about: 'A second, smaller washer right next to the DIRT pile. Dump into it by hand or with the excavator.',
+        needs: () => ({ classifier: 1 }),
+        levels: [
+          { name: 'No highbanker', speed: 0, catches: 0 },
+          { name: 'Small Highbanker', price: 1000, speed: 1.0, catches: 0.60 },
+          { name: 'Hopper Highbanker', price: 1100, speed: 1.5, catches: 0.62 },
+          { name: 'Twin-Tray Highbanker', price: 1300, speed: 2.0, catches: 0.64 },
+          { name: 'Steel Highbanker', price: 1500, speed: 2.5, catches: 0.67 },
+          { name: 'Pumped Highbanker', price: 1700, speed: 3.0, catches: 0.69 },
+          { name: 'Long-Tray Highbanker', price: 2000, speed: 3.5, catches: 0.71 },
+          { name: 'Big-Hopper Highbanker', price: 2300, speed: 4.0, catches: 0.73 },
+          { name: 'Spray-Bar Highbanker', price: 2600, speed: 4.5, catches: 0.76 },
+          { name: 'Double-Deck Highbanker', price: 3000, speed: 5.0, catches: 0.78 },
+          { name: 'Pro Highbanker', price: 3400, speed: 5.5, catches: 0.80 },
+          { name: 'Power Highbanker', price: 3900, speed: 6.0, catches: 0.82 },
+          { name: 'Gold-Series Highbanker', price: 4500, speed: 7.0, catches: 0.85 },
+        ],
+        describe: (level) => level.speed ? `washes ${level.speed} scoops a second, catches ${percent(level.catches)} of the flakes` : '',
+      },
+
+      // ===== Tab 2: Sluice. Some upgrades need others first. =====
+      mesh: {
+        tab: 'sluice',
+        title: 'Mesh',
+        about: 'The mat and mesh along the bottom. Finer mesh catches finer gold.',
+        levels: [
+          { name: 'Burlap Sack', catches: 0.45 },
+          { name: 'Rubber Mat', price: 30, catches: 0.49 },
+          { name: 'Ribbed Mat', price: 43, catches: 0.53 },
+          { name: "Miner's Moss", price: 61, catches: 0.58 },
+          { name: 'Thick Moss', price: 87, catches: 0.62 },
+          { name: 'Coarse Expanded Metal', price: 120, catches: 0.66 },
+          { name: 'Fine Expanded Metal', price: 180, catches: 0.70 },
+          { name: 'V-Mat', price: 250, catches: 0.74 },
+          { name: 'Carpet & Moss', price: 360, catches: 0.78 },
+          { name: 'Punch Plate', price: 520, catches: 0.83 },
+          { name: 'Fine Punch Plate', price: 740, catches: 0.87 },
+          { name: 'Nugget-Trap Mesh', price: 1100, catches: 0.91 },
+          { name: 'Gold-Catcher Mesh', price: 1500, catches: 0.95 },
+        ],
+        describe: (level) => `catches ${percent(level.catches)} of the fine gold`,
+      },
+      nozzles: {
+        tab: 'sluice',
+        title: 'Nozzles',
+        about: 'A spray bar over the hopper breaks up clay balls, so the gold stuck in them comes out.',
+        levels: [
+          { name: 'No Spray Bar', clay: 0.70, count: 0 },
+          { name: '3-Nozzle Spray Bar', price: 40, clay: 0.72, count: 3 },
+          { name: '4-Nozzle Spray Bar', price: 57, clay: 0.75, count: 4 },
+          { name: '5-Nozzle Spray Bar', price: 80, clay: 0.77, count: 5 },
+          { name: '6-Nozzle Spray Bar', price: 110, clay: 0.80, count: 6 },
+          { name: '7-Nozzle Spray Bar', price: 160, clay: 0.82, count: 7 },
+          { name: 'Double Spray Bar (8)', price: 230, clay: 0.85, count: 8 },
+          { name: 'Chrome Double Bar (9)', price: 320, clay: 0.87, count: 9 },
+          { name: 'Chrome Double Bar (10)', price: 450, clay: 0.90, count: 10 },
+          { name: 'Chrome Double Bar (11)', price: 640, clay: 0.92, count: 11 },
+          { name: 'Chrome Double Bar (12)', price: 900, clay: 0.95, count: 12 },
+          { name: 'Chrome Double Bar (13)', price: 1300, clay: 0.97, count: 13 },
+          { name: 'Gold-Tip Double Bar (14)', price: 1800, clay: 1.00, count: 14 },
+        ],
+        describe: (level) => `breaks up ${percent(level.clay)} of the clay`,
+      },
+      length: {
+        tab: 'sluice',
+        title: 'Extended Length',
+        about: 'A longer box with more riffles. It needs more water to run.',
+        needs: (n) => ({ water: Math.floor(n / 2) }),
+        levels: boost([
+          { name: 'Wooden Box, 4 m', meters: 4 },
+          { name: 'Wooden Box, 4.5 m', price: 40, meters: 4.5 },
+          { name: 'Wooden Box, 5 m', price: 57, meters: 5 },
+          { name: 'Wooden Box, 5.5 m', price: 80, meters: 5.5 },
+          { name: 'Braced Box, 6 m', price: 110, meters: 6 },
+          { name: 'Braced Box, 6.5 m', price: 160, meters: 6.5 },
+          { name: 'Braced Box, 7 m', price: 230, meters: 7 },
+          { name: 'Braced Box, 7.5 m', price: 320, meters: 7.5 },
+          { name: 'Steel Box, 8 m', price: 450, meters: 8 },
+          { name: 'Steel Box, 8.5 m', price: 640, meters: 8.5 },
+          { name: 'Steel Box, 9 m', price: 900, meters: 9 },
+          { name: 'Steel Box, 9.5 m', price: 1300, meters: 9.5 },
+          { name: 'Power Box, 10 m', price: 1800, meters: 10 },
+        ]),
+        describe: (level) => faster(level), // (the name already says how long it is)
+      },
+      water: {
+        tab: 'sluice',
+        title: 'Extra Water',
+        about: 'More water through the box washes the dirt faster. It needs pumps to supply it.',
+        needs: (n) => ({ pumps: Math.floor(n / 2) }),
+        levels: boost([
+          { name: 'Water Barrel' },
+          { name: 'Big Barrel', price: 50 },
+          { name: 'Two Barrels', price: 70 },
+          { name: 'Two Big Barrels', price: 99 },
+          { name: 'Water Tote', price: 140 },
+          { name: 'Big Water Tote', price: 190 },
+          { name: 'Two Channels', price: 270 },
+          { name: 'Big Tank', price: 380 },
+          { name: 'Bigger Tank', price: 540 },
+          { name: 'Steel Tank', price: 760 },
+          { name: 'Big Steel Tank', price: 1100 },
+          { name: 'Twin Steel Tanks', price: 1500 },
+          { name: 'Flood Flow', price: 2100 },
+        ]),
+        describe: (level) => faster(level),
+      },
+      pressure: {
+        tab: 'sluice',
+        title: 'Higher Pressure',
+        about: 'The spray hits harder and washes faster. Needs hoses and nozzles that can take it.',
+        needs: (n) => ({ hoses: n, nozzles: n }),
+        levels: boost([
+          { psi: 10 }, { psi: 18, price: 80 }, { psi: 26, price: 110 }, { psi: 35, price: 150 }, { psi: 43, price: 210 },
+          { psi: 51, price: 300 }, { psi: 60, price: 420 }, { psi: 68, price: 580 }, { psi: 77, price: 800 },
+          { psi: 85, price: 1100 }, { psi: 94, price: 1600 }, { psi: 105, price: 2200 }, { psi: 120, price: 3000 },
+        ].map((level) => ({ ...level, name: `${level.psi} psi` }))),
+        describe: (level) => faster(level),
+      },
+      pumps: {
+        tab: 'sluice',
+        title: 'More Pumps',
+        about: 'Water pumps on the pad next to the sluice. More pumps need a bigger generator.',
+        needs: (n) => ({ generators: n }),
+        levels: boost([
+          { name: 'Gravity Feed (no pump)', count: 0 },
+          { name: 'Small Pump', price: 100, count: 1 },
+          { name: 'Small Pump+', price: 140, count: 1 },
+          { name: 'Big Pump', price: 190, count: 1 },
+          { name: 'Two Pumps', price: 260, count: 2 },
+          { name: 'Two Pumps+', price: 360, count: 2 },
+          { name: 'Two Big Pumps', price: 490, count: 2 },
+          { name: 'Three Pumps', price: 670, count: 3 },
+          { name: 'Three Pumps+', price: 930, count: 3 },
+          { name: 'Three Big Pumps', price: 1300, count: 3 },
+          { name: 'Four Pumps', price: 1700, count: 4 },
+          { name: 'Four Pumps+', price: 2400, count: 4 },
+          { name: 'Quad Big-Bore Pumps', price: 3300, count: 4 },
+        ]),
+        describe: (level) => faster(level),
+      },
+      hoses: {
+        tab: 'sluice',
+        title: 'Hoses',
+        about: 'Thicker, stronger hoses leak less. Higher pressure needs them.',
+        levels: boost([
+          { name: 'Garden Hose' },
+          { name: 'Two Garden Hoses', price: 25 },
+          { name: 'Thick Garden Hoses', price: 36 },
+          { name: 'Reinforced Garden Hoses', price: 51 },
+          { name: 'Rubber Hoses', price: 72 },
+          { name: 'Thick Rubber Hoses', price: 100 },
+          { name: 'Heavy Rubber Hoses', price: 150 },
+          { name: 'Lay-Flat Hoses', price: 210 },
+          { name: 'Wide Lay-Flat Hoses', price: 290 },
+          { name: 'Heavy Lay-Flat Hoses', price: 420 },
+          { name: 'Steel-Braided Hoses', price: 590 },
+          { name: 'Wide Steel-Braided Hoses', price: 840 },
+          { name: 'Gold-Fitted Hoses', price: 1200 },
+        ]),
+        describe: (level) => faster(level),
+      },
+      generators: {
+        tab: 'sluice',
+        title: 'Generators',
+        about: 'Power for the pumps. Steadier power runs everything a bit faster.',
+        levels: boost([
+          { name: 'No generator', kw: 0, count: 0 },
+          { name: 'Small Portable Generator', price: 80, kw: 2, count: 1 },
+          { name: 'Portable Generator', price: 110, kw: 3, count: 1 },
+          { name: 'Big Portable Generator', price: 150, kw: 5, count: 1 },
+          { name: 'Open-Frame Generator', price: 210, kw: 7, count: 1 },
+          { name: 'Big Open-Frame Generator', price: 290, kw: 10, count: 1 },
+          { name: 'Two Generators', price: 400, kw: 14, count: 2 },
+          { name: 'Two Big Generators', price: 550, kw: 18, count: 2 },
+          { name: 'Two Enclosed Gensets', price: 750, kw: 24, count: 2 },
+          { name: 'Two Big Gensets', price: 1000, kw: 30, count: 2 },
+          { name: 'Trailer Genset + Genset', price: 1400, kw: 38, count: 2 },
+          { name: 'Three Gensets', price: 2000, kw: 48, count: 3 },
+          { name: 'Three Trailer Gensets', price: 2700, kw: 60, count: 3 },
+        ]),
+        describe: (level) => level.kw ? `${level.kw} kW, ${faster(level)}` : 'nothing to power pumps with yet',
+      },
+
+      // ===== Tab 3: Tailing Pond. It's there from the start. =====
+      pondSize: {
+        tab: 'pond',
+        title: 'Pond Size',
+        about: 'Holds the muddy water from the sluice. When it\'s full, the sluice slows to 30%.',
+        levels: [
+          { name: 'Puddle Pond', holds: 40, settles: 3, radius: 2.5 },
+          { name: 'Small Pond', price: 60, holds: 55, settles: 4, radius: 2.75 },
+          { name: 'Dug Pond', price: 83, holds: 75, settles: 5, radius: 3 },
+          { name: 'Wide Pond', price: 110, holds: 105, settles: 7, radius: 3.25 },
+          { name: 'Lined Pond', price: 160, holds: 150, settles: 10, radius: 3.5 },
+          { name: 'Big Lined Pond', price: 220, holds: 200, settles: 13, radius: 3.75 },
+          { name: 'Banked Pond', price: 300, holds: 280, settles: 17, radius: 4 },
+          { name: 'Deep Pond', price: 420, holds: 390, settles: 23, radius: 4.25 },
+          { name: 'Rock-Lined Pond', price: 580, holds: 540, settles: 31, radius: 4.5 },
+          { name: 'Big Rock Pond', price: 800, holds: 750, settles: 42, radius: 4.75 },
+          { name: 'Settling Pond', price: 1100, holds: 1000, settles: 56, radius: 5 },
+          { name: 'Pond with Spillway', price: 1500, holds: 1400, settles: 75, radius: 5.25 },
+          { name: 'Stone-Walled Reservoir', price: 2100, holds: 2000, settles: 100, radius: 5.5 },
+        ],
+        describe: (level) => `holds ${level.holds.toLocaleString('en-US')} t, settles ${level.settles} t a minute`,
+      },
+      filters: {
+        tab: 'pond',
+        title: 'Filters',
+        about: 'Catch the fine gold the sluice misses. Walk up to the pond and press E to collect it.',
+        levels: [
+          { name: 'Straw Bale', catches: 0.10 },
+          { name: 'Two Straw Bales', price: 50, catches: 0.16 },
+          { name: 'Silt Fence', price: 69, catches: 0.22 },
+          { name: 'Inlet Riffle Flume', price: 96, catches: 0.29 },
+          { name: 'Moss Mats', price: 130, catches: 0.35 },
+          { name: 'Gravel Filter Bank', price: 180, catches: 0.41 },
+          { name: 'Twin Riffle Flumes', price: 250, catches: 0.48 },
+          { name: 'Settling Baffle', price: 350, catches: 0.54 },
+          { name: 'Carpet Filter', price: 490, catches: 0.60 },
+          { name: 'Floating Boom', price: 680, catches: 0.66 },
+          { name: 'Skimmer Box', price: 940, catches: 0.73 },
+          { name: 'Pump-Back Line', price: 1300, catches: 0.79 },
+          { name: 'Gold Filter House', price: 1800, catches: 0.85 },
+        ],
+        describe: (level) => `gets back ${percent(level.catches)} of the gold the sluice misses`,
+      },
+
+      // ===== Tab 4: Excavator: the last and most expensive tool =====
       excavator: {
+        tab: 'excavator',
         title: 'Small Excavator',
-        about: 'A digger that stays parked between the DIRT pile and the sluice. Walk up to it and press E to climb in.',
+        about: 'A digger parked between the DIRT pile and the sluice. Walk up to it and press E to climb in.',
+        needs: () => ({ highbanker: 1 }),
         levels: [
           { name: 'Not owned yet' },
-          { name: 'Small Excavator', price: 4000 },
+          { name: 'Small Excavator', price: 12000 },
         ],
-        describe: (level) => level.price ? 'scoops dirt from the pile into the sluice' : '',
+        describe: (level) => level.price ? 'scoops dirt from the pile into the sluice or highbanker' : '',
       },
-      // The two excavator upgrades. "needs" means you must own the excavator first.
       digBucket: {
+        tab: 'excavator',
         title: 'Excavator Bucket Size',
         about: 'A bigger bucket digs more tons of dirt with each scoop.',
-        needs: 'excavator',
+        needs: () => ({ excavator: 1 }),
         levels: [
-          { name: 'Standard Bucket', scoops: 40 },
-          { name: 'Wide Bucket', price: 1500, scoops: 60 },
-          { name: 'Heavy Bucket', price: 4000, scoops: 90 },
-          { name: 'Monster Bucket', price: 9000, scoops: 130 },
+          { name: 'Standard Bucket', scoops: 150 },
+          { name: 'Wide Bucket', price: 2000, scoops: 160 },
+          { name: 'Wider Bucket', price: 2200, scoops: 170 },
+          { name: 'Heavy Bucket', price: 2500, scoops: 180 },
+          { name: 'Heavy Wide Bucket', price: 2800, scoops: 190 },
+          { name: 'Rock Bucket', price: 3200, scoops: 200 },
+          { name: 'Big Rock Bucket', price: 3600, scoops: 210 },
+          { name: 'Mass Bucket', price: 4000, scoops: 225 },
+          { name: 'Mass Wide Bucket', price: 4500, scoops: 240 },
+          { name: 'Monster Bucket', price: 5100, scoops: 250 },
+          { name: 'Monster Wide Bucket', price: 5700, scoops: 265 },
+          { name: 'Titan Bucket', price: 6400, scoops: 280 },
+          { name: 'Gold Titan Bucket', price: 7200, scoops: 300 },
         ],
         describe: (level) => `${tons(level.scoops)} t per scoop`,
       },
       speed: {
+        tab: 'excavator',
         title: 'Excavator Speed',
         about: 'Stronger hydraulics swing the arm and curl the bucket faster.',
-        needs: 'excavator',
+        needs: () => ({ excavator: 1 }),
         levels: [
           { name: 'Stock Hydraulics', speed: 1 },
-          { name: 'Tuned Hydraulics', price: 2000, speed: 1.3 },
-          { name: 'Turbo Hydraulics', price: 5000, speed: 1.65 },
-          { name: 'Twin-Turbo Hydraulics', price: 11000, speed: 2.1 },
+          { name: 'Tuned Hydraulics', price: 2500, speed: 1.07 },
+          { name: 'Tuned+ Hydraulics', price: 2800, speed: 1.14 },
+          { name: 'Sport Hydraulics', price: 3100, speed: 1.22 },
+          { name: 'Sport+ Hydraulics', price: 3500, speed: 1.30 },
+          { name: 'Turbo Hydraulics', price: 3900, speed: 1.39 },
+          { name: 'Turbo+ Hydraulics', price: 4300, speed: 1.48 },
+          { name: 'Big Turbo Hydraulics', price: 4800, speed: 1.58 },
+          { name: 'Twin-Turbo Hydraulics', price: 5400, speed: 1.69 },
+          { name: 'Twin-Turbo+ Hydraulics', price: 6000, speed: 1.80 },
+          { name: 'Race Hydraulics', price: 6700, speed: 1.92 },
+          { name: 'Race+ Hydraulics', price: 7500, speed: 2.06 },
+          { name: 'Gold Race Hydraulics', price: 8400, speed: 2.20 },
         ],
         describe: (level) => `${Math.round(level.speed * 100)}% speed`,
       },
     };
-    // The shop, the tool bar and the number keys (1 to 6) only ever look at the tools in this list, so old tools
-    // that no longer exist (Gold Pan, Metal Detector, Excavator Engine and Arm, Dirt Loads) are simply ignored.
-    const TOOL_ORDER = ['shovel', 'carrier', 'sluice', 'excavator', 'digBucket', 'speed'];
+    // The shop tabs, and which upgrades are on each (in order: the number keys 1 to 8 buy them)
+    const TABS = [
+      { id: 'tools', title: 'Tools', items: ['shovel', 'carrier', 'pickaxe', 'classifier', 'highbanker'] },
+      { id: 'sluice', title: 'Sluice', items: ['mesh', 'nozzles', 'length', 'water', 'pressure', 'pumps', 'hoses', 'generators'] },
+      { id: 'pond', title: 'Tailing Pond', items: ['pondSize', 'filters'] },
+      { id: 'excavator', title: 'Excavator', items: ['excavator', 'digBucket', 'speed'] },
+    ];
+    // Everything you can buy. The game only ever looks at the ids in this list, so old tools
+    // that no longer exist (Gold Pan, Metal Detector, the old one-piece Sluice, Dirt Loads...) are simply ignored.
+    const TOOL_ORDER = TABS.flatMap((tab) => tab.items);
+    const SLUICE_PARTS = TABS[1].items;
+    const POND_PARTS = TABS[2].items;
     const EXCAVATOR_PARTS = ['digBucket', 'speed'];
 
     // The excavator never moves: it sits here, between the dirt pile and the sluice.
@@ -329,7 +685,13 @@
       money: 0,
       carrying: 0,        // scoops of dirt in your bucket or wheelbarrow
       sluiceQueue: 0,     // scoops waiting to be washed in the sluice
-      washTimer: 0,
+      washTimer: 0,       // (the sluice washes a bit at a time; this adds up the part of a scoop still to wash)
+      highbankerQueue: 0, // scoops waiting in the highbanker
+      highbankerTimer: 0,
+      pond: 0,            // tons of mud in the tailing pond
+      pondGold: 0,        // dollars of gold waiting on the pond's filters (press E at the pond to collect it)
+      rocks: 0,           // scoops of rocks the classifier has screened out (only for the size of the rock pile)
+      digTimer: 0,        // seconds until you can dig again
       pile: SETTINGS.pileTons / SETTINGS.tonsPerScoop, // scoops of dirt left in the DIRT pile (it starts full)
       // For the end screen
       goldFound: 0,       // dollars of gold found in total (spending doesn't lower it)
@@ -349,6 +711,31 @@
     function toolNext(id) { return TOOLS[id].levels[state.levels[id] + 1]; }
     // Tools you start with count as owned; the others only once you've bought level 1
     function ownsTool(id) { return TOOLS[id].startsOwned || state.levels[id] > 0; }
+
+    // What you still have to buy before you can buy the next level, as text ("Needs Generators Lv 4"),
+    // or '' if nothing is missing
+    function missingNeed(id) {
+      const tool = TOOLS[id];
+      if (!tool.needs || !toolNext(id)) return '';
+      const needs = tool.needs(state.levels[id] + 1);
+      for (const [other, level] of Object.entries(needs)) {
+        if (state.levels[other] >= level) continue;
+        // A tool you don't own at all: "Buy the Highbanker first". An upgrade: "Needs Generators Lv 4".
+        const buyFirst = level === 1 && TOOLS[other].tab !== 'sluice' && TOOLS[other].tab !== 'pond';
+        return buyFirst ? `Buy the ${TOOLS[other].title} first` : `Needs ${TOOLS[other].title} Lv ${level}`;
+      }
+      return '';
+    }
+
+    // How many scoops a second the sluice washes, with every upgrade (but not counting a full pond)
+    function sluiceSpeed() {
+      let speed = SETTINGS.sluiceBaseSpeed;
+      for (const id of ['length', 'water', 'pressure', 'pumps', 'hoses', 'generators']) speed *= toolNow(id).boost;
+      return speed / (1 - toolNow('classifier').rocks); // the classifier takes the rocks out, so there's less to wash
+    }
+    // The share of the flakes the sluice catches: fine gold (mesh) x gold that isn't stuck in clay (nozzles)
+    function sluiceRecovery() { return toolNow('mesh').catches * toolNow('nozzles').clay; }
+    function pondFull() { return state.pond >= toolNow('pondSize').holds; }
 
     // ---------- Scene, camera and renderer ----------
     const scene = new THREE.Scene();
@@ -659,6 +1046,16 @@
       }
     });
 
+    // Metal mesh: a grid of wires with square holes (white wires, see-through holes), for the sluice's mesh and the classifier
+    TEX.grid = canvasTexture(64, (ctx, size) => {
+      ctx.fillStyle = grey(255);
+      ctx.fillRect(0, 0, size, 6);
+      ctx.fillRect(0, 0, 6, size);
+      ctx.fillStyle = grey(180);
+      ctx.fillRect(0, 5, size, 1);
+      ctx.fillRect(5, 0, 1, size);
+    }, { repeat: true });
+
     // Pictures for the particle effects (white, so they can be tinted)
     TEX.soft = canvasTexture(64, (ctx, size) => softSpot(ctx, size / 2, size / 2, size / 2, grey(255, 1), grey(255, 0)));
     TEX.clod = canvasTexture(32, (ctx, size) => {
@@ -704,8 +1101,8 @@
       }
       softSpot(ctx, 0, 0, c * 0.45, grey(255, 1), grey(255, 0));
     });
-    // Shapes for see-through patches (white = solid, black = see-through):
-    // wet ground around the sluice's outflow (soft, ragged edge) and the puddle in it (sharper edge)
+    // A shape for a see-through patch (white = solid, black = see-through):
+    // wet ground where water runs out of the sluice and the highbanker (soft, ragged edge)
     TEX.wet = canvasTexture(128, (ctx, size) => {
       ctx.fillStyle = '#000';
       ctx.fillRect(0, 0, size, size);
@@ -713,13 +1110,6 @@
         const angle = rand(0, Math.PI * 2), d = rand(0, size * 0.2);
         softSpot(ctx, size / 2 + Math.cos(angle) * d, size / 2 + Math.sin(angle) * d, rand(size * 0.12, size * 0.28), grey(255, 0.3), grey(255, 0));
       }
-    }, { color: false });
-    TEX.puddle = canvasTexture(128, (ctx, size) => {
-      ctx.fillStyle = '#000';
-      ctx.fillRect(0, 0, size, size);
-      ctx.filter = 'blur(2px)';
-      ctx.fillStyle = '#fff';
-      for (let i = 0; i < 7; i++) blob(ctx, size / 2 + rand(-20, 20), size / 2 + rand(-12, 12), rand(16, 28), i + 20);
     }, { color: false });
 
     // ---------- Materials: what each colour is made of ----------
@@ -922,6 +1312,12 @@
     const PILE_FACE = { x: -3.22, z: -11.61 };       // the edge of the pile closest to the excavator, 3.6 m from it
     const PILE_FULL = { x: PILE_FACE.x + PILE_DIRECTION.x * PILE_RADIUS, z: PILE_FACE.z + PILE_DIRECTION.z * PILE_RADIUS }; // its middle when full
 
+    // ---------- Where the other big things sit ----------
+    // The sluice's high end (where dirt goes in) is always at x = 2.2; it grows downhill (+x) up to 10 m long.
+    const POND_SPOT = { x: 18.2, z: -7 };        // middle of the tailing pond, past the sluice's low end (radius 2.5 to 5.5 m)
+    const PAD = { x1: 4, x2: 13, z1: -5.6, z2: -2.9 }; // the gravel equipment pad for pumps, generators and tanks
+    const HIGHBANKER_SPOT = { x: -2.5, z: -7.4 }; // next to the pile, on the excavator's swing circle
+
     // ---------- The ground: dusty dirt in the middle, grass around it, hills further out ----------
     // How high the ground is at (x, z). The dig site only has tiny bumps (so walking stays flat); hills rise far away.
     function groundHeight(x, z) {
@@ -979,7 +1375,10 @@
     // Is (x, z) too close to something to put a rock or tuft of grass there?
     function crowded(x, z, margin) {
       if (Math.hypot(x - PILE_FULL.x, z - PILE_FULL.z) < PILE_RADIUS + margin) return true; // the pile
-      if (x > 0.5 - margin && x < 11 + margin && z > -9.8 - margin && z < -4 + margin) return true; // the sluice
+      if (x > 0.5 - margin && x < 13 + margin && z > -9.8 - margin && z < -4 + margin) return true; // the sluice
+      if (x > PAD.x1 - margin && x < PAD.x2 + margin && z > PAD.z1 - margin && z < PAD.z2 + margin) return true; // equipment pad
+      if (Math.hypot(x - POND_SPOT.x, z - POND_SPOT.z) < 6.8 + margin) return true;               // the tailing pond
+      if (Math.hypot(x - HIGHBANKER_SPOT.x, z - (HIGHBANKER_SPOT.z + 1.2)) < 2.6 + margin) return true; // the highbanker
       if (Math.abs(x) < 4.5 + margin && z > 5 - margin && z < 10 + margin) return true;          // the shop
       return Math.hypot(x - 0, z + 10) < 3.5 + margin;                                          // the excavator
     }
@@ -1200,7 +1599,7 @@
       pileClods.castShadow = true;
       dirtPile.add(pileClods);
     }
-    makeSign('DIRT', -4, -6);
+    makeSign('DIRT', -5.6, -4.4);
 
     // How big the pile is right now, in meters. It shrinks as it empties, so a nearly empty pile is small.
     function pileSize() {
@@ -1211,26 +1610,31 @@
       };
     }
 
-    // ---------- Sluice box: a tilted trough with water running over the riffles. It looks different at each level. ----------
-    // length/width in meters, riffles = the bars across the trough that catch the gold.
-    const SLUICE_LOOKS = [
-      { length: 4,   width: 1,   riffles: 6,  post: 0.1,  trough: WOOD,        frame: WOOD_DARK, riffle: WOOD_DARK }, // Small: a plain wooden box
-      { length: 5.5, width: 1,   riffles: 10, post: 0.12, trough: WOOD,        frame: WOOD_DARK, riffle: EXC_STEEL, braces: true }, // Long: cross braces
-      { length: 6.5, width: 1.5, riffles: 14, post: 0.16, trough: WOOD_LIGHT,  frame: WOOD_DEEP, riffle: EXC_STEEL, braces: true, rails: true, divider: true }, // Double: two channels
-      { length: 7.5, width: 1.6, riffles: 20, post: 0.18, trough: SLUICE_BLUE, frame: EXC_STEEL, riffle: EXC_STEEL, braces: true, rails: true, divider: true, machine: true }, // Power: steel, hopper and pump
-    ];
-    const WATER_Y = 1.16; // height of the water surface in the trough, just over the tops of the riffles
+    // ---------- Sluice box: a tilted trough with water running over the riffles. Every sluice upgrade changes how it looks. ----------
+    // Its high end (where the dirt goes in) never moves, so the excavator can always reach it; a longer box grows downhill (+x).
+    //   Extended Length = how long it is and what it's made of (wood, braced wood, steel, blue "power" steel)
+    //   Extra Water = how wide it is (two channels from level 6) and how deep the water is
+    //   Mesh = the mat on the bottom, then a metal mesh over the riffles that gets finer every level
+    //   Nozzles = spray bars over the high end, one more nozzle every level
+    //   Higher Pressure = the needle on the pressure gauge (and harder spray)
+    // Pumps, hoses, generators and water tanks stand on the equipment pad next to it: see buildSluiceGear().
+    // Solid things you can't walk through. The rest are added further down (see "Solid things").
+    const solids = [];
+    const SLUICE_TOP = -2; // the high end, measured along the sluice from its middle point (sluice.position)
     const sluice = new THREE.Group();
     const sluiceDirt = new THREE.Mesh(smallHeap, heapMaterial); // shows when dirt is waiting to be washed
     sluiceDirt.position.set(-1.4, 1.05, 0);
     sluiceDirt.visible = false;
     const sluiceSpot = { x: 0, y: 1.3, z: -7, spread: 2 }; // where gold sparkles float up from
     const sluiceEnd = new THREE.Vector3();                 // where the water pours out (for splashes)
-    let sprayBar = null;                                   // the Power Sluice's spray bar (for spray)
+    const sluiceInlets = { header: new THREE.Vector3(), spray: null }; // where the hoses plug in (in the world)
+    let sprayBars = [];      // the spray bars (for the spray effect): { x, width, count }
+    let gaugeNeedle = null;  // the pressure gauge's needle (it wobbles a little while washing)
+    let sluiceWidth = 1;
     sluice.position.set(4.2, 0, -7);
     sluice.rotation.z = -0.08; // slight tilt so the water flows downhill
     scene.add(sluice);
-    makeSign('SLUICE', 5.5, -4.5);
+    makeSign('SLUICE', 0.3, -4.3);
 
     // The water is shared by every sluice level, so animateWater() can make it flow
     const waterTexture = TEX.water;
@@ -1239,114 +1643,159 @@
     const waterMaterial = new THREE.MeshStandardMaterial({ color: 0x2f7fa8, map: waterTexture, transparent: true, opacity: 0.55, roughness: 0.1, envMapIntensity: 0.5, depthWrite: false });
     const fallMaterial = new THREE.MeshStandardMaterial({ color: 0x2f7fa8, map: fallTexture, transparent: true, opacity: 0.4, roughness: 0.1, envMapIntensity: 0.5, side: THREE.DoubleSide, depthWrite: false });
     const foamMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, map: TEX.foam, transparent: true, opacity: 0.5, roughness: 0.4, depthWrite: false });
-    // A puddle and a patch of wet ground where the water runs out
-    const puddle = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshStandardMaterial({ color: 0x5a5448, map: TEX.water, alphaMap: TEX.puddle, transparent: true, opacity: 0.85, roughness: 0.05, envMapIntensity: 0.8, depthWrite: false }));
+    // A patch of wet ground where the water runs out (the flume to the pond catches the water itself)
     const wetGround = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), new THREE.MeshStandardMaterial({ color: 0x2a1c10, alphaMap: TEX.wet, transparent: true, depthWrite: false }));
-    for (const flat of [wetGround, puddle]) {
-      flat.rotation.x = -Math.PI / 2;
-      scene.add(flat);
+    wetGround.rotation.x = -Math.PI / 2;
+    scene.add(wetGround);
+
+    // The mat along the bottom (Mesh upgrade, levels 0 to 12): burlap, rubber, ribbed rubber, moss, thick moss,
+    // then moss, V-mat or carpet under a metal mesh
+    const MAT_COLORS = [0xa89060, 0x2a2a2a, 0x3a3a3a, 0x3d4638, 0x2f5a34, 0x2f5a34, 0x2f5a34, 0x4a3c30, 0x3a4250, 0x3a4250, 0x3a4250, 0x3a4250, 0x3a4250];
+    const matMaterials = MAT_COLORS.map((color) => new THREE.MeshStandardMaterial({ color, map: TEX.moss, roughness: 1 }));
+    // The metal mesh laid over the riffles from Mesh level 5: steel, then stainless, then chrome, then gold at level 12
+    const meshTint = (level) => (level >= 12 ? 0xffc93c : level >= 9 ? 0xdfe6ee : level >= 7 ? 0xa9b3bc : 0x7d7d7d);
+    // A see-through wire mesh, "cells" holes per meter
+    function wireMesh(w, d, cells, color) {
+      const texture = TEX.grid.clone();
+      texture.needsUpdate = true;
+      texture.repeat.set(w * cells, d * cells);
+      const material = new THREE.MeshStandardMaterial({ color, map: texture, alphaTest: 0.5, metalness: 0.8, roughness: 0.35, side: THREE.DoubleSide });
+      const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, d), material);
+      mesh.rotation.x = -Math.PI / 2;
+      return mesh;
     }
 
-    // Throw away the old sluice model and build the one for this level.
-    // The high end (where dirt goes in) stays in the same spot, so upgrades make it longer downhill.
-    function buildSluice(level) {
-      const look = SLUICE_LOOKS[level];
-      const length = look.length, width = look.width;
-      const top = -2;                 // the high end
-      const end = top + length;       // the low end
-      const mid = top + length / 2;   // the middle
-      const channels = look.divider ? [-width / 4, width / 4] : [0];
-      const channelWidth = (look.divider ? width / 2 : width) - 0.1;
+    // Throw away the old sluice model and build it again from the current upgrade levels
+    function buildSluice() {
+      const L = state.levels;
+      const length = toolNow('length').meters;
+      const tier = L.length < 4 ? 0 : L.length < 8 ? 1 : L.length < 12 ? 2 : 3; // wood, braced wood, steel, blue power box
+      const width = L.water < 6 ? 1 + 0.05 * L.water : 1.5 + 0.02 * (L.water - 6);
+      const divider = L.water >= 6; // two channels
+      const riffleCount = Math.round(6 + (length - 4) * 20 / 6); // 6 riffles at 4 m, 26 at 10 m
+      const trough = [WOOD, WOOD_LIGHT, EXC_STEEL, SLUICE_BLUE][tier];
+      const frame = [WOOD_DARK, WOOD_DEEP, EXC_GREY, EXC_STEEL][tier];
+      const riffleColor = tier === 0 ? WOOD_DARK : tier === 3 ? CHROME : EXC_STEEL;
+      const post = 0.1 + 0.03 * tier;
+      const top = SLUICE_TOP, end = top + length, mid = top + length / 2;
+      const channels = divider ? [-width / 4, width / 4] : [0];
+      const channelWidth = (divider ? width / 2 : width) - 0.1;
+      const waterY = 1.16 + 0.004 * L.water; // more water = a deeper sheet of water
+      sluiceWidth = width;
       sluice.clear();
 
       // The trough: bottom, two sides and a back wall (plus a divider that splits it into two channels)
-      sluice.add(box(length, 0.1, width, look.trough, mid, 1, 0));
-      sluice.add(box(length, 0.3, 0.05, look.trough, mid, 1.15, width / 2));
-      sluice.add(box(length, 0.3, 0.05, look.trough, mid, 1.15, -width / 2));
-      sluice.add(box(0.05, 0.3, width, look.trough, top, 1.15, 0));
-      if (look.divider) sluice.add(box(length, 0.3, 0.05, look.trough, mid, 1.15, 0));
+      sluice.add(box(length, 0.1, width, trough, mid, 1, 0));
+      sluice.add(box(length, 0.3, 0.05, trough, mid, 1.15, width / 2));
+      sluice.add(box(length, 0.3, 0.05, trough, mid, 1.15, -width / 2));
+      sluice.add(box(0.05, 0.3, width, trough, top, 1.15, 0));
+      if (divider) sluice.add(box(length, 0.3, 0.05, trough, mid, 1.15, 0));
 
-      // Miner's moss: a ribbed mat along the bottom that catches the fine gold
-      for (const z of channels) sluice.add(box(length - 0.5, 0.012, channelWidth, MOSS, mid + 0.2, 1.056, z));
+      // The mat along the bottom that catches the fine gold (Mesh upgrade)
+      for (const z of channels) sluice.add(box(length - 0.5, 0.012, channelWidth, matMaterials[L.mesh], mid + 0.2, 1.056, z));
 
       // Riffles: bars across the trough, leaning downstream, spread evenly along it
       const riffleXs = [];
-      for (let i = 0; i < look.riffles; i++) {
-        const x = top + 0.5 + i * (length - 0.8) / (look.riffles - 1);
+      for (let i = 0; i < riffleCount; i++) {
+        const x = top + 0.5 + i * (length - 0.8) / (riffleCount - 1);
         riffleXs.push(x);
-        const riffle = box(0.035, 0.1, width - 0.06, look.riffle, x, 1.1, 0);
+        const riffle = box(0.035, 0.1, width - 0.06, riffleColor, x, 1.1, 0);
         riffle.rotation.z = -0.5;
         sluice.add(riffle);
+      }
+      // From Mesh level 5: a metal mesh over the riffles. Every level its holes get smaller and it gets shinier.
+      if (L.mesh >= 5) {
+        for (const z of channels) {
+          const mesh = wireMesh(length - 0.6, channelWidth - 0.02, 3 + (L.mesh - 5) * 1.6, meshTint(L.mesh));
+          mesh.position.set(mid + 0.2, 1.14, z);
+          sluice.add(mesh);
+        }
       }
 
       // Water: a sheet running down each channel, with white foam where it tumbles over each riffle
       for (const z of channels) {
         const sheet = new THREE.Mesh(scaleUVs(new THREE.PlaneGeometry(length - 0.1, channelWidth), (length - 0.1) / 1.5, channelWidth / 1.5), waterMaterial);
         sheet.rotation.x = -Math.PI / 2;
-        sheet.position.set(mid + 0.02, WATER_Y, z);
+        sheet.position.set(mid + 0.02, waterY, z);
         sluice.add(sheet);
-        const foam = riffleXs.map((x) => ({ geometry: new THREE.PlaneGeometry(0.22, channelWidth).rotateX(-Math.PI / 2).translate(x + 0.13, WATER_Y + 0.004, z) }));
+        const foam = riffleXs.map((x) => ({ geometry: new THREE.PlaneGeometry(0.22, channelWidth).rotateX(-Math.PI / 2).translate(x + 0.13, waterY + 0.004, z) }));
         const foamMesh = new THREE.Mesh(mergeShapes(foam), foamMaterial);
         foamMesh.renderOrder = 1; // drawn after the water, so it sits on top
         sluice.add(foamMesh);
       }
-      // ...and pouring out of the low end
-      const fall = new THREE.Mesh(scaleUVs(new THREE.PlaneGeometry(1.1, width - 0.1), 1, (width - 0.1) / 1.5).rotateZ(Math.PI / 2).rotateY(Math.PI / 2), fallMaterial);
-      fall.position.set(end + 0.03, 0.45, 0);
+      // ...and pouring out of the low end into the flume
+      const fall = new THREE.Mesh(scaleUVs(new THREE.PlaneGeometry(0.8, width - 0.1), 1, (width - 0.1) / 1.5).rotateZ(Math.PI / 2).rotateY(Math.PI / 2), fallMaterial);
+      fall.position.set(end + 0.03, 0.62, 0);
       sluice.add(fall);
 
       // Legs: a pair about every 2 meters. They reach a bit below the ground so the tilt never leaves them floating.
       const pairs = Math.round(length / 2) + 1;
-      const legZ = width / 2 - look.post / 2;
+      const legZ = width / 2 - post / 2;
       for (let i = 0; i < pairs; i++) {
         const x = top + 0.2 + i * (length - 0.4) / (pairs - 1);
-        sluice.add(box(look.post, 1.5, look.post, look.frame, x, 0.2, legZ));
-        sluice.add(box(look.post, 1.5, look.post, look.frame, x, 0.2, -legZ));
-        if (look.braces) sluice.add(box(0.06, 0.06, width, look.frame, x, 0.4, 0)); // bar between the two legs
+        sluice.add(box(post, 1.5, post, frame, x, 0.2, legZ));
+        sluice.add(box(post, 1.5, post, frame, x, 0.2, -legZ));
+        if (tier >= 1) sluice.add(box(0.06, 0.06, width, frame, x, 0.4, 0)); // bar between the two legs
       }
-      if (look.braces) { // long bars along each side
-        sluice.add(box(length - 0.4, 0.06, 0.06, look.frame, mid, 0.4, legZ));
-        sluice.add(box(length - 0.4, 0.06, 0.06, look.frame, mid, 0.4, -legZ));
+      if (tier >= 1) { // long bars along each side
+        sluice.add(box(length - 0.4, 0.06, 0.06, frame, mid, 0.4, legZ));
+        sluice.add(box(length - 0.4, 0.06, 0.06, frame, mid, 0.4, -legZ));
       }
-      if (look.rails) { // thick rails along the top edges
-        sluice.add(box(length, 0.08, 0.1, look.frame, mid, 1.32, width / 2));
-        sluice.add(box(length, 0.08, 0.1, look.frame, mid, 1.32, -width / 2));
+      if (tier >= 2) { // thick rails along the top edges
+        sluice.add(box(length, 0.08, 0.1, frame, mid, 1.32, width / 2));
+        sluice.add(box(length, 0.08, 0.1, frame, mid, 1.32, -width / 2));
       }
 
-      sprayBar = null;
-      if (look.machine) {
-        // Hopper: a steel box at the high end that the dirt is dumped into, with a grate of bars on top
-        sluice.add(box(1.4, 0.35, 0.08, look.frame, top + 0.6, 1.4, width / 2));
-        sluice.add(box(1.4, 0.35, 0.08, look.frame, top + 0.6, 1.4, -width / 2));
-        sluice.add(box(0.08, 0.35, width, look.frame, top - 0.1, 1.4, 0));
+      if (tier === 3) {
+        // The blue power box: a steel hopper at the high end with a grate on top, and a yellow safety stripe
+        sluice.add(box(1.4, 0.35, 0.08, frame, top + 0.6, 1.4, width / 2));
+        sluice.add(box(1.4, 0.35, 0.08, frame, top + 0.6, 1.4, -width / 2));
+        sluice.add(box(0.08, 0.35, width, frame, top - 0.1, 1.4, 0));
         for (let i = 0; i < 6; i++) sluice.add(wheel(0.025, width, EXC_STEEL, top + 0.05 + i * 0.24, 1.6, 0));
-        // Water pump on the ground: engine, flywheel and fuel tank, with a pipe up to a spray bar over the hopper
-        const pumpZ = -width / 2 - 0.6;
-        sluice.add(box(0.8, 0.6, 0.6, EXC_YELLOW, top + 0.8, 0.3, pumpZ));
-        sluice.add(cylinder(0.12, 0.3, EXC_DARK, top + 0.8, 0.75, pumpZ));          // motor on top
-        sluice.add(wheel(0.22, 0.06, EXC_DARK, top + 0.8, 0.35, pumpZ - 0.33));    // flywheel
-        const tank = cylinder(0.14, 0.5, 0xb03a2e, top + 0.55, 0.78, pumpZ);        // red fuel tank
-        tank.rotation.z = Math.PI / 2;
-        sluice.add(tank);
-        sluice.add(cylinder(0.05, 1.5, 0x3355aa, top + 1.4, 0.85, pumpZ));          // pipe going up
-        const bar = cylinder(0.05, width + 1.2, 0x3355aa, top + 1.4, 1.6, -0.6);
-        bar.rotation.x = Math.PI / 2; // lay it across the sluice
-        sluice.add(bar);
-        for (let i = 0; i < 5; i++) sluice.add(cylinder(0.02, 0.08, EXC_STEEL, top + 1.4, 1.53, -width / 2 + 0.15 + i * (width - 0.3) / 4)); // nozzles
-        sprayBar = { x: top + 1.4, width };
-        // A yellow safety stripe along the low end
         sluice.add(box(0.1, 0.1, width, EXC_YELLOW, end, 1.2, 0));
+        for (let i = 0; i < pairs; i++) sluice.add(box(0.3, 0.05, 0.02, EXC_YELLOW, top + 0.4 + i * (length - 0.8) / (pairs - 1), 1.2, width / 2 + 0.03));
       } else {
-        // Header box at the high end, fed by a hose from a water barrel
-        sluice.add(box(0.4, 0.35, width + 0.1, look.frame, top - 0.2, 1.3, 0));
-        const barrelZ = width / 2 + 0.6;
-        sluice.add(cylinder(0.3, 1.1, WOOD, top + 0.2, 0.4, barrelZ));
-        for (const y of [0.1, 0.7]) sluice.add(cylinder(0.31, 0.05, EXC_DARK, top + 0.2, y, barrelZ));
-        const hose = new THREE.CatmullRomCurve3([
-          new THREE.Vector3(top + 0.2, 0.95, barrelZ), new THREE.Vector3(top + 0.1, 1.5, barrelZ - 0.2),
-          new THREE.Vector3(top - 0.1, 1.7, width / 2), new THREE.Vector3(top - 0.2, 1.45, 0.1),
-        ]);
-        sluice.add(new THREE.Mesh(new THREE.TubeGeometry(hose, 20, 0.035, 6), materialFor(RUBBER)));
+        // Header box at the high end: the water comes in here
+        sluice.add(box(0.4, 0.35, width + 0.1, frame, top - 0.2, 1.3, 0));
+      }
+      sluice.updateMatrixWorld(true);
+      sluice.localToWorld(sluiceInlets.header.set(top - 0.2, 1.4, width / 2 + 0.06));
+
+      // Spray bars (Nozzles): one bar at levels 1-5, two from level 6. Brass nozzles, chrome from 7, gold tips at 12.
+      sprayBars = [];
+      sluiceInlets.spray = null;
+      gaugeNeedle = null;
+      if (L.nozzles >= 1) {
+        const count = toolNow('nozzles').count;
+        const bars = L.nozzles >= 6 ? 2 : 1;
+        const nozzleColor = L.nozzles >= 12 ? GOLD_METAL : L.nozzles >= 7 ? CHROME : BRASS;
+        const pipeColor = L.pressure >= 12 ? CHROME : 0x3355aa;
+        for (let b = 0; b < bars; b++) {
+          const x = top + 0.9 + b * 0.7;
+          const n = b === 0 ? Math.ceil(count / bars) : Math.floor(count / bars);
+          const bar = cylinder(0.04, width + 0.3, pipeColor, x, 1.68, 0);
+          bar.rotation.x = Math.PI / 2; // lay it across the sluice
+          sluice.add(bar);
+          for (const z of [-1, 1]) sluice.add(box(0.05, 0.4, 0.05, frame, x, 1.5, z * (width / 2 + 0.1)));
+          for (let i = 0; i < n; i++) sluice.add(cylinder(0.022, 0.09, nozzleColor, x, 1.6, -width / 2 + 0.08 + i * (width - 0.16) / Math.max(1, n - 1)));
+          sprayBars.push({ x, width, count: n });
+        }
+        sluiceInlets.spray = sluice.localToWorld(new THREE.Vector3(top + 0.9, 1.68, width / 2 + 0.18));
+
+        // Pressure gauge on the end of the first spray bar: the needle points higher with every pressure level
+        const gauge = new THREE.Group();
+        gauge.position.set(top + 0.9, 1.9, width / 2 + 0.2);
+        gauge.add(wheel(0.1, 0.03, BRASS, 0, 0, 0));
+        gauge.add(wheel(0.085, 0.035, 0xf4f0e6, 0, 0, 0.002));
+        gauge.add(cylinder(0.02, 0.2, pipeColor, 0, -0.12, 0));
+        const psi = toolNow('pressure').psi;
+        gaugeNeedle = new THREE.Group();
+        gaugeNeedle.position.z = 0.022;
+        gaugeNeedle.add(box(0.008, 0.07, 0.006, 0xb01e1e, 0, 0.03, 0));
+        gaugeNeedle.userData.angle = 2.3 - 4.6 * (psi - 10) / 110; // 10 psi = far left, 120 psi = far right
+        gaugeNeedle.rotation.z = gaugeNeedle.userData.angle;
+        gauge.add(gaugeNeedle);
+        sluice.add(gauge);
       }
 
       sluice.add(sluiceDirt);
@@ -1355,15 +1804,582 @@
       // Gold sparkles float up along the whole trough
       sluiceSpot.x = sluice.position.x + mid;
       sluiceSpot.spread = length * 0.8;
-      // The puddle and wet ground sit where the water pours out
-      sluice.updateMatrixWorld(true);
+      // The wet ground sits where the water pours out
       sluice.localToWorld(sluiceEnd.set(end + 0.08, 0.05, 0));
-      puddle.position.set(sluiceEnd.x + 0.4, 0.047, sluice.position.z);
-      puddle.scale.set(0.7 + width * 0.3, 0.5 + width * 0.3, 1);
       wetGround.position.set(sluiceEnd.x + 0.3, 0.043, sluice.position.z);
       wetGround.scale.set(1.6 + width * 0.5, 1.1 + width * 0.5, 1);
     }
-    buildSluice(state.levels.sluice);
+
+    // A hose: a bendy tube through some points. radius and colour come from the Hoses upgrade.
+    function hose(points, radius, color) {
+      const curve = new THREE.CatmullRomCurve3(points);
+      return new THREE.Mesh(new THREE.TubeGeometry(curve, Math.max(12, Math.round(curve.getLength() * 6)), radius, 6), materialFor(color));
+    }
+    // A hose from a to b that lies along the ground in between
+    function groundHose(a, b, radius, color) {
+      const along = (t, y) => new THREE.Vector3(a.x + (b.x - a.x) * t, y, a.z + (b.z - a.z) * t);
+      return hose([a, along(0.12, radius + 0.02), along(0.5, radius + 0.01), along(0.88, radius + 0.02), b], radius, color);
+    }
+
+    // ---------- Tailing pond: the used water and mud from the sluice flow into it ----------
+    // It catches some of the fine gold the sluice misses (on the filters: walk up and press E to collect it).
+    // It slowly fills with mud; when it's full the sluice slows down. Pond Size = how big it is (and its bank),
+    // Filters = what's at the inlet catching gold (one more thing every level).
+    const pond = new THREE.Group();
+    pond.position.set(POND_SPOT.x, 0, POND_SPOT.z);
+    scene.add(pond);
+    const flume = new THREE.Group(); // the wooden channel from the sluice's low end to the pond
+    scene.add(flume);
+    const pondWaterTexture = TEX.water.clone();
+    pondWaterTexture.needsUpdate = true;
+    const CLEAR_POND = new THREE.Color(0x3d7f96), MUDDY_POND = new THREE.Color(0x7a5a38);
+    const pondWaterMaterial = new THREE.MeshStandardMaterial({ color: CLEAR_POND, map: pondWaterTexture, transparent: true, opacity: 0.88, roughness: 0.06, envMapIntensity: 0.9, depthWrite: false });
+    const siltMaterial = new THREE.MeshStandardMaterial({ color: 0x9a7a58, map: TEX.dirt, bumpMap: TEX.dirtBump, roughness: 1 });
+    const STRAW = 0xd8b860;
+    const pondCircle = { circle: true, x: POND_SPOT.x, z: POND_SPOT.z, radius: 3 }; // you can't walk into the pond
+    const pondInlet = new THREE.Vector3();  // where the flume pours in
+    const pondFilters = { x: 0, y: 0.45, z: POND_SPOT.z, spread: 1.4 }; // where the gold twinkles on the filters
+    let pondSilt = null, pondRadius = 2.5;
+
+    function buildPond() {
+      const size = state.levels.pondSize, filters = state.levels.filters;
+      const R = toolNow('pondSize').radius;
+      pondRadius = R;
+      pond.clear();
+
+      // The earth bank around the water: higher on bigger ponds
+      const bankHeight = 0.35 + 0.03 * size;
+      const profile = [[R - 0.3, 0.02], [R + 0.1, bankHeight], [R + 0.5, bankHeight * 0.95], [R + 1.1, 0]].map(([r, y]) => new THREE.Vector2(r, y));
+      pond.add(new THREE.Mesh(new THREE.LatheGeometry(profile, 56), materialFor(DIRT_COLOR)));
+      const bottom = new THREE.Mesh(new THREE.CircleGeometry(R, 48), materialFor(0x3a2a1a));
+      bottom.rotation.x = -Math.PI / 2;
+      bottom.position.y = 0.05;
+      pond.add(bottom);
+      const water = new THREE.Mesh(new THREE.CircleGeometry(R + 0.02, 56), pondWaterMaterial);
+      water.rotation.x = -Math.PI / 2;
+      water.position.y = 0.24;
+      pondWaterTexture.repeat.setScalar(R / 2);
+      pond.add(water);
+
+      // Mud settling in the pond: a "beach" of silt near the inlet that rises as the pond fills (see updatePond)
+      pondSilt = new THREE.Mesh(smallHeap, siltMaterial);
+      pondSilt.position.set(-R * 0.45, 0.05, 0);
+      pond.add(pondSilt);
+
+      // The edge changes with the size: a black plastic liner (4-7), rocks (8-10), a concrete spillway (11), a stone wall (12)
+      if (size >= 4 && size < 8) {
+        const liner = new THREE.Mesh(new THREE.TorusGeometry(R + 0.05, 0.06, 6, 56), materialFor(RUBBER));
+        liner.rotation.x = Math.PI / 2;
+        liner.position.y = 0.27;
+        pond.add(liner);
+      }
+      if (size >= 8) {
+        const count = Math.round(R * 9);
+        const rocks = new THREE.InstancedMesh(makeRockGeometry(4), new THREE.MeshStandardMaterial({ color: 0x8f877c, map: TEX.ground, roughness: 0.95, flatShading: true }), count);
+        const place = new THREE.Object3D();
+        for (let i = 0; i < count; i++) {
+          const angle = i / count * Math.PI * 2;
+          place.position.set(Math.cos(angle) * (R + 0.05), 0.28, Math.sin(angle) * (R + 0.05));
+          place.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3));
+          place.scale.setScalar(rand(0.18, 0.3));
+          place.updateMatrix();
+          rocks.setMatrixAt(i, place.matrix);
+        }
+        pond.add(rocks);
+      }
+      if (size >= 11) { // concrete spillway on the far side, where extra water can run off
+        pond.add(box(1.4, 0.12, 0.9, 0xa8a49a, R + 0.5, bankHeight - 0.05, 0));
+        for (const z of [-0.5, 0.5]) pond.add(box(1.4, 0.3, 0.1, 0xa8a49a, R + 0.5, bankHeight + 0.08, z));
+      }
+      if (size >= 12) { // a stone wall all the way round, with gold caps on the corner posts
+        const blocks = Math.round(R * 7);
+        for (let i = 0; i < blocks; i++) {
+          const angle = i / blocks * Math.PI * 2;
+          if (Math.abs(Math.sin(angle)) < 0.15 && Math.cos(angle) < 0) continue; // gap for the flume
+          const block = box(0.5, 0.45, 0.3, 0x9a9488, Math.cos(angle) * (R + 0.6), bankHeight + 0.15, Math.sin(angle) * (R + 0.6));
+          block.rotation.y = -angle + Math.PI / 2;
+          pond.add(block);
+          if (i % 6 === 0) pond.add(box(0.2, 0.08, 0.2, GOLD_METAL, Math.cos(angle) * (R + 0.6), bankHeight + 0.42, Math.sin(angle) * (R + 0.6)));
+        }
+      }
+
+      // Filters at the inlet (the side closest to the sluice, -x). Every level adds one more thing.
+      const ix = -R; // the inlet edge
+      const bale = (x, z, angle) => {
+        const b = box(0.9, 0.4, 0.45, STRAW, x, 0.28, z);
+        b.rotation.y = angle;
+        pond.add(b);
+        for (const dx of [-0.25, 0.25]) { // twine around the bale
+          const twine = box(0.02, 0.41, 0.46, 0x6a5020, x + Math.cos(angle) * dx, 0.28, z - Math.sin(angle) * dx);
+          twine.rotation.y = angle;
+          pond.add(twine);
+        }
+      };
+      const riffleFlume = (z) => { // a short steel flume with riffles, where the water comes in
+        pond.add(box(1.1, 0.06, 0.5, EXC_STEEL, ix + 0.35, 0.3, z));
+        for (const side of [-0.25, 0.25]) pond.add(box(1.1, 0.16, 0.03, EXC_STEEL, ix + 0.35, 0.37, z + side));
+        for (let i = 0; i < 5; i++) pond.add(box(0.03, 0.06, 0.48, CHROME, ix - 0.1 + i * 0.2, 0.35, z));
+        pond.add(box(0.9, 0.012, 0.46, matMaterials[4], ix + 0.35, 0.335, z));
+      };
+      bale(ix + 0.7, 0.75, 0.2);                                             // 0: a straw bale
+      if (filters >= 1) bale(ix + 0.7, -0.75, -0.2);                        // 1: a second bale
+      if (filters >= 2) {                                                  // 2: a silt fence across the inlet
+        for (let i = 0; i <= 4; i++) {
+          const angle = -0.9 + i * 0.45, r = 1.5;
+          pond.add(box(0.06, 0.7, 0.06, WOOD_DARK, ix + Math.cos(angle) * r, 0.3, Math.sin(angle) * r));
+          if (i < 4) {
+            const a2 = angle + 0.45;
+            const x1 = ix + Math.cos(angle) * r, z1 = Math.sin(angle) * r, x2 = ix + Math.cos(a2) * r, z2 = Math.sin(a2) * r;
+            const fabric = box(Math.hypot(x2 - x1, z2 - z1), 0.45, 0.02, 0x2a2a2a, (x1 + x2) / 2, 0.38, (z1 + z2) / 2);
+            fabric.rotation.y = -Math.atan2(z2 - z1, x2 - x1);
+            pond.add(fabric);
+          }
+        }
+      }
+      if (filters >= 3) riffleFlume(0);                                     // 3: a riffle flume at the inlet
+      if (filters >= 4) {                                                  // 4: green moss mats on the bank
+        for (const angle of [2.4, 2.75, 3.55, 3.9]) {
+          const mat = box(0.7, 0.03, 0.5, matMaterials[4], Math.cos(angle) * (R - 0.15), 0.27, Math.sin(angle) * (R - 0.15));
+          mat.rotation.y = -angle;
+          pond.add(mat);
+        }
+      }
+      if (filters >= 5) {                                                  // 5: a gravel filter bank
+        const gravel = new THREE.Mesh(smallHeap, new THREE.MeshStandardMaterial({ color: 0x9a948a, map: TEX.ground, roughness: 1 }));
+        gravel.position.set(ix + 1.9, 0.08, 0);
+        gravel.scale.set(0.35, 0.3, 1.1);
+        pond.add(gravel);
+      }
+      if (filters >= 6) riffleFlume(0.6);                                   // 6: a second riffle flume
+      if (filters >= 7) {                                                  // 7: a wooden settling baffle across the pond
+        pond.add(box(0.08, 0.5, R * 1.2, WOOD_DARK, 0.2, 0.3, 0));
+        for (const z of [-R * 0.6, R * 0.6]) pond.add(box(0.12, 0.8, 0.12, WOOD_DARK, 0.2, 0.3, z));
+      }
+      if (filters >= 8) {                                                  // 8: a carpet filter mat on the inlet side
+        const carpet = box(1.2, 0.03, 0.9, 0x3a4250, ix + 0.4, 0.33, -1.2);
+        carpet.rotation.y = 0.3;
+        pond.add(carpet);
+      }
+      if (filters >= 9) {                                                  // 9: a floating boom of yellow floats
+        for (let i = 0; i < 9; i++) {
+          const z = -R * 0.7 + i * R * 1.4 / 8;
+          pond.add(wheel(0.09, 0.22, EXC_YELLOW, R * 0.45, 0.26, z));
+        }
+      }
+      if (filters >= 10) {                                                 // 10: a floating skimmer box
+        pond.add(box(0.6, 0.18, 0.6, EXC_STEEL, R * 0.2, 0.28, R * 0.45));
+        pond.add(box(0.5, 0.02, 0.5, 0x222222, R * 0.2, 0.375, R * 0.45));
+      }
+      if (filters >= 11) {                                                 // 11: a pump-back line: a pump on the bank and a pipe
+        pond.add(box(0.5, 0.35, 0.35, 0x2f6db5, 0, bankHeight + 0.15, R + 0.45));
+        pond.add(groundHose(new THREE.Vector3(0, bankHeight + 0.2, R + 0.3), new THREE.Vector3(0, 0.22, R * 0.4), 0.05, RUBBER));
+      }
+      if (filters >= 12) {                                                 // 12: a little filter house with gold trim
+        const house = new THREE.Group();
+        house.position.set(ix + 0.3, 0, -R - 0.9);
+        house.add(box(1.2, 1.1, 1, WOOD_LIGHT, 0, 0.55, 0));
+        const roof = box(1.4, 0.06, 1.2, WOOD_DEEP, 0, 1.18, 0);
+        roof.rotation.x = 0.15;
+        house.add(roof);
+        house.add(box(1.22, 0.06, 1.02, GOLD_METAL, 0, 1.08, 0));
+        house.add(box(0.4, 0.7, 0.02, WOOD_DEEP, 0, 0.35, 0.51));
+        pond.add(house);
+      }
+      addShadows(pond);
+      pondCircle.radius = R + 0.5;
+      pondInlet.set(POND_SPOT.x + ix - 0.4, 0.35, POND_SPOT.z);
+      pondFilters.x = POND_SPOT.x + ix + 0.9;
+      pondFilters.spread = 1.2 + filters * 0.1;
+      buildFlume();
+    }
+
+    // The wooden flume from the sluice's low end to the pond (shorter when the sluice is longer)
+    function buildFlume() {
+      flume.clear();
+      const x1 = sluiceEnd.x - 0.35, x2 = pondInlet.x + 0.6;
+      const length = Math.max(0.4, x2 - x1), mid = (x1 + x2) / 2;
+      const width = Math.min(1.2, sluiceWidth);
+      flume.position.set(mid, 0, POND_SPOT.z);
+      flume.rotation.z = -0.04;
+      flume.add(box(length, 0.05, width, WOOD, 0, 0.28, 0));
+      for (const z of [-width / 2, width / 2]) flume.add(box(length, 0.2, 0.04, WOOD, 0, 0.36, z));
+      const water = new THREE.Mesh(scaleUVs(new THREE.PlaneGeometry(length, width - 0.06), length / 1.5, 1), waterMaterial);
+      water.rotation.x = -Math.PI / 2;
+      water.position.y = 0.33;
+      flume.add(water);
+      for (let x = -length / 2 + 0.2; x < length / 2; x += 1.2) {
+        for (const z of [-width / 2, width / 2]) flume.add(box(0.07, 0.35, 0.07, WOOD_DARK, x, 0.15, z));
+      }
+      addShadows(flume);
+    }
+
+    // ---------- Equipment pad: water tanks, pumps, generators and hoses, on gravel next to the sluice ----------
+    const gear = new THREE.Group();
+    scene.add(gear);
+    let gearSolids = [];        // the machines on the pad, so you can't walk through them
+    let flywheels = [];         // pump flywheels (they spin while the sluice is washing)
+    let generatorStacks = [];   // where the generators' exhaust comes out
+    let pumpSpots = [], generatorSpots = []; // for the sounds
+
+    const TANK_STEEL = 0xa7aeb5; // plain light grey steel for the big water tanks
+    const PUMP_COLORS = [0xb03a2e, 0xd8702a, EXC_YELLOW, SLUICE_BLUE]; // 1 pump = red, 2 = orange, 3 = yellow, 4 = blue
+    const hoseColor = (level) => (level >= 10 ? 0xb8c0c8 : level >= 7 ? 0x2f5fb0 : level >= 4 ? RUBBER : 0x2e7d32);
+
+    // A pump: motor, pump housing, flywheel and an outlet pipe, on a skid. "s" = size.
+    function makePump(color, s) {
+      const pump = new THREE.Group();
+      pump.add(box(0.95, 0.08, 0.5, EXC_DARK, 0, 0.04, 0));
+      const motor = cylinder(0.17, 0.5, color, -0.15, 0.3, 0);
+      motor.rotation.z = Math.PI / 2;
+      pump.add(motor);
+      pump.add(box(0.08, 0.36, 0.36, color, -0.43, 0.26, 0));
+      pump.add(wheel(0.2, 0.2, EXC_GREY, 0.25, 0.3, 0));
+      pump.add(cylinder(0.05, 0.4, EXC_STEEL, 0.25, 0.6, 0));
+      const fly = new THREE.Group(); // the flywheel spins, so it's in its own group
+      fly.position.set(-0.15, 0.3, 0.28);
+      fly.add(wheel(0.16, 0.04, EXC_DARK, 0, 0, 0));
+      fly.add(box(0.3, 0.04, 0.05, EXC_STEEL, 0, 0, 0.02));
+      pump.add(fly);
+      flywheels.push(fly);
+      pump.scale.setScalar(s);
+      return pump;
+    }
+
+    // A generator. style 0 = small portable, 1 = open frame, 2 = enclosed genset, 3 = genset on a trailer
+    function makeGenerator(style, s) {
+      const g = new THREE.Group();
+      const stack = new THREE.Object3D();
+      if (style <= 1) {
+        const w = style ? 0.9 : 0.65, h = style ? 0.6 : 0.45;
+        g.add(box(w * 0.8, h * 0.8, 0.45, style ? EXC_YELLOW : 0xc0392b, 0, h * 0.5, 0));
+        g.add(box(w * 0.5, 0.18, 0.35, style ? EXC_YELLOW : 0xc0392b, 0, h + 0.05, 0));  // fuel tank on top
+        for (const x of [-w / 2, w / 2]) for (const z of [-0.25, 0.25]) g.add(box(0.04, h + 0.2, 0.04, EXC_DARK, x, (h + 0.2) / 2, z)); // tube frame
+        for (const z of [-0.25, 0.25]) g.add(box(w, 0.04, 0.04, EXC_DARK, 0, h + 0.2, z));
+        g.add(cylinder(0.03, 0.2, EXC_DARK, -w * 0.3, h * 0.6, 0.27));
+        stack.position.set(-w * 0.3, h * 0.6, 0.35);
+      } else {
+        const w = style === 3 ? 1.6 : 1.2, h = style === 3 ? 1 : 0.8, d = style === 3 ? 0.9 : 0.7;
+        const lift = style === 3 ? 0.45 : 0;
+        if (style === 3) { // trailer: frame, two wheels and a tow bar
+          g.add(box(w + 0.2, 0.1, d + 0.1, EXC_DARK, 0, 0.35, 0));
+          for (const z of [-d / 2 - 0.12, d / 2 + 0.12]) g.add(wheel(0.28, 0.14, RUBBER, 0, 0.28, z));
+          g.add(box(0.8, 0.06, 0.06, EXC_DARK, w / 2 + 0.45, 0.35, 0));
+        }
+        g.add(box(w, h, d, EXC_YELLOW, 0, lift + h / 2, 0));
+        for (let i = 0; i < 5; i++) g.add(box(0.02, h * 0.6, 0.5, EXC_DARK, -w / 2 + 0.2 + i * 0.1, lift + h / 2, d / 2 + 0.005)); // vents
+        g.add(box(w + 0.02, 0.06, d + 0.02, EXC_DARK, 0, lift + 0.03, 0));
+        g.add(cylinder(0.05, 0.35, EXC_DARK, w / 2 - 0.25, lift + h + 0.17, 0));
+        stack.position.set(w / 2 - 0.25, lift + h + 0.35, 0);
+      }
+      g.add(stack);
+      g.userData.stack = stack;
+      g.scale.setScalar(s);
+      return g;
+    }
+
+    // Throw away the old pad and build it again from the current Extra Water, Pumps, Hoses, Generators and Pressure levels
+    function buildSluiceGear() {
+      const L = state.levels;
+      gear.clear();
+      flywheels = [];
+      generatorStacks = [];
+      pumpSpots = [];
+      generatorSpots = [];
+      const machines = []; // each one gets its own collision box
+      const hoseRadius = 0.03 + 0.005 * L.hoses;
+      const hoseTint = hoseColor(L.hoses);
+      const fittings = L.hoses >= 12 ? GOLD_METAL : L.hoses >= 4 ? BRASS : 0;
+      const addHose = (mesh, a, b) => {
+        gear.add(mesh);
+        if (fittings) for (const p of [a, b]) gear.add(cylinder(hoseRadius * 1.5, 0.08, fittings, p.x, p.y, p.z));
+      };
+
+      // The gravel pad
+      const padMaterial = new THREE.MeshStandardMaterial({ color: 0x6f675c, map: TEX.ground, roughness: 1 });
+      const pad = box(PAD.x2 - PAD.x1, 0.05, PAD.z2 - PAD.z1, padMaterial, (PAD.x1 + PAD.x2) / 2, 0.025, (PAD.z1 + PAD.z2) / 2);
+      pad.receiveShadow = true;
+      gear.add(pad);
+
+      // Water tanks (Extra Water): barrel, bigger barrel, two barrels, a caged tote, big tanks, steel tanks
+      const tanks = new THREE.Group();
+      tanks.position.set(5.6, 0.05, -4.3);
+      const w = L.water;
+      const barrel = (x, z, s) => {
+        tanks.add(cylinder(0.3 * s, 1.1 * s, WOOD, x, 0.55 * s, z));
+        for (const y of [0.15, 0.95]) tanks.add(cylinder(0.31 * s, 0.05, EXC_DARK, x, y * s, z));
+      };
+      const tote = (x, z, s) => {
+        tanks.add(box(1.1 * s, 0.12, 1.1 * s, WOOD, x, 0.06, z));
+        tanks.add(box(0.95 * s, 0.95 * s, 0.95 * s, new THREE.MeshStandardMaterial({ color: 0xe8ecef, transparent: true, opacity: 0.8, roughness: 0.3 }), x, 0.6 * s, z));
+        for (let i = 0; i < 4; i++) tanks.add(box(1 * s, 0.03, 0.03, EXC_STEEL, x, 0.2 * s + i * 0.28 * s, z + 0.5 * s));
+        for (const dx of [-0.5, 0.5]) for (const dz of [-0.5, 0.5]) tanks.add(box(0.03, 1.05 * s, 0.03, EXC_STEEL, x + dx * s, 0.6 * s, z + dz * s));
+      };
+      const bigTank = (x, z, r, h, color, band) => {
+        tanks.add(cylinder(r, h, color, x, h / 2, z));
+        tanks.add(cylinder(r * 1.01, 0.06, band, x, h * 0.3, z));
+        tanks.add(cylinder(r * 1.01, 0.06, band, x, h * 0.75, z));
+        tanks.add(cylinder(r * 0.3, 0.12, EXC_DARK, x, h + 0.06, z));
+      };
+      if (w <= 1) barrel(0, 0, w ? 1.2 : 1);
+      else if (w <= 3) { barrel(-0.35, 0, w === 3 ? 1.2 : 1); barrel(0.35, 0.1, w === 3 ? 1.2 : 1); }
+      else if (w <= 5) tote(0, 0, w === 5 ? 1.2 : 1);
+      else if (w === 6) { tote(-0.3, 0, 1.2); barrel(0.7, 0.5, 1.2); }
+      else if (w <= 8) bigTank(0, 0, w === 8 ? 0.8 : 0.7, w === 8 ? 1.8 : 1.6, 0x2f5a34, 0x24442a);
+      else if (w <= 10) {
+        bigTank(0, 0, w === 10 ? 0.9 : 0.8, w === 10 ? 2.2 : 2, TANK_STEEL, EXC_GREY);
+        if (w === 10) for (let i = 0; i < 7; i++) tanks.add(box(0.3, 0.03, 0.03, EXC_DARK, 0, 0.3 + i * 0.28, -0.93)); // ladder
+      } else if (w === 11) { bigTank(-0.4, 0, 0.7, 2, TANK_STEEL, EXC_GREY); bigTank(0.6, 0.3, 0.6, 2, TANK_STEEL, EXC_GREY); }
+      else bigTank(0, 0, 1.05, 2.4, TANK_STEEL, GOLD_METAL);
+      gear.add(tanks);
+      machines.push(tanks);
+      // A hose from the tank to the header box at the top of the sluice
+      const tankOut = new THREE.Vector3(5.2, 0.35, -4.9);
+      addHose(groundHose(tankOut, sluiceInlets.header, hoseRadius, hoseTint), tankOut, sluiceInlets.header);
+
+      // Pumps: 1 at levels 1-3, 2 at 4-6, 3 at 7-9, 4 at 10-12. Each level in a group makes them a bit bigger.
+      const p = L.pumps;
+      const pumpCount = toolNow('pumps').count;
+      const pumpSize = p ? 0.85 + ((p - 1) % 3) * 0.12 + Math.floor((p - 1) / 3) * 0.05 : 0;
+      const target = sluiceInlets.spray || sluiceInlets.header; // the spray bar if there is one, else the header box
+      for (let i = 0; i < pumpCount; i++) {
+        const pump = makePump(PUMP_COLORS[pumpCount - 1], pumpSize);
+        pump.position.set(7.4 + i * 1.3, 0.05, -5.0);
+        gear.add(pump);
+        machines.push(pump);
+        pumpSpots.push(pump.position);
+        // Its hose (two from Hoses level 6) up to the sluice, and a suction hose from the pond (the water gets used again)
+        const out = new THREE.Vector3(pump.position.x + 0.25 * pumpSize, 0.05 + 0.8 * pumpSize, pump.position.z);
+        for (let run = 0; run < (L.hoses >= 6 ? 2 : 1); run++) {
+          const end = target.clone().add(new THREE.Vector3(-run * 0.12, 0, i * 0.05));
+          addHose(groundHose(out.clone().add(new THREE.Vector3(0, 0, run * 0.1)), end, hoseRadius, hoseTint), out, end);
+        }
+        const suction = new THREE.Vector3(pump.position.x + 0.45 * pumpSize, 0.05 + 0.3 * pumpSize, pump.position.z);
+        const inPond = new THREE.Vector3(POND_SPOT.x - pondRadius * 0.3, 0.2, POND_SPOT.z + pondRadius * 0.55 + i * 0.2);
+        addHose(groundHose(suction, inPond, hoseRadius * 1.2, hoseTint), suction, inPond);
+      }
+
+      // Generators: 1 at levels 1-5, 2 at 6-10, 3 at 11-12. They get bigger (and a different kind) as they level up.
+      const g = L.generators;
+      const genCount = toolNow('generators').count;
+      for (let i = 0; i < genCount; i++) {
+        let style = g <= 3 ? 0 : g <= 5 ? 1 : 2;
+        if ((g >= 10 && i === 0) || g >= 12) style = 3; // trailer gensets
+        const size = style <= 1 ? 1 + ((g - 1) % 3) * 0.12 : style === 3 ? 0.75 + (g - 10) * 0.04 : 0.8 + (g - 6) * 0.03;
+        const generator = makeGenerator(style, size);
+        generator.position.set(7.4 + i * 2.1, 0.05, -3.75);
+        gear.add(generator);
+        machines.push(generator);
+        generatorStacks.push(generator.userData.stack);
+        generatorSpots.push(generator.position);
+        // A power cable to each pump (they share the generators)
+        for (let j = i; j < pumpCount; j += genCount) {
+          const a = new THREE.Vector3(generator.position.x, 0.2, generator.position.z - 0.3);
+          const b = new THREE.Vector3(7.4 + j * 1.3 - 0.4 * pumpSize, 0.25, -5.0);
+          gear.add(groundHose(a, b, 0.018, 0x111111));
+        }
+      }
+
+      // Higher Pressure: a red pressure tank from level 4 (bigger every level), a valve manifold from 8, chrome at 12
+      const pr = L.pressure;
+      if (pr >= 4) {
+        const r = 0.22 + 0.025 * (pr - 4), h = 0.8 + 0.06 * (pr - 4);
+        const tank = new THREE.Group();
+        tank.position.set(12.4, 0.05, -5.0);
+        tank.add(cylinder(r, h, pr >= 12 ? CHROME : 0xb01e1e, 0, h / 2 + 0.1, 0));
+        tank.add(new THREE.Mesh(new THREE.SphereGeometry(r, 16, 8), materialFor(pr >= 12 ? CHROME : 0xb01e1e)).translateY(h + 0.1));
+        for (const dx of [-1, 1]) tank.add(box(0.05, 0.2, 0.05, EXC_DARK, dx * r * 0.7, 0.1, 0));
+        tank.add(wheel(0.07, 0.03, 0xf4f0e6, 0, h * 0.6, r + 0.01));
+        gear.add(tank);
+        machines.push(tank);
+      }
+      if (pr >= 8) {
+        const manifold = cylinder(0.07, 5, pr >= 12 ? CHROME : EXC_STEEL, 9.6, 0.55, -5.6);
+        manifold.rotation.z = Math.PI / 2;
+        gear.add(manifold);
+        for (let i = 0; i < 4; i++) {
+          gear.add(cylinder(0.04, 0.3, EXC_STEEL, 7.6 + i * 1.3, 0.72, -5.6));
+          gear.add(wheel(0.08, 0.02, 0xc0392b, 7.6 + i * 1.3, 0.9, -5.6));
+        }
+      }
+
+      addShadows(gear);
+      // Collision boxes for the machines (rebuilt every time)
+      for (const solid of gearSolids) {
+        const index = solids.indexOf(solid);
+        if (index !== -1) solids.splice(index, 1);
+      }
+      gearSolids = machines.map((machine) => boundsOf(machine));
+      solids.push(...gearSolids);
+    }
+
+    // ---------- Classifier Screen: sits next to the sluice's high end and screens out the rocks ----------
+    // The dirt goes over the screen, the fine part drops down a chute into the sluice and the rocks roll off onto a rock pile.
+    // Every level changes it: bigger, then a double screen, punch plate, rockers, shaking, two decks, a motor,
+    // grizzly bars, then a spinning drum (trommel).
+    const classifier = new THREE.Group();
+    classifier.position.set(2.9, 0, -5.35);
+    scene.add(classifier);
+    const rockPile = new THREE.Mesh(makeHeapGeometry(8, 24, 0.4, 9), new THREE.MeshStandardMaterial({ color: 0xa39c90, map: TEX.ground, bumpMap: TEX.groundBump, bumpScale: 3, roughness: 1, flatShading: true }));
+    rockPile.position.set(2.7, 0, -3.6);
+    scene.add(rockPile);
+    const rockCircle = { circle: true, x: 2.7, z: -3.6, radius: 0 }; // the rock pile is solid too, once it's there
+    let classifierParts = { deck: null, drum: null, shakes: false };
+
+    function buildClassifier() {
+      const c = state.levels.classifier;
+      classifier.clear();
+      classifier.visible = rockPile.visible = c > 0;
+      classifierParts = { deck: null, drum: null, shakes: c >= 6 && c <= 10 };
+      if (!c) return;
+      const frame = c < 4 ? WOOD_DARK : c < 8 ? EXC_GREY : EXC_STEEL;
+      const w = 0.8 + 0.05 * c, d = 0.9 + 0.05 * c, h = 1.55 + 0.03 * c;
+      // Legs (on rockers from level 5)
+      for (const x of [-w / 2, w / 2]) for (const z of [-d / 2, d / 2]) classifier.add(box(0.07, h, 0.07, frame, x, h / 2, z));
+      if (c >= 5 && c <= 10) for (const x of [-w / 2, w / 2]) {
+        const rocker = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.06, 16, 1, false, 0, Math.PI), materialFor(frame));
+        rocker.rotation.set(Math.PI / 2, 0, Math.PI / 2);
+        rocker.position.set(x, 0.02, 0);
+        classifier.add(rocker);
+      }
+      // The chute that takes the fine dirt down into the sluice (towards -z)
+      const chute = box(0.5, 0.04, 1.2, frame, 0, h - 0.35, -d / 2 - 0.3);
+      chute.rotation.x = -0.45;
+      classifier.add(chute);
+
+      if (c <= 10) {
+        // A sloping screen deck: its low edge is on the rock pile side (+z), so the rocks roll off
+        const deck = new THREE.Group();
+        deck.position.set(0, h, 0);
+        deck.rotation.x = 0.35;
+        const holes = c === 4 ? 5 : 7 - c * 0.3;             // punch plate at level 4 has round-ish holes
+        const screen = wireMesh(w, d, holes, c === 4 ? 0x555555 : c >= 8 ? 0xa9b3bc : 0x7d7d7d);
+        deck.add(screen);
+        for (const x of [-w / 2, w / 2]) deck.add(box(0.05, 0.14, d, frame, x, 0.05, 0));
+        deck.add(box(w, 0.14, 0.05, frame, 0, 0.05, -d / 2));
+        if (c >= 3) { const second = wireMesh(w, d, holes * 1.6, 0x9a9a9a); second.position.y = -0.12; deck.add(second); } // double screen
+        if (c >= 7) { const upper = wireMesh(w, d, holes * 0.6, 0x7d7d7d); upper.position.y = 0.2; deck.add(upper); }    // two decks
+        if (c >= 9) for (let i = 0; i < 6; i++) deck.add(box(0.03, 0.03, d, CHROME, -w / 2 + 0.1 + i * (w - 0.2) / 5, 0.32, 0)); // grizzly bars
+        classifier.add(deck);
+        classifierParts.deck = deck;
+        if (c >= 8) { // vibrating motor on the side (bigger for the power shaker)
+          classifier.add(box(0.25, 0.25, 0.3 + (c >= 10 ? 0.15 : 0), c >= 10 ? SLUICE_BLUE : 0x2e6b3a, w / 2 + 0.2, h - 0.2, 0));
+          classifier.add(wheel(0.08, 0.05, EXC_DARK, w / 2 + 0.2, h - 0.2, 0.2));
+        }
+      } else {
+        // Trommel: a spinning drum with holes, on a steel frame with a motor. Gold bands on the Big Trommel.
+        const radius = c === 12 ? 0.5 : 0.42;
+        const texture = TEX.grid.clone();
+        texture.needsUpdate = true;
+        texture.repeat.set(10, 5);
+        const drum = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, d + 0.4, 20, 1, true),
+          new THREE.MeshStandardMaterial({ color: 0xa9b3bc, map: texture, alphaTest: 0.5, metalness: 0.8, roughness: 0.4, side: THREE.DoubleSide }));
+        drum.rotation.x = Math.PI / 2 - 0.2; // lies along z, sloping down towards the rock pile
+        drum.position.set(0, h + 0.2, 0);
+        const drumGroup = new THREE.Group();
+        drumGroup.add(drum);
+        for (const z of [-0.4, 0, 0.4]) {
+          const band = new THREE.Mesh(new THREE.TorusGeometry(radius + 0.01, 0.03, 6, 20), materialFor(c === 12 ? GOLD_METAL : EXC_STEEL));
+          band.position.set(0, h + 0.2 - z * 0.2, z);
+          band.rotation.x = -0.2;
+          drumGroup.add(band);
+        }
+        classifier.add(drumGroup);
+        classifierParts.drum = drum;
+        classifierParts.drumBands = drumGroup;
+        classifier.add(box(0.35, 0.3, 0.4, SLUICE_BLUE, w / 2 + 0.25, h - 0.3, -0.3)); // motor
+      }
+      addShadows(classifier);
+    }
+
+    // ---------- Highbanker: a second, smaller washer next to the pile ----------
+    // Its hopper sits on the excavator's swing circle (so the excavator can dump into it); the tray runs down towards the camp.
+    const highbanker = new THREE.Group();
+    highbanker.position.set(HIGHBANKER_SPOT.x, 0, HIGHBANKER_SPOT.z);
+    scene.add(highbanker);
+    const highbankerDirt = new THREE.Mesh(smallHeap, heapMaterial);
+    const highbankerBounds = new THREE.Box3(); // updated when it's built (empty until you own one)
+    const highbankerSpot = { x: HIGHBANKER_SPOT.x, y: 1.2, z: HIGHBANKER_SPOT.z + 0.8, spread: 0.8 }; // sparkles
+    const highbankerEnd = new THREE.Vector3();
+    const highbankerWet = wetGround.clone();
+    scene.add(highbankerWet);
+    let highbankerSprays = 0;
+
+    function buildHighbanker() {
+      const h = state.levels.highbanker;
+      highbanker.clear();
+      highbanker.visible = highbankerWet.visible = h > 0;
+      if (!h) {
+        highbankerBounds.makeEmpty();
+        return;
+      }
+      const len = 1.3 + 0.08 * h, w = 0.55 + 0.02 * h;
+      const body = h >= 10 ? SLUICE_BLUE : h >= 4 ? EXC_STEEL : WOOD;
+      const legs = h >= 4 ? EXC_GREY : WOOD_DARK;
+      const trim = h >= 12 ? GOLD_METAL : body;
+      // The tray: slopes down towards +z, with riffles, a mat and water
+      const trays = h >= 3 ? 2 : 1; // twin tray from level 3
+      for (let t = 0; t < trays; t++) {
+        const tray = new THREE.Group();
+        tray.position.set(trays === 2 ? (t - 0.5) * (w + 0.06) : 0, 0.95 - t * (h >= 9 ? 0.25 : 0), 0.35);
+        tray.rotation.x = 0.18;
+        const tw = trays === 2 ? w * 0.95 : w;
+        const tl = h >= 6 ? len + 0.3 : len; // longer tray from level 6
+        tray.add(box(tw, 0.04, tl, body, 0, 0, tl / 2));
+        for (const x of [-tw / 2, tw / 2]) tray.add(box(0.03, 0.2, tl, trim, x, 0.1, tl / 2));
+        tray.add(box(tw - 0.06, 0.01, tl - 0.1, matMaterials[Math.min(12, h)], 0, 0.025, tl / 2));
+        for (let i = 0; i < 4 + h; i++) tray.add(box(tw - 0.06, 0.05, 0.02, h >= 4 ? CHROME : WOOD_DARK, 0, 0.05, 0.15 + i * (tl - 0.25) / (3 + h)));
+        const water = new THREE.Mesh(scaleUVs(new THREE.PlaneGeometry(tw - 0.06, tl), 1, tl / 1.5), waterMaterial);
+        water.rotation.x = -Math.PI / 2;
+        water.position.set(0, 0.07, tl / 2);
+        tray.add(water);
+        highbanker.add(tray);
+        if (t === 0) {
+          tray.updateMatrix();
+          highbankerEnd.set(0, 0, tl).applyMatrix4(tray.matrix).add(highbanker.position);
+        }
+      }
+      // The hopper on top, with a grate (bigger from level 2, and again from level 7)
+      const hs = 0.6 + (h >= 2 ? 0.12 : 0) + (h >= 7 ? 0.2 : 0);
+      for (const x of [-hs / 2, hs / 2]) highbanker.add(box(0.04, 0.35, hs, body, x, 1.25, 0));
+      for (const z of [-hs / 2, hs / 2]) highbanker.add(box(hs, 0.35, 0.04, body, 0, 1.25, z));
+      for (let i = 0; i < 5; i++) highbanker.add(box(0.025, 0.025, hs, EXC_DARK, -hs / 2 + 0.1 + i * (hs - 0.2) / 4, 1.42, 0));
+      if (h >= 12) for (const z of [-hs / 2, hs / 2]) highbanker.add(box(hs + 0.04, 0.05, 0.05, GOLD_METAL, 0, 1.44, z));
+      // Legs
+      for (const x of [-hs / 2, hs / 2]) for (const z of [-hs / 2, hs / 2]) highbanker.add(box(0.06, 1.1, 0.06, legs, x, 0.55, z));
+      for (const x of [-w / 2, w / 2]) highbanker.add(box(0.05, 0.75, 0.05, legs, x, 0.37, 0.35 + len));
+      // Its own little pump and hose (bigger from level 5 and again at 11), and a spray bar from level 8
+      const ps = 0.55 + (h >= 5 ? 0.15 : 0) + (h >= 11 ? 0.15 : 0);
+      const pump = makePump(h >= 10 ? SLUICE_BLUE : EXC_YELLOW, ps);
+      flywheels.pop(); // (its flywheel doesn't need to spin with the big sluice)
+      pump.position.set(hs / 2 + 0.6, 0, 0.3);
+      pump.rotation.y = Math.PI / 2;
+      highbanker.add(pump);
+      highbanker.add(hose([new THREE.Vector3(hs / 2 + 0.6, 0.8 * ps, 0.3), new THREE.Vector3(hs / 2 + 0.4, 1.6, 0.1), new THREE.Vector3(0, 1.62, -hs / 2 + 0.05)], 0.03, RUBBER));
+      highbankerSprays = h >= 8 ? 5 : 0;
+      if (h >= 8) {
+        const bar = cylinder(0.03, hs, 0x3355aa, 0, 1.6, -hs / 2 + 0.08);
+        bar.rotation.z = Math.PI / 2;
+        highbanker.add(bar);
+      }
+      highbankerDirt.position.set(0, 1.08, 0);
+      highbanker.add(highbankerDirt);
+      addShadows(highbanker);
+      highbanker.updateMatrixWorld(true);
+      highbankerBounds.setFromObject(highbanker);
+      highbankerWet.position.set(highbankerEnd.x, 0.044, highbankerEnd.z + 0.4);
+      highbankerWet.scale.set(1.1, 1.3, 1);
+    }
+
+    // Build everything around the sluice from the current levels (the order matters: the hoses and flume
+    // need to know where the sluice and the pond are)
+    function buildSluiceArea() {
+      buildSluice();
+      buildPond();
+      buildSluiceGear();
+      buildClassifier();
+      buildHighbanker();
+    }
+    buildSluiceArea();
 
     // ---------- Signs: a painted board on two posts, facing the middle of the dig site ----------
     function makeSign(text, x, z) {
@@ -1468,7 +2484,7 @@
         barrels.add(cylinder(0.32, 0.95, WOOD, x, 0.475, z));
         for (const y of [0.18, 0.77]) barrels.add(cylinder(0.33, 0.05, EXC_DARK, x, y, z));
       }
-      barrels.position.set(9, 0, -3);
+      barrels.position.set(-11, 0, 5);
       props.push(barrels);
 
       for (const prop of props) {
@@ -1511,7 +2527,17 @@
     const sluiceBounds = boundsOf(sluice); // updated in place whenever the sluice is upgraded
     const shopBounds = boundsOf(shop);
     const excavatorRect = { ...EXCAVATOR_SPOT, halfLength: 1.6, halfWidth: 1.3 }; // its tracks (only solid once you own it)
-    const solids = [pileCircle, sluiceBounds, shopBounds, ...props.map(boundsOf)];
+    solids.push(pileCircle, sluiceBounds, shopBounds, pondCircle, ...props.map(boundsOf)); // (the equipment pad's machines are already in)
+
+    // The highbanker and the rock pile are only solid once they're there
+    function updateSolids() {
+      const want = [[highbankerBounds, ownsTool('highbanker')], [rockCircle, state.levels.classifier > 0 && rockCircle.radius > 0]];
+      for (const [solid, on] of want) {
+        const index = solids.indexOf(solid);
+        if (on && index === -1) solids.push(solid);
+        if (!on && index !== -1) solids.splice(index, 1);
+      }
+    }
 
     // ---------- The dirt pile: how much is left, and making it look that big ----------
     // Resize the heap to match state.pile. Its edge next to the excavator stays put and it shrinks towards it.
@@ -1648,9 +2674,10 @@
       ex.seat.position.set(-0.15, 1.0, 0);
       cab.add(ex.seat);
 
-      // Speed upgrades: bigger and shinier exhaust pipes, an air filter, then a hood scoop and a warning light
-      const stacks = engineLevel >= 2 ? [0.6, 0.9] : [0.75];
-      const stackHeight = 0.45 + engineLevel * 0.12;
+      // Speed upgrades (levels 1 to 12): chrome exhaust, air filter, hood vents, a taller stack, twin stacks,
+      // a turbo pipe, a hood scoop, counterweight stripes, a warning light, triple stacks, chrome rams, gold stripes
+      const stacks = engineLevel >= 10 ? [0.5, 0.75, 1.0] : engineLevel >= 5 ? [0.6, 0.9] : [0.75];
+      const stackHeight = 0.45 + Math.min(engineLevel, 4) * 0.08 + (engineLevel >= 4 ? 0.12 : 0);
       ex.stackTops = [];
       for (const z of stacks) {
         upper.add(cylinder(engineLevel ? 0.07 : 0.05, stackHeight, engineLevel ? CHROME : EXC_DARK, -1.25, 1.08 + stackHeight / 2, z));
@@ -1659,17 +2686,24 @@
         upper.add(top);
         ex.stackTops.push(top);
       }
-      if (engineLevel >= 1) {
-        upper.add(cylinder(0.14, 0.35, EXC_DARK, -0.6, 1.25, 0.7));       // air filter
-        upper.add(box(0.6, 0.02, 0.8, EXC_DARK, -1.05, 1.09, -0.3));      // vents on the hood
+      if (engineLevel >= 2) upper.add(cylinder(0.14, 0.35, EXC_DARK, -0.6, 1.25, 0.7));  // air filter
+      if (engineLevel >= 3) upper.add(box(0.6, 0.02, 0.8, EXC_DARK, -1.05, 1.09, -0.3)); // vents on the hood
+      if (engineLevel >= 6) {                                           // turbo pipe from the engine to the air filter
+        const pipe = cylinder(0.05, 0.7, CHROME, -0.9, 1.15, 0.7);
+        pipe.rotation.z = Math.PI / 2;
+        upper.add(pipe);
       }
-      if (engineLevel >= 3) {
-        upper.add(box(0.5, 0.18, 0.5, EXC_DARK, -0.9, 1.17, -0.3));       // hood scoop for the turbos
-        for (const z of [-0.8, -0.2, 0.4]) upper.add(box(0.37, 0.12, 0.3, EXC_YELLOW, -1.86, 0.75, z)); // hazard stripes
+      if (engineLevel >= 7) upper.add(box(0.5, 0.18, 0.5, EXC_DARK, -0.9, 1.17, -0.3)); // hood scoop
+      if (engineLevel >= 8) {                                           // stripes on the counterweight (gold at 12)
+        for (const z of [-0.8, -0.2, 0.4]) upper.add(box(0.37, 0.12, 0.3, engineLevel >= 12 ? GOLD_METAL : EXC_YELLOW, -1.86, 0.75, z));
+      }
+      if (engineLevel >= 9) {
         const beacon = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.12, 12), new THREE.MeshStandardMaterial({ color: 0xff8800, emissive: 0xff6a00, emissiveIntensity: 2 }));
         beacon.position.set(-0.3, 1.46, -0.3);
         cab.add(beacon);                                                // orange warning light on the roof
       }
+      if (engineLevel >= 12) upper.add(box(1.42, 0.06, 2.22, GOLD_METAL, -0.95, 1.1, 0)); // gold stripe round the engine cover
+      ramColor = engineLevel >= 11 ? CHROME : EXC_YELLOW;
 
       // --- The arm: boom (first part), stick (second part) and the bucket, joined by pins ---
       const boomLength = BOOM_LENGTH, stickLength = STICK_LENGTH;
@@ -1700,7 +2734,7 @@
       stick.add(stickHose);
 
       // The bucket. With pitch 0 its floor is flat, the opening faces up and the teeth point forward.
-      const size = [1, 1.15, 1.3, 1.5][bucketLevel];
+      const size = 1 + bucketLevel * 0.045; // a bit bigger every level (x1.54 at level 12)
       const H = 0.55 * size, D = 0.75 * size, W = 0.75 * size;         // height, depth, width
       const bucket = new THREE.Group();
       bucket.position.set(stickLength, 0, 0);
@@ -1714,21 +2748,28 @@
         rib.position.z = z;
         bucket.add(rib);
       }
-      const teeth = 4 + bucketLevel;
+      // Bucket Size upgrades (levels 1 to 12): bigger, more teeth, wear strips, thick side plates, side cutters,
+      // a lip plate, chrome teeth, double wear strips, gold trim
+      const teeth = bucketLevel >= 10 ? 8 : bucketLevel >= 7 ? 7 : bucketLevel >= 4 ? 6 : bucketLevel >= 2 ? 5 : 4;
       for (let i = 0; i < teeth; i++) {
         const z = -W / 2 + 0.08 + i * (W - 0.16) / (teeth - 1);
-        bucket.add(box(0.16 * size, 0.06, 0.07, bucketLevel === 3 ? CHROME : 0x1a1a1a, D + 0.07 * size, -H + 0.08 * size, z));
+        bucket.add(box(0.16 * size, 0.06, 0.07, bucketLevel >= 9 ? CHROME : 0x1a1a1a, D + 0.07 * size, -H + 0.08 * size, z));
       }
-      if (bucketLevel >= 2) {                                          // Heavy: dark wear strips under the floor
-        for (const z of [-W / 4, W / 4]) {
+      if (bucketLevel >= 3) {                                          // dark wear strips under the floor (four from level 11)
+        for (const z of bucketLevel >= 11 ? [-W * 0.38, -W / 8, W / 8, W * 0.38] : [-W / 4, W / 4]) {
           const strip = beam(0.1 * size, -H - 0.04, D, -H + 0.04, 0.04, 0.08, EXC_DARK);
           strip.position.z = z;
           bucket.add(strip);
         }
       }
-      if (bucketLevel >= 3) {                                          // Monster: side cutters
-        for (const z of [-W / 2 - 0.03, W / 2 + 0.03]) bucket.add(box(0.2, H * 0.6, 0.04, EXC_DARK, D - 0.05, -H * 0.55, z));
+      if (bucketLevel >= 5) {                                          // thick plates on the sides
+        for (const z of [-W / 2 - 0.02, W / 2 + 0.02]) bucket.add(box(D * 0.6, H * 0.5, 0.03, EXC_GREY, D * 0.35, -H * 0.4, z));
       }
+      if (bucketLevel >= 6) {                                          // side cutters
+        for (const z of [-W / 2 - 0.04, W / 2 + 0.04]) bucket.add(box(0.2, H * 0.6, 0.04, EXC_DARK, D - 0.05, -H * 0.55, z));
+      }
+      if (bucketLevel >= 8) bucket.add(box(0.14, 0.03, W, EXC_STEEL, D - 0.02, -H + 0.12 * size, 0)); // lip plate
+      if (bucketLevel >= 12) for (const z of [-W / 2 - 0.025, W / 2 + 0.025]) bucket.add(box(D + 0.05, 0.05, 0.03, GOLD_METAL, D / 2, -0.02, z)); // gold trim
       // The dirt you've scooped up: a layer in the bottom with a lumpy heap on top. poseExcavator() stretches it to show how full it is.
       ex.dirtHeight = H * 0.8;
       ex.dirt = new THREE.Group();
@@ -1757,8 +2798,9 @@
       addShadows(excavator);
     }
 
+    let ramColor = EXC_YELLOW; // chrome with the top Speed upgrades
     function makeRam(fromPart, fromPoint, toPart, toPoint, radius) {
-      const barrel = new THREE.Mesh(unitCylinder, materialFor(EXC_YELLOW));
+      const barrel = new THREE.Mesh(unitCylinder, materialFor(ramColor));
       const collar = new THREE.Mesh(unitCylinder, materialFor(EXC_DARK)); // where the rod comes out of the barrel
       const rod = new THREE.Mesh(unitCylinder, materialFor(CHROME));
       ex.upper.add(barrel, collar, rod);
@@ -1822,7 +2864,7 @@
     let audio = null;        // the browser's sound maker. Browsers only allow it after a click, so it starts in lockPointer()
     let master = null;       // every sound goes through this volume knob, so muting is one switch
     let noiseBuffer = null;  // one second of random hiss: the raw material for dirt, footsteps and water
-    const loops = {};        // sounds that keep running: the sluice water, the excavator engine and its hydraulics
+    const loops = {};        // sounds that keep running: water, the excavator, pumps, generators, spray, the pond, the highbanker
 
     function startAudio() {
       if (!audio) {
@@ -1836,6 +2878,12 @@
         loops.water = makeWaterSound();
         loops.excavator = makeEngineSound(38);
         loops.hydraulics = makeHumSound(420);
+        loops.pumps = makePumpSound();             // the pumps on the equipment pad
+        loops.generators = makeEngineSound(62);    // the generators (a higher, busier engine than the excavator)
+        loops.spray = makeHissSound();             // the spray bars
+        loops.pond = makeWaterSound();             // water trickling into the pond
+        loops.highbanker = makeWaterSound();       // the highbanker's water
+        loops.highbankerPump = makeEngineSound(90); // ...and its little pump
       }
       audio.resume();
     }
@@ -1957,6 +3005,59 @@
       };
     }
 
+    // A pump: an electric motor's whine plus water churning through it. set() changes how hard it works and how loud.
+    function makePumpSound() {
+      const whine = audio.createOscillator();
+      whine.type = 'triangle';
+      const whineVolume = audio.createGain();
+      whineVolume.gain.value = 0.25;
+      const churn = audio.createBufferSource();
+      churn.buffer = noiseBuffer;
+      churn.loop = true;
+      const churnShape = audio.createBiquadFilter();
+      churnShape.type = 'lowpass';
+      churnShape.Q.value = 3;
+      const wobble = audio.createOscillator(); // the churning swells in and out
+      wobble.frequency.value = 3;
+      const wobbleAmount = audio.createGain();
+      wobbleAmount.gain.value = 120;
+      wobble.connect(wobbleAmount).connect(churnShape.frequency);
+      const volume = audio.createGain();
+      volume.gain.value = 0;
+      whine.connect(whineVolume).connect(volume);
+      churn.connect(churnShape).connect(volume);
+      volume.connect(master);
+      whine.start(); churn.start(); wobble.start();
+      return {
+        set(pitch, vol) {
+          const now = audio.currentTime;
+          whine.frequency.setTargetAtTime(pitch, now, 0.3);
+          churnShape.frequency.setTargetAtTime(pitch * 1.6, now, 0.3);
+          volume.gain.setTargetAtTime(vol, now, 0.3);
+        },
+      };
+    }
+
+    // The hiss of the spray bars: high-pitched noise. Higher pressure = sharper and louder.
+    function makeHissSound() {
+      const source = audio.createBufferSource();
+      source.buffer = noiseBuffer;
+      source.loop = true;
+      const shape = audio.createBiquadFilter();
+      shape.type = 'highpass';
+      shape.frequency.value = 3000;
+      const volume = audio.createGain();
+      volume.gain.value = 0;
+      source.connect(shape).connect(volume).connect(master);
+      source.start();
+      return {
+        set(pitch, vol) {
+          shape.frequency.setTargetAtTime(pitch, audio.currentTime, 0.3);
+          volume.gain.setTargetAtTime(vol, audio.currentTime, 0.3);
+        },
+      };
+    }
+
     // How loud a sound at (x, z) is where you are: 1 right next to it, 0 at "range" meters or further
     function nearness(x, z, range = 30) {
       return Math.max(0, 1 - Math.hypot(camera.position.x - x, camera.position.z - z) / range);
@@ -2018,6 +3119,24 @@
         tone(392, 0.2, { type: 'triangle', volume: 0.12, delay: 0.1 });
         tone(262, 0.35, { type: 'triangle', volume: 0.12, delay: 0.3 });
       },
+      locked() { // you have to buy something else first: two low "nuh-uh" notes and a click
+        tone(220, 0.1, { type: 'square', volume: 0.07 });
+        tone(165, 0.22, { type: 'square', volume: 0.07, delay: 0.11 });
+        noise(0.04, { volume: 0.1, filter: 'highpass', freq: 2500, delay: 0.02 });
+      },
+      tab() { tone(1200, 0.05, { type: 'triangle', volume: 0.08 }); noise(0.03, { volume: 0.06, filter: 'highpass', freq: 4000 }); }, // shop tab click
+      pondGold(amount) { // a splash, then coins jingling (more coins for more gold)
+        noise(0.35, { volume: 0.2, filter: 'bandpass', freq: 900, freqTo: 300, q: 0.8 });
+        const coins = Math.min(8, 2 + Math.floor(Math.log2(1 + amount)));
+        for (let i = 0; i < coins; i++) tone(1800 + Math.random() * 1600, 0.25, { type: 'triangle', volume: 0.07, delay: 0.25 + i * 0.07 });
+      },
+      rocks(v = 1) { // rocks rattling down the classifier screen
+        for (let i = 0; i < 7; i++) noise(0.05, { volume: 0.12 * v, filter: 'bandpass', freq: 1500 + Math.random() * 2500, q: 3, delay: i * 0.05 + Math.random() * 0.03 });
+      },
+      pondFull() { // a gurgle: the pond is full
+        for (let i = 0; i < 4; i++) tone(180 + Math.random() * 120, 0.12, { volume: 0.12, slideTo: 90, delay: i * 0.12 });
+        noise(0.6, { volume: 0.12, freq: 500, delay: 0.1 });
+      },
       finish() { // the end of the game: a drum roll, a victory tune and a long shimmering chord
         for (let i = 0; i < 10; i++) noise(0.08, { volume: 0.15, filter: 'bandpass', freq: 250, q: 2, delay: i * 0.06 });
         [523, 659, 784, 659, 784, 1047].forEach((f, i) => tone(f, 0.3, { type: 'triangle', volume: 0.14, delay: 0.7 + i * 0.16 }));
@@ -2032,9 +3151,30 @@
       loopTimer -= dt;
       if (!audio || loopTimer > 0) return;
       loopTimer = 0.1;
+      const L = state.levels;
       const washing = state.sluiceQueue > 0;
+      const work = washing ? 1 : 0.35; // the pumps and generators idle when there's nothing to wash
+      // The sluice water: fuller with Extra Water, brighter with Higher Pressure
       const near = nearness(sluiceSpot.x, sluiceSpot.z, 25);
-      loops.water.set(washing ? 1400 : 900, near * (washing ? 0.16 + 0.03 * state.levels.sluice : 0.05));
+      loops.water.set((washing ? 1300 : 850) + L.pressure * 25, near * (washing ? 0.12 + 0.008 * (L.water + L.length) : 0.05));
+      // Pumps: deeper and louder with more (and bigger) pumps
+      const pumpCount = toolNow('pumps').count;
+      const nearPumps = pumpCount ? nearness(7.4 + (pumpCount - 1) * 0.65, -5, 28) : 0;
+      loops.pumps.set(260 - L.pumps * 9, nearPumps * (0.03 + 0.006 * L.pumps) * work);
+      // Generators: louder with more and bigger generators, revving up while washing
+      const genCount = toolNow('generators').count;
+      const nearGens = genCount ? nearness(7.4 + (genCount - 1) * 1.05, -3.75, 32) : 0;
+      loops.generators.set(washing ? 0.5 + L.generators * 0.02 : 0.15, nearGens * (0.05 + 0.006 * L.generators));
+      // Spray bars: a hiss that gets sharper and louder with more pressure
+      const nearSpray = L.nozzles ? nearness(sluice.position.x - 1, sluice.position.z, 20) : 0;
+      loops.spray.set(2500 + L.pressure * 250, nearSpray * (washing ? 0.03 + 0.004 * L.pressure + 0.002 * L.nozzles : 0.008));
+      // Water trickling into the pond (louder while washing)
+      loops.pond.set(600, nearness(pondInlet.x, pondInlet.z, 18) * (washing ? 0.08 : 0.02));
+      // The highbanker: water and a little pump putter, while it's washing
+      const hbWashing = state.highbankerQueue > 0 && L.highbanker > 0;
+      const nearHb = L.highbanker ? nearness(HIGHBANKER_SPOT.x, HIGHBANKER_SPOT.z, 20) : 0;
+      loops.highbanker.set(hbWashing ? 1500 : 1000, nearHb * (hbWashing ? 0.09 : 0.02));
+      loops.highbankerPump.set(hbWashing ? 0.6 : 0.2, nearHb * 0.04);
       if (state.inExcavator) {
         loops.excavator.set(armMoving ? 0.7 : 0.1, 0.12 + 0.02 * state.levels.speed); // revs up while the arm moves
         loops.hydraulics.set(armMoving ? 480 : 380, armMoving ? 0.025 : 0);
@@ -2262,8 +3402,9 @@
     const CLEAR_WATER = new THREE.Color(0x2f7fa8), MUDDY_WATER = new THREE.Color(0x7a5a38);
     function animateWater(dt) {
       waterFlow += ((state.sluiceQueue > 0 ? 1 : 0) - waterFlow) * Math.min(1, dt * 3);
-      waterTexture.offset.x -= dt * (0.35 + 1.3 * waterFlow);
-      fallTexture.offset.x += dt * (0.8 + 2 * waterFlow);
+      const stronger = 1 + 0.05 * state.levels.water + 0.03 * state.levels.pressure; // more water and pressure = faster flow
+      waterTexture.offset.x -= dt * (0.35 + 1.3 * waterFlow) * stronger;
+      fallTexture.offset.x += dt * (0.8 + 2 * waterFlow) * stronger;
       TEX.foam.offset.y += dt * 0.5;
       waterMaterial.color.copy(CLEAR_WATER).lerp(MUDDY_WATER, waterFlow * 0.6);
       fallMaterial.color.copy(waterMaterial.color);
@@ -2271,19 +3412,76 @@
       fallMaterial.opacity = 0.3 + 0.45 * waterFlow;
       foamMaterial.opacity = 0.35 + 0.6 * waterFlow;
 
+      // Moving parts on the equipment pad: the pump flywheels spin (fast while washing), the pressure gauge twitches
+      for (const fly of flywheels) fly.rotation.z -= dt * (4 + 14 * waterFlow);
+      if (gaugeNeedle) gaugeNeedle.rotation.z = gaugeNeedle.userData.angle + Math.sin(performance.now() * 0.03) * 0.04 * waterFlow;
+      // The classifier shakes (levels 6-10) or its drum spins (trommel, levels 11-12) while the sluice is washing
+      if (classifierParts.deck && classifierParts.shakes) classifierParts.deck.position.z = Math.sin(performance.now() * 0.05) * 0.015 * waterFlow;
+      if (classifierParts.drum) classifierParts.drum.rotateY(dt * 2.5 * waterFlow);
+      // The pond's water drifts slowly
+      pondWaterTexture.offset.x += dt * 0.02;
+      pondWaterTexture.offset.y += dt * 0.013;
+
       splashTimer -= dt;
-      if (splashTimer > 0 || waterFlow < 0.3) return;
+      if (splashTimer > 0) return;
       splashTimer = 0.05;
-      dust.add({ // splashes where the water hits the ground
-        x: sluiceEnd.x + rand(0, 0.3), y: 0.1, z: sluiceEnd.z + rand(-0.4, 0.4),
-        vx: rand(0.2, 1), vy: rand(0.8, 1.8), vz: rand(-0.5, 0.5), gravity: 6, floor: 0.05,
+      // The highbanker splashes onto the ground while it's washing
+      if (state.highbankerQueue > 0 && state.levels.highbanker > 0) {
+        dust.add({
+          x: highbankerEnd.x + rand(-0.2, 0.2), y: highbankerEnd.y, z: highbankerEnd.z + 0.05,
+          vx: rand(-0.3, 0.3), vy: rand(0.2, 0.8), vz: rand(0.3, 1), gravity: 6, floor: 0.05,
+          size: rand(0.06, 0.12), life: 0.5, fade: 0.3, alpha: 0.55, color: 0xd8c8b0,
+        });
+        for (let i = 0; i < highbankerSprays / 2; i++) {
+          const p = highbanker.localToWorld(new THREE.Vector3(rand(-0.3, 0.3), 1.55, -0.2));
+          dust.add({ x: p.x, y: p.y, z: p.z, vx: rand(-0.2, 0.2), vy: -1.5, gravity: 9.8, floor: 1.1, size: 0.05, life: 0.3, fade: 0.2, alpha: 0.7, color: 0xdff2ff });
+        }
+      }
+      if (waterFlow < 0.3) return;
+      dust.add({ // splashes where the water falls into the flume
+        x: sluiceEnd.x + rand(0, 0.3), y: 0.4, z: sluiceEnd.z + rand(-0.4, 0.4),
+        vx: rand(0.2, 1), vy: rand(0.8, 1.8), vz: rand(-0.5, 0.5), gravity: 6, floor: 0.35,
         size: rand(0.08, 0.16), life: 0.5, fade: 0.3, alpha: 0.6, color: 0xe8f4ff,
       });
-      if (sprayBar) { // the Power Sluice's spray bar sprays water down into the hopper
-        for (let i = 0; i < 3; i++) {
-          const p = sluice.localToWorld(new THREE.Vector3(sprayBar.x, 1.5, rand(-sprayBar.width / 2, sprayBar.width / 2)));
-          dust.add({ x: p.x, y: p.y, z: p.z, vx: rand(-0.3, 0.3), vy: -1.5, gravity: 9.8, floor: 1.12, size: 0.06, life: 0.35, fade: 0.2, alpha: 0.7, color: 0xdff2ff });
+      dust.add({ // ...and where it pours into the pond
+        x: pondInlet.x + rand(0.2, 0.6), y: 0.3, z: pondInlet.z + rand(-0.3, 0.3),
+        vx: rand(0.3, 1), vy: rand(0.5, 1.2), vz: rand(-0.4, 0.4), gravity: 6, floor: 0.24,
+        size: rand(0.08, 0.14), life: 0.4, fade: 0.3, alpha: 0.5, color: 0xd8e4ea,
+      });
+      // The spray bars spray water down into the box: more nozzles = more spray, more pressure = faster and further
+      const psi = toolNow('pressure').psi;
+      for (const bar of sprayBars) {
+        for (let i = 0; i < Math.ceil(bar.count / 2); i++) {
+          const p = sluice.localToWorld(new THREE.Vector3(bar.x, 1.58, rand(-bar.width / 2, bar.width / 2)));
+          dust.add({
+            x: p.x, y: p.y, z: p.z, vx: rand(-0.4, 0.4) + 0.3, vy: -1.2 - psi * 0.03, vz: rand(-0.2, 0.2), gravity: 9.8, floor: 1.12,
+            size: 0.05 + psi * 0.0004, life: 0.35, fade: 0.2, alpha: 0.7, color: 0xdff2ff,
+          });
         }
+      }
+      // The pond overflows with splashes when it's full
+      if (pondFull()) {
+        const angle = rand(-1, 1);
+        dust.add({
+          x: POND_SPOT.x + Math.cos(angle) * pondRadius, y: 0.35, z: POND_SPOT.z + Math.sin(angle) * pondRadius,
+          vx: Math.cos(angle) * rand(0.5, 1.2), vy: rand(0.4, 1), vz: Math.sin(angle) * rand(0.5, 1.2), gravity: 6, floor: 0.05,
+          size: rand(0.1, 0.18), life: 0.6, fade: 0.3, alpha: 0.55, color: 0xb09878,
+        });
+      }
+    }
+
+    // Exhaust from the generators: little puffs, more while the sluice is washing
+    let generatorSmokeTimer = 0;
+    function generatorSmoke(dt) {
+      generatorSmokeTimer -= dt;
+      if (generatorSmokeTimer > 0 || !generatorStacks.length) return;
+      generatorSmokeTimer = state.sluiceQueue > 0 ? 0.15 : 0.45;
+      for (const stack of generatorStacks) {
+        const p = stack.getWorldPosition(new THREE.Vector3());
+        dust.add({
+          x: p.x, y: p.y, z: p.z, vx: rand(-0.1, 0.1), vy: rand(0.6, 1.1), vz: rand(-0.1, 0.1), drag: 0.6,
+          size: 0.12, grow: 0.5, life: 1.4, fade: 1, alpha: 0.25, color: 0x4a4744,
+        });
       }
     }
 
@@ -2305,25 +3503,45 @@
     function updateEffects(dt) {
       animateWater(dt);
       exhaustSmoke(dt);
+      generatorSmoke(dt);
       updateShine(dt);
       for (const system of particleSystems) system.update(dt);
     }
 
     // ---------- Things you can use with E ----------
+    // When several are in reach, the closest one wins (see nearbyThing()).
     const interactables = [
       {
         bounds: pileCircle,
         prompt: () => {
           if (state.pile <= 0) return 'The pile is all dug up!';
-          if (state.carrying >= toolNow('carrier').capacity) return `${toolNow('carrier').name} is full - take it to the sluice`;
-          return 'Press E to dig';
+          if (state.carrying >= toolNow('carrier').capacity) {
+            return `${toolNow('carrier').name} is full - take it to the sluice${ownsTool('highbanker') ? ' or the highbanker' : ''}`;
+          }
+          return ownsTool('pickaxe') ? 'Hold E to dig' : 'Press E to dig';
         },
         use: () => { if (state.pile > 0) dig(); },
+        hold: true, // with a pickaxe you can hold E (or the left mouse button) to keep digging
       },
       {
         bounds: sluiceBounds,
         prompt: () => state.carrying > 0 ? `Press E to dump ${state.carrying} scoops into the sluice` : 'Bring dirt here to wash it',
         use: dumpIntoSluice,
+      },
+      {
+        bounds: highbankerBounds,
+        onlyIf: () => ownsTool('highbanker'), // it isn't there until you buy it
+        prompt: () => state.carrying > 0 ? `Press E to dump ${state.carrying} scoops into the highbanker` : 'Highbanker: bring dirt here to wash it',
+        use: dumpIntoHighbanker,
+      },
+      {
+        bounds: pondCircle,
+        prompt: () => {
+          if (state.pondGold >= 1) return `Press E to collect $${Math.floor(state.pondGold).toLocaleString('en-US')} of gold from the filters`;
+          if (pondFull()) return 'The pond is full! Upgrade Pond Size in the shop (B)';
+          return 'Tailing pond: gold the sluice misses collects on the filters';
+        },
+        use: collectPondGold,
       },
       {
         bounds: shopBounds,
@@ -2339,11 +3557,15 @@
     ];
 
     function dig() {
+      if (state.digTimer > 0) return; // too soon: without a pickaxe you can dig at most 2 times a second
       const capacity = toolNow('carrier').capacity;
       if (state.carrying >= capacity) {
         sfx.full();
+        state.digTimer = 0.4;
         return;
       }
+      const pickaxe = toolNow('pickaxe');
+      state.digTimer = pickaxe.digs ? 1 / pickaxe.digs : SETTINGS.digPause;
       // Each scoop comes out of the pile (a nearly empty pile may give you less than a full shovel)
       const taken = takeFromPile(Math.min(toolNow('shovel').scoops, capacity - state.carrying));
       state.carrying += taken;
@@ -2356,41 +3578,83 @@
     function dumpIntoSluice() {
       if (state.carrying === 0) return;
       dirtFalls({ x: sluice.position.x - 1.4, y: 1.6, z: sluice.position.z }, state.carrying, 1.15);
-      state.sluiceQueue += state.carrying;
+      addToSluice(state.carrying);
       state.carrying = 0;
       sfx.dump(1);
+    }
+
+    // Dirt going into the sluice (by hand or from the excavator). The classifier screens the rocks out on the way:
+    // they go on the rock pile, which is why the sluice washes faster (see sluiceSpeed()).
+    function addToSluice(scoops) {
+      state.sluiceQueue += scoops;
+      const rocks = toolNow('classifier').rocks;
+      if (rocks > 0) {
+        state.rocks += scoops * rocks;
+        sfx.rocks(Math.min(1.5, 0.5 + scoops / 60));
+        dirtBurst({ x: rockPile.position.x, y: 1.2, z: rockPile.position.z + 0.2 }, Math.min(20, scoops * rocks), { spread: 0.4, up: 0.3 });
+      }
+    }
+
+    function dumpIntoHighbanker() {
+      if (state.carrying === 0) return;
+      dirtFalls({ x: HIGHBANKER_SPOT.x, y: 1.6, z: HIGHBANKER_SPOT.z }, state.carrying, 1.1);
+      state.highbankerQueue += state.carrying;
+      state.carrying = 0;
+      sfx.dump(1);
+    }
+
+    // Walk up to the pond and press E: the gold caught on the filters goes into your wallet
+    function collectPondGold() {
+      const amount = Math.floor(state.pondGold);
+      if (amount < 1) return;
+      state.pondGold -= amount;
+      earn(amount);
+      showMessage(`Collected $${amount.toLocaleString('en-US')} from the filters!`);
+      sfx.pondGold(amount);
+      for (let i = 0; i < Math.min(30, 5 + amount / 5); i++) sparkle(0.1, pondFilters);
     }
 
     function buy(id) {
       const tool = TOOLS[id];
       const next = toolNext(id);
       if (!next) return; // already fully upgraded
-      if (tool.needs && !ownsTool(tool.needs)) {
-        showMessage(`Buy the ${TOOLS[tool.needs].title} first`);
-        sfx.denied();
+      const need = missingNeed(id);
+      if (need) {
+        showMessage(need);
+        sfx.locked();
         return;
       }
       if (state.money < next.price) {
-        showMessage(`You need $${next.price - state.money} more`);
+        showMessage(`You need $${(next.price - state.money).toLocaleString('en-US')} more`);
         sfx.denied();
         return;
       }
-      // Buying something brand new (the excavator) gets the "ka-ching", everything else is an upgrade
-      const brandNew = !tool.startsOwned && !tool.needs && state.levels[id] === 0;
+      // Buying a brand new tool gets the "ka-ching", everything else is an upgrade
+      const brandNew = !tool.startsOwned && tool.tab === 'tools' || id === 'excavator';
+      const firstOne = brandNew && state.levels[id] === 0;
       state.money -= next.price;
       state.levels[id] += 1;
-      showMessage(id === 'excavator' ? 'Bought the excavator! It is parked between the pile and the sluice' : `Bought the ${next.name}!`);
-      if (brandNew) sfx.buy();
+      const where = {
+        excavator: 'Bought the excavator! It is parked between the pile and the sluice',
+        classifier: 'Bought the classifier! It is next to the sluice',
+        highbanker: 'Bought the highbanker! It is next to the DIRT pile',
+        pickaxe: 'Bought a pickaxe! Hold E at the pile to keep digging',
+      };
+      showMessage(firstOne && where[id] ? where[id] : `Bought the ${next.name}!`);
+      if (firstOne) sfx.buy();
       else sfx.upgrade();
-      if (id === 'sluice') upgradeSluiceModel();
+      if (SLUICE_PARTS.includes(id) || POND_PARTS.includes(id) || id === 'classifier' || id === 'highbanker') upgradeSluiceModel();
       if (id === 'excavator' || EXCAVATOR_PARTS.includes(id)) rebuildExcavator();
       updateToolbar(id);
     }
 
-    // Swap in the bigger sluice model and update where you bump into it
+    // Rebuild the sluice, pond, equipment pad, classifier and highbanker with their new upgrades,
+    // and update where you bump into them
     function upgradeSluiceModel() {
-      buildSluice(state.levels.sluice);
+      buildSluiceArea();
       sluiceBounds.setFromObject(sluice);
+      updateSolids();
+      pushOutOfSolids(); // in case you're standing where something new appeared
     }
 
     // Rebuild the excavator with its new upgrades, in the same pose
@@ -2400,9 +3664,9 @@
       showExcavatorIfOwned();
     }
 
-    // Set every tool's level from a list like { shovel: 2, sluice: 1 } (for example from a saved game).
-    // Only tools in TOOL_ORDER are read, so tools that no longer exist (like the old Metal Detector, Gold Pan,
-    // Excavator Engine or Arm, or Dirt Loads) are ignored. Levels are kept in range, so a save from when the excavator had 3 levels still works.
+    // Set every tool's level from a list like { shovel: 2, pumps: 1 } (for example from a saved game).
+    // Only ids in TOOL_ORDER are read, so tools that no longer exist (like the old Metal Detector, Gold Pan,
+    // one-piece Sluice or Dirt Loads) are ignored. Levels are kept in range, so an old save with bigger levels still works.
     function applyToolLevels(saved) {
       for (const id of TOOL_ORDER) {
         const level = Math.floor(Number(saved[id]) || 0);
@@ -2413,23 +3677,33 @@
       updateToolbar();
     }
 
-    // Look for gold in one scoop of dirt. "where" is the spot the sparkles float up from.
+    // Add gold to the wallet (and to the total for the end screen)
+    function earn(dollars) {
+      state.money += dollars;
+      state.goldFound += dollars;
+    }
+
+    // Look for gold in one washed scoop of dirt. "where" is the spot the sparkles float up from.
+    // catches = the share of the flakes this washer catches. The flakes it misses wash into the tailing pond
+    // (toPond), where the filters get some of them back.
     let lastFlakeSound = 0;
-    function findGold(flakeChance, nuggetChance, where) {
-      if (Math.random() < nuggetChance) {
-        state.money += SETTINGS.nuggetValue;
-        state.goldFound += SETTINGS.nuggetValue;
+    function findGold(where, catches, toPond) {
+      if (Math.random() < SETTINGS.nuggetChance) { // nuggets are heavy: they never get missed
+        earn(SETTINGS.nuggetValue);
         state.nuggets += 1;
         showMessage(`BIG NUGGET! +$${SETTINGS.nuggetValue}`);
         for (let i = 0; i < 3; i++) sparkle(0.25, where);
         nuggetShine(where);
         sfx.nugget();
-      } else if (Math.random() < flakeChance) {
+      } else if (Math.random() < SETTINGS.flakeChance) {
         const flakes = 1 + Math.floor(Math.random() * 3); // 1 to 3 flakes
-        state.money += flakes * SETTINGS.flakeValue;
-        state.goldFound += flakes * SETTINGS.flakeValue;
-        for (let i = 0; i < flakes; i++) sparkle(0.07, where);
-        // A little "ting" (but not dozens at once when the Power Sluice is going fast)
+        let caught = 0;
+        for (let i = 0; i < flakes; i++) if (Math.random() < catches) caught++;
+        if (toPond) state.pondGold += (flakes - caught) * SETTINGS.flakeValue * toolNow('filters').catches;
+        if (caught === 0) return;
+        earn(caught * SETTINGS.flakeValue);
+        for (let i = 0; i < caught; i++) sparkle(0.07, where);
+        // A little "ting" (but not dozens at once when the sluice is going fast)
         if (audio && audio.currentTime - lastFlakeSound > 0.06) {
           lastFlakeSound = audio.currentTime;
           sfx.flake(Math.max(0.2, nearness(where.x, where.z)));
@@ -2439,14 +3713,19 @@
 
     // ---------- Sluice: washes dirt by itself ----------
     function updateSluice(dt) {
-      const level = toolNow('sluice');
       if (state.sluiceQueue > 0) {
-        state.washTimer += dt;
-        while (state.washTimer >= level.seconds && state.sluiceQueue > 0) {
-          state.washTimer -= level.seconds;
-          const scoops = Math.min(level.batch, state.sluiceQueue);
+        // washTimer adds up how many scoops it has washed so far (a bit every frame)
+        const speed = sluiceSpeed() * (pondFull() ? SETTINGS.pondFullSpeed : 1);
+        state.washTimer += speed * dt;
+        const catches = sluiceRecovery();
+        const mud = SETTINGS.tonsPerScoop * (1 - toolNow('classifier').rocks); // the rocks don't go in the pond
+        while (state.washTimer >= 1 && state.sluiceQueue > 0) {
+          state.washTimer -= 1;
+          const scoops = Math.min(1, state.sluiceQueue);
           state.sluiceQueue -= scoops;
-          for (let i = 0; i < scoops; i++) findGold(SETTINGS.flakeChance, SETTINGS.nuggetChance, sluiceSpot);
+          if (state.sluiceQueue < 0.001) state.sluiceQueue = 0;
+          state.pond += scoops * mud;
+          findGold(sluiceSpot, catches, true);
         }
       } else {
         state.washTimer = 0;
@@ -2455,6 +3734,54 @@
       sluiceDirt.visible = state.sluiceQueue > 0;
       const heap = 0.5 + 0.5 * Math.min(1, state.sluiceQueue / 80);
       sluiceDirt.scale.set(0.42 * heap, 0.28 * heap, 0.4 * heap);
+      // The classifier's rock pile grows with all the rocks it has screened out
+      const rockSize = Math.min(1, Math.sqrt(state.rocks / 4000));
+      rockPile.visible = state.levels.classifier > 0 && state.rocks > 0;
+      rockPile.scale.set(0.3 + 1.1 * rockSize, 0.15 + 0.8 * rockSize, 0.3 + 1.1 * rockSize);
+      rockCircle.radius = rockPile.visible ? rockPile.scale.x * 0.75 : 0;
+      updateSolids();
+    }
+
+    // ---------- Highbanker: washes its own dirt, a bit slower than the sluice. Its tailings go on the ground, not the pond. ----------
+    function updateHighbanker(dt) {
+      const level = toolNow('highbanker');
+      if (level.speed > 0 && state.highbankerQueue > 0) {
+        state.highbankerTimer += level.speed * dt;
+        while (state.highbankerTimer >= 1 && state.highbankerQueue > 0) {
+          state.highbankerTimer -= 1;
+          state.highbankerQueue = Math.max(0, state.highbankerQueue - 1);
+          if (state.highbankerQueue < 0.001) state.highbankerQueue = 0;
+          findGold(highbankerSpot, level.catches, false);
+        }
+      } else {
+        state.highbankerTimer = 0;
+      }
+      highbankerDirt.visible = state.highbankerQueue > 0;
+      const heap = 0.5 + 0.5 * Math.min(1, state.highbankerQueue / 60);
+      highbankerDirt.scale.set(0.3 * heap, 0.2 * heap, 0.3 * heap);
+    }
+
+    // ---------- Tailing pond: slowly settles, gets muddier as it fills, and its filters twinkle with waiting gold ----------
+    let pondWarned = false, pondTwinkle = 0;
+    function updatePond(dt) {
+      const size = toolNow('pondSize');
+      state.pond = clamp(state.pond - size.settles / 60 * dt, 0, size.holds); // the mud settles and the water soaks away
+      const fill = state.pond / size.holds;
+      pondWaterMaterial.color.copy(CLEAR_POND).lerp(MUDDY_POND, fill * 0.85);
+      pondSilt.visible = fill > 0.02;
+      pondSilt.scale.set(pondRadius * (0.2 + 0.35 * fill), 0.05 + 0.3 * fill, pondRadius * (0.25 + 0.4 * fill));
+      if (pondFull() && !pondWarned) {
+        pondWarned = true;
+        showMessage('The pond is full! The sluice has slowed down');
+        sfx.pondFull();
+      } else if (fill < 0.9) {
+        pondWarned = false;
+      }
+      pondTwinkle -= dt;
+      if (state.pondGold >= 1 && pondTwinkle <= 0) {
+        pondTwinkle = Math.max(0.06, 0.6 - state.pondGold / 150); // more gold waiting = more twinkles
+        sparkle(0.06, pondFilters);
+      }
     }
 
     // ---------- Using the excavator: it stays put, you swing and move the arm ----------
@@ -2504,12 +3831,13 @@
       return distanceFromPile(spot) < pileSize().radius + 0.3;
     }
 
-    // Where the bucket would drop its dirt: 'pile', 'sluice' or 'ground'
+    // Where the bucket would drop its dirt: 'pile', 'sluice', 'highbanker' or 'ground'
     // (It measures from the bucket's hinge, which doesn't move while you tip the bucket.)
     function dumpTarget() {
       const spot = ex.bucket.getWorldPosition(new THREE.Vector3());
       if (distanceFromPile(spot) < pileSize().radius + 0.3) return 'pile';
       if (distanceFromPoint(sluiceBounds, spot.x, spot.z) < 0.3) return 'sluice';
+      if (ownsTool('highbanker') && distanceFromPoint(highbankerBounds, spot.x, spot.z) < 0.3) return 'highbanker';
       return 'ground';
     }
 
@@ -2519,15 +3847,18 @@
       exc.load = 0;
       if (scoops <= 0) return;
       const target = dumpTarget();
-      dirtFalls(bucketWorld(ex.belly), scoops, target === 'sluice' ? 1.15 : 0.04); // lands in the sluice or on the ground
+      dirtFalls(bucketWorld(ex.belly), scoops, target === 'sluice' || target === 'highbanker' ? 1.15 : 0.04); // lands in it or on the ground
       sfx.dump(2);
       if (target === 'sluice') {
-        state.sluiceQueue += Math.round(scoops);
+        addToSluice(Math.round(scoops));
         showMessage(`+${tons(scoops)} t in the sluice`);
+      } else if (target === 'highbanker') {
+        state.highbankerQueue += Math.round(scoops);
+        showMessage(`+${tons(scoops)} t in the highbanker`);
       } else if (target === 'pile') {
         addToPile(scoops); // dumped back onto the pile: nothing lost
       } else {
-        showMessage('Spilled! Dump it over the sluice');
+        showMessage(ownsTool('highbanker') ? 'Spilled! Dump it over the sluice or the highbanker' : 'Spilled! Dump it over the sluice');
       }
     }
 
@@ -2577,6 +3908,7 @@
         return bucketOverPile() ? 'Over the dirt: hold Q to scoop' : 'Swing (A / D) over the DIRT pile, then hold Q to scoop';
       }
       if (dumpTarget() === 'sluice') return 'Over the sluice: hold F to dump';
+      if (dumpTarget() === 'highbanker') return 'Over the highbanker: hold F to dump';
       if (exc.load >= toolNow('digBucket').scoops) return 'Bucket full! Swing (A / D) to the sluice, then hold F';
       if (state.pile <= 0) return 'The pile is empty. Take what you have to the sluice and hold F';
       if (bucketOverPile()) {
@@ -2585,70 +3917,121 @@
       return 'Swing (A / D) back over the DIRT pile to fill up, or to the sluice and hold F';
     }
 
-    // ---------- Shop menu ----------
+    // ---------- Shop menu: four tabs (Tools, Sluice, Tailing Pond, Excavator) ----------
     const shopEl = document.getElementById('shop');
     const shopMoney = document.getElementById('shop-money');
-    // Add one row to the shop. "key" is the number key that buys it, onBuy runs when you click it.
-    function makeShopRow(key, title, about, onBuy) {
+    const shopItems = document.getElementById('shop-items');
+    const shopTabs = document.getElementById('shop-tabs');
+    const shopSummary = document.getElementById('shop-summary');
+    let shopTab = 'tools'; // the tab that's showing (the shop remembers it)
+
+    // Make one shop row. Every upgrade gets a row; only the rows on the open tab are shown.
+    function makeShopRow(id, key) {
+      const tool = TOOLS[id];
+      const maxLevel = tool.levels.length - 1;
       const button = document.createElement('button');
       button.className = 'shop-item';
       button.innerHTML = `
         <kbd>${key}</kbd>
         <canvas width="104" height="104"></canvas>
         <span>
-          <b class="title">${title}</b> <span class="level"></span><br>
-          <span class="about">${about}</span><br>
+          <b class="title">${tool.title}</b> <span class="level"></span><span class="pips">${maxLevel > 1 ? '<i></i>'.repeat(maxLevel) : ''}</span><br>
+          <span class="about">${tool.about}</span><br>
           <span class="now"></span><br>
           <span class="next"></span>
+          <span class="need"></span>
         </span>
         <span class="price"></span>`;
-      button.addEventListener('click', onBuy);
-      document.getElementById('shop-items').appendChild(button);
+      button.addEventListener('click', () => buy(id));
+      shopItems.appendChild(button);
       return {
         button,
         icon: button.querySelector('canvas'),
         iconDrawn: '', // which picture is on the icon now, so it's only redrawn when it changes
         level: button.querySelector('.level'),
+        pips: [...button.querySelectorAll('.pips i')],
         now: button.querySelector('.now'),
         next: button.querySelector('.next'),
+        need: button.querySelector('.need'),
         price: button.querySelector('.price'),
       };
     }
 
-    // One row per tool (keys 1 to 6)
     const shopRows = {};
-    TOOL_ORDER.forEach((id, i) => {
-      shopRows[id] = makeShopRow(i + 1, TOOLS[id].title, TOOLS[id].about, () => buy(id));
-    });
+    for (const tab of TABS) {
+      tab.items.forEach((id, i) => { shopRows[id] = makeShopRow(id, i + 1); }); // keys 1, 2, 3... on each tab
+      const tabButton = document.createElement('button');
+      tabButton.className = 'shop-tab';
+      tabButton.dataset.tab = tab.id;
+      tabButton.textContent = tab.title;
+      tabButton.addEventListener('click', () => showShopTab(tab.id));
+      shopTabs.appendChild(tabButton);
+    }
     document.getElementById('shop-close').addEventListener('click', () => closeShop());
 
-    // Refresh the text and greyed-out state of every shop row
+    // Show one tab's rows (and light up its tab button)
+    function showShopTab(id, quiet = false) {
+      if (id !== shopTab && !quiet) sfx.tab();
+      shopTab = id;
+      for (const tabButton of shopTabs.children) tabButton.classList.toggle('on', tabButton.dataset.tab === id);
+      for (const [rowId, row] of Object.entries(shopRows)) row.button.style.display = TOOLS[rowId].tab === id ? '' : 'none';
+      updateShop();
+    }
+    // ← and → go to the tab before or after this one
+    function switchShopTab(step) {
+      const i = TABS.findIndex((tab) => tab.id === shopTab);
+      showShopTab(TABS[(i + step + TABS.length) % TABS.length].id);
+    }
+
+    // A line at the top of the tab that sums up where you're at
+    function shopSummaryText() {
+      const pondSize = toolNow('pondSize');
+      const pondText = `pond <b>${Math.floor(state.pond).toLocaleString('en-US')}</b> / ${pondSize.holds.toLocaleString('en-US')} t`;
+      if (shopTab === 'tools') {
+        return 'New tools unlock in order: Pickaxe &rarr; Classifier Screen &rarr; Highbanker &rarr; Excavator (Excavator tab)';
+      }
+      if (shopTab === 'sluice') {
+        return `Washes <b>${sluiceSpeed().toFixed(1)}</b> scoops a second${pondFull() ? ' (<b>pond full: 30% speed</b>)' : ''}`
+          + ` &middot; catches <b>${percent(sluiceRecovery())}</b> of the flakes &middot; ${pondText}`;
+      }
+      if (shopTab === 'pond') {
+        return `${pondText[0].toUpperCase()}${pondText.slice(1)} (${pondFull() ? '<b>FULL: the sluice is at 30%</b>' : `settles ${pondSize.settles} t a minute`})`
+          + ` &middot; <b>$${Math.floor(state.pondGold).toLocaleString('en-US')}</b> of gold on the filters`;
+      }
+      if (!ownsTool('excavator')) return 'The last and biggest tool. Buy the Highbanker first.';
+      return `Bucket <b>${tons(toolNow('digBucket').scoops)} t</b> &middot; arm speed <b>${percent(toolNow('speed').speed)}</b>`;
+    }
+
+    // Refresh the text and greyed-out state of the rows on the open tab
     function updateShop() {
       setHtml(shopMoney, `<span class="coin">$</span>${state.money.toLocaleString('en-US')}`);
-      for (const id of TOOL_ORDER) {
+      setHtml(shopSummary, shopSummaryText());
+      for (const id of TABS.find((tab) => tab.id === shopTab).items) {
         const row = shopRows[id];
         const tool = TOOLS[id];
+        const level = state.levels[id];
+        const maxLevel = tool.levels.length - 1;
         const now = toolNow(id);
         const next = toolNext(id);
-        const locked = tool.needs && !ownsTool(tool.needs);
+        const need = missingNeed(id);
         const nowText = tool.describe(now);
-        // One dot per level: filled for the levels you've bought
-        const maxLevel = tool.levels.length - 1;
-        row.level.textContent = '●'.repeat(state.levels[id]) + '○'.repeat(maxLevel - state.levels[id]);
-        row.level.title = `Level ${state.levels[id]} / ${maxLevel}`;
+        // "Lv 4 / 12" and one pip per level: filled for the levels you've bought
+        row.level.textContent = maxLevel > 1 ? `Lv ${level} / ${maxLevel}` : (level ? 'Owned' : '');
+        row.pips.forEach((pip, i) => pip.classList.toggle('on', i < level));
         // The icon shows what you'd get next (or what you have, once it's fully upgraded)
-        const iconLevel = next ? state.levels[id] + 1 : state.levels[id];
+        const iconLevel = next ? level + 1 : level;
         const iconKey = `${iconLevel} ${state.levels.digBucket} ${state.levels.speed}`; // the excavator icon shows its upgrades
         if (row.iconDrawn !== iconKey) {
           drawToolIcon(row.icon, id, iconLevel);
           row.iconDrawn = iconKey;
         }
-        row.now.textContent = `Now: ${now.name}${nowText ? ` - ${nowText}` : ''}`;
-        if (locked) row.next.textContent = `Buy the ${TOOLS[tool.needs].title} first`;
-        else row.next.textContent = next ? `Next: ${next.name} - ${tool.describe(next)}` : 'Fully upgraded!';
-        row.price.textContent = next ? `$${next.price.toLocaleString('en-US')}` : 'MAX';
-        // Greyed out, but still clickable, so you hear the "not enough money" sound
-        row.button.classList.toggle('cant', !next || locked || state.money < next.price);
+        setHtml(row.now, `Now: ${now.name}${nowText ? ` - ${nowText}` : ''}`);
+        setHtml(row.next, next ? `Next: ${next.name} - ${tool.describe(next)}` : 'Fully upgraded!');
+        setHtml(row.need, need);
+        setHtml(row.price, next ? `$${next.price.toLocaleString('en-US')}` : 'MAX');
+        // Greyed out, but still clickable, so you hear why you can't buy it
+        row.button.classList.toggle('cant', !next || !!need || state.money < next.price);
+        row.button.classList.toggle('locked', !!need);
       }
     }
 
@@ -2658,7 +4041,7 @@
       startScreen.style.display = 'none';
       for (const code in keys) keys[code] = false; // stop walking
       if (document.pointerLockElement) document.exitPointerLock(); // give the mouse back for clicking
-      updateShop();
+      showShopTab(shopTab, true);
       sfx.shopOpen();
     }
 
@@ -2671,10 +4054,22 @@
     }
 
     // ---------- Tool bar: an icon for every tool you own, drawn with simple shapes ----------
-    // Each icon gets better with the level: bigger, shinier metal, and a gold trim at the top level.
-    const METAL = ['#6f6f6f', '#9a9a9a', '#cfd8e2', '#eef3f8']; // dull grey -> bright steel
+    // Each icon gets better with the level (0 to 12): the metal goes from dull grey to bright chrome, a new detail
+    // shows up every few levels, and level 12 gets a gold trim (and a glowing gold border on the tool bar).
     const GOLD = '#ffd700';
     const YELLOW = '#f2b705';
+    const DIRT = '#6b4423';
+    const WATER = '#3399ff';
+
+    // Mix two colours like '#6f6f6f' and '#eef3f8': t = 0 gives the first, 1 the second
+    function blend(a, b, t) {
+      const ca = parseInt(a.slice(1), 16), cb = parseInt(b.slice(1), 16);
+      const mix = (shift) => Math.round(((ca >> shift) & 255) * (1 - t) + ((cb >> shift) & 255) * t);
+      return `rgb(${mix(16)}, ${mix(8)}, ${mix(0)})`;
+    }
+    const metal = (level) => blend('#6f6f6f', '#eef3f8', clamp(level / 12, 0, 1)); // dull grey -> bright steel
+    const edge = (level) => (level >= 12 ? GOLD : '#222');                         // outline: gold at the top level
+    const edgeWidth = (level) => (level >= 12 ? 3 : 1.5);
 
     // Fill (and outline) a shape made of [x, y] corner points
     function polygon(ctx, points, fill, outline = '#222', lineWidth = 1.5) {
@@ -2708,63 +4103,289 @@
       ctx.stroke();
     }
 
-    // One drawing function per tool. The picture is centred on (0, 0) and fits in -32..32.
+    // A little twinkle (for gold)
+    function star(ctx, x, y, r, color = GOLD) {
+      polygon(ctx, [[x, y - r], [x + r * 0.25, y - r * 0.25], [x + r, y], [x + r * 0.25, y + r * 0.25], [x, y + r], [x - r * 0.25, y + r * 0.25], [x - r, y], [x - r * 0.25, y - r * 0.25]], color, 'transparent');
+    }
+
+    // A small wheelbarrow or bucket, used by the carrier icon
+    function wheelbarrow(ctx, color, level, twin) {
+      line(ctx, -14, 2, -28, -4, '#8b5a2b', 3);                                     // handle
+      line(ctx, -12, 10, -14, 20, '#333', 3);                                      // leg
+      circle(ctx, 16, 16, 8, '#333', '#111');                                     // wheel
+      if (twin) circle(ctx, 8, 17, 7, '#333', '#111');                            // second wheel
+      circle(ctx, 16, 16, 3, metal(level));
+      circle(ctx, -2, -8, 9 + level * 0.5, DIRT, 'transparent');                  // dirt heap (bigger in bigger barrows)
+      polygon(ctx, [[-24, -8], [22, -8], [12, 12], [-14, 12]], color, edge(level), edgeWidth(level));
+      polygon(ctx, [[-20, -6], [-16, -6], [-10, 10], [-12, 10]], 'rgba(255,255,255,0.5)', 'transparent'); // shine
+    }
+
+    // A generator box with a lightning bolt, used by several icons
+    function generatorBox(ctx, x, y, s, color) {
+      polygon(ctx, [[x - 10 * s, y - 7 * s], [x + 10 * s, y - 7 * s], [x + 10 * s, y + 7 * s], [x - 10 * s, y + 7 * s]], color);
+      polygon(ctx, [[x - 1 * s, y - 5 * s], [x - 5 * s, y + 1 * s], [x - 1 * s, y + 1 * s], [x - 3 * s, y + 6 * s], [x + 4 * s, y - 1 * s], [x, y - 1 * s], [x + 2 * s, y - 5 * s]], '#fff', '#222', 1);
+    }
+
+    // A small pump (motor + round pump housing), used by several icons
+    function pumpShape(ctx, x, y, s, color) {
+      polygon(ctx, [[x - 12 * s, y - 5 * s], [x + 2 * s, y - 5 * s], [x + 2 * s, y + 5 * s], [x - 12 * s, y + 5 * s]], color);
+      circle(ctx, x + 7 * s, y, 7 * s, '#555');
+      line(ctx, x + 7 * s, y - 7 * s, x + 7 * s, y - 13 * s, '#777', 3 * s);
+    }
+
+    // One drawing function per icon. The picture is centred on (0, 0) and fits in -32..32.
     const ICONS = {
       shovel(ctx, level) {
         ctx.rotate(Math.PI / 4); // lean it diagonally
-        line(ctx, 0, -24, 0, 6, '#8b5a2b', 4);          // wooden handle
-        line(ctx, -6, -24, 6, -24, '#8b5a2b', 4);       // grip
-        const w = 7 + level * 1.5;                       // wider blade at higher levels
+        const handle = level >= 9 ? YELLOW : level >= 6 ? '#5b3a1a' : '#8b5a2b'; // fibreglass handle from level 9
+        line(ctx, 0, -24, 0, 6, handle, 4);
+        line(ctx, -6, -24, 6, -24, handle, 4);                     // grip
+        const w = 6 + level * 0.8;                                  // wider blade at higher levels
         const blade = [[-w, 4], [w, 4], [w, 18], [0, 28], [-w, 18]];
-        polygon(ctx, blade, METAL[level], level === 3 ? GOLD : '#222', level === 3 ? 3 : 1.5);
-        if (level >= 2) polygon(ctx, [[-w + 2, 6], [-w + 5, 6], [-w + 5, 17], [-w + 2, 17]], 'rgba(255,255,255,0.8)', 'transparent'); // shine
-        if (level === 3) line(ctx, -4, 3, 4, 3, GOLD, 3); // gold collar
+        polygon(ctx, blade, level >= 12 ? GOLD : metal(level), edge(level), edgeWidth(level));
+        if (level >= 3) polygon(ctx, [[-w + 2, 6], [-w + 5, 6], [-w + 5, 17], [-w + 2, 17]], 'rgba(255,255,255,0.8)', 'transparent'); // shine
+        if (level >= 6) line(ctx, -w + 1, 4, w - 1, 4, '#333', 2);  // a reinforced top edge
+        if (level >= 12) line(ctx, -4, 3, 4, 3, GOLD, 3);           // gold collar
       },
 
       carrier(ctx, level) {
-        const dirt = '#6b4423';
-        if (level <= 1) {
-          // Bucket (the big bucket is red with a rim band)
-          ctx.beginPath();
-          ctx.arc(0, -8, 14, Math.PI, 0);  // handle
-          ctx.strokeStyle = '#333';
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          circle(ctx, 0, -8, 12, dirt, 'transparent');
-          polygon(ctx, [[-15, -8], [15, -8], [11, 20], [-11, 20]], level === 0 ? METAL[0] : '#c0392b');
-          if (level === 1) line(ctx, -14, -3, 14, -3, METAL[2], 3);
+        if (level <= 3) {
+          // Buckets: grey, red, steel, then two buckets on a wooden yoke
+          const bucket = (x, color) => {
+            ctx.beginPath();
+            ctx.arc(x, -8, 11, Math.PI, 0);                         // handle
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            circle(ctx, x, -8, 9, DIRT, 'transparent');
+            polygon(ctx, [[x - 12, -8], [x + 12, -8], [x + 9, 18], [x - 9, 18]], color);
+            line(ctx, x - 11, -3, x + 11, -3, metal(level + 4), 2);
+          };
+          const color = ['#8a8a8a', '#c0392b', metal(8), '#c0392b'][level];
+          if (level === 3) {
+            line(ctx, -28, -20, 28, -20, '#8b5a2b', 4);
+            bucket(-15, color);
+            bucket(15, color);
+          } else {
+            bucket(0, color);
+          }
+        } else if (level === 12) {
+          // Mini dumper: an orange tracked tipper with gold trim
+          polygon(ctx, [[-26, 10], [20, 10], [24, 20], [-28, 20]], '#333');
+          for (let x = -22; x <= 16; x += 6) circle(ctx, x, 15, 2, '#777', '#111');
+          polygon(ctx, [[-24, -10], [18, -10], [12, 10], [-20, 10]], '#e67e22', GOLD, 3);
+          circle(ctx, -4, -10, 12, DIRT, 'transparent');
+          polygon(ctx, [[-28, -2], [-22, -2], [-22, 10], [-28, 10]], '#333');
         } else {
-          // Wheelbarrow (blue, then red with gold trim)
-          line(ctx, -14, 2, -28, -4, '#8b5a2b', 3);        // handle
-          line(ctx, -12, 10, -14, 20, '#333', 3);          // leg
-          circle(ctx, 16, 16, 8, '#333', '#111');          // wheel
-          circle(ctx, 16, 16, 3, METAL[level]);
-          circle(ctx, -2, -8, 13, dirt, 'transparent');    // dirt heap
-          polygon(ctx, [[-24, -8], [22, -8], [12, 12], [-14, 12]], level === 2 ? '#2f6db5' : '#c0392b',
-            level === 3 ? GOLD : '#222', level === 3 ? 3 : 1.5);
-          polygon(ctx, [[-20, -6], [-16, -6], [-10, 10], [-12, 10]], 'rgba(255,255,255,0.5)', 'transparent'); // shine
+          // Wheelbarrows: wood, steel, blue, twin wheels, then orange, red, with an engine at 10 and 11
+          const colors = { 4: '#8b5a2b', 5: metal(8), 6: '#2f6db5', 7: '#2f6db5', 8: '#e67e22', 9: '#c0392b', 10: '#c0392b', 11: '#e67e22' };
+          wheelbarrow(ctx, colors[level], level, level >= 7);
+          if (level >= 10) polygon(ctx, [[-22, 12], [-10, 12], [-10, 20], [-22, 20]], '#333'); // a little engine
+          if (level >= 11) line(ctx, -20, 12, -20, 5, metal(12), 2);                              // its exhaust
         }
       },
 
-      sluice(ctx, level) {
-        ctx.rotate(0.25); // tilted downhill, like the real one
-        const half = 16 + level * 4; // longer at each level
-        const wood = level === 3 ? '#2f6db5' : '#8b5a2b';
-        const frame = level === 3 ? METAL[2] : '#5b3a1a';
-        // legs (more and thicker at higher levels)
-        const legs = level + 2;
-        for (let i = 0; i < legs; i++) {
-          const x = -half + 3 + i * (2 * half - 6) / (legs - 1);
-          line(ctx, x, 6, x, 20, frame, 2 + level);
+      pickaxe(ctx, level) {
+        ctx.rotate(-Math.PI / 5);
+        line(ctx, 0, -22, 0, 26, level >= 10 ? '#333' : '#8b5a2b', 4 + level * 0.15); // handle
+        const head = level >= 12 ? GOLD : metal(level);
+        const reach = 18 + level * 0.8;
+        ctx.beginPath(); // the curved head
+        ctx.moveTo(-reach, -14);
+        ctx.quadraticCurveTo(0, -30, reach, -14);
+        ctx.quadraticCurveTo(0, -24, -reach, -14);
+        ctx.fillStyle = head;
+        ctx.fill();
+        ctx.strokeStyle = edge(level);
+        ctx.lineWidth = edgeWidth(level);
+        ctx.stroke();
+        if (level >= 9 && level < 12) polygon(ctx, [[-reach - 2, -18], [-reach + 4, -18], [-reach + 4, -10], [-reach - 2, -10]], head); // mattock blade
+        if (level >= 11) { star(ctx, reach, -14, 4, '#9ff'); star(ctx, -reach, -14, 4, '#9ff'); }                             // diamond tips
+        if (level >= 4) line(ctx, -3, -21, 3, -21, '#333', 3); // a wedge holding the head on
+      },
+
+      classifier(ctx, level) {
+        // A screen on legs, with rocks rolling off the low end
+        const w = 16 + level;
+        if (level >= 11) { // trommel: a drum with holes
+          polygon(ctx, [[-w, -14], [w, -6], [w, 10], [-w, 2]], metal(level), edge(level), edgeWidth(level));
+          for (let i = 0; i < 5; i++) for (let j = 0; j < 3; j++) circle(ctx, -w + 6 + i * (w * 2 - 12) / 4, -6 + j * 5 + i * 1.6, 1.2, '#333', 'transparent');
+          for (const x of [-w + 4, 0, w - 4]) line(ctx, x, -12 + (x + w) * 0.2, x, 8 + (x + w) * 0.2, level >= 12 ? GOLD : '#555', 2);
+        } else {
+          polygon(ctx, [[-w, -12], [w, -2], [w, 2], [-w, -8]], level < 4 ? '#8b5a2b' : metal(level), edge(level), edgeWidth(level)); // frame
+          const holes = 3 + Math.floor(level / 2);
+          for (let i = 1; i < holes; i++) { // the screen's wires: more of them at higher levels
+            const x = -w + i * (2 * w) / holes;
+            line(ctx, x, -12 + (x + w) * 0.25, x, -8 + (x + w) * 0.25, '#333', 1);
+          }
+          if (level >= 7) polygon(ctx, [[-w, -20], [w, -10], [w, -7], [-w, -17]], metal(level)); // second deck
+          if (level >= 6) for (const dx of [-3, 3]) line(ctx, -w - 4 + dx, -2, -w - 4 + dx, 4, '#fff', 1.5); // shaking lines
         }
-        polygon(ctx, [[-half, -7], [half, -7], [half, 7], [-half, 7]], wood, level === 3 ? GOLD : '#222', level === 3 ? 3 : 1.5);
-        polygon(ctx, [[-half + 2, -3], [half - 2, -3], [half - 2, 3], [-half + 2, 3]], '#3399ff', 'transparent'); // water
-        const riffles = 3 + level * 2;
-        for (let i = 0; i < riffles; i++) {
-          const x = -half + 5 + i * (2 * half - 10) / (riffles - 1);
-          line(ctx, x, -4, x, 4, frame, 1.5);
+        for (const x of [-w + 3, w - 3]) line(ctx, x, 0, x, 22, '#5b3a1a', 3); // legs
+        for (let i = 0; i < 2 + Math.floor(level / 3); i++) circle(ctx, w + 4 - i * 5, 18 - (i % 2) * 5, 3.5, '#9a948a'); // rocks
+      },
+
+      highbanker(ctx, level) {
+        const body = level >= 10 ? '#2f6db5' : level >= 4 ? metal(level) : '#8b5a2b';
+        const len = 22 + level;
+        polygon(ctx, [[-24, -22], [-6, -22], [-9, -8], [-21, -8]], body, edge(level), edgeWidth(level)); // hopper
+        polygon(ctx, [[-20, -8], [-20 + len, 6], [-20 + len, 11], [-20, -3]], body, edge(level), edgeWidth(level)); // tray
+        line(ctx, -18, -5, -22 + len, 8, WATER, 2);                                          // water
+        for (let i = 1; i < 3 + level / 2; i++) line(ctx, -20 + i * 5, -6 + i * 3.1, -20 + i * 5, -2 + i * 3.1, '#333', 1); // riffles
+        for (const x of [-20, -8, -22 + len]) line(ctx, x, -6 + (x + 20) * 0.6, x, 24, '#555', 2); // legs
+        pumpShape(ctx, 16, -18, 0.6 + level * 0.03, level >= 10 ? '#2f6db5' : YELLOW);
+        if (level >= 8) line(ctx, -24, -26, -6, -26, '#3355aa', 2);                          // spray bar
+      },
+
+      // ----- Sluice upgrades (shop icons) -----
+      mesh(ctx, level) {
+        const size = 22;
+        polygon(ctx, [[-size, -size], [size, -size], [size, size], [-size, size]], MAT_CSS[level], edge(level), edgeWidth(level));
+        if (level >= 5) { // metal mesh: finer holes every level
+          const cells = 3 + (level - 5);
+          const tint = level >= 12 ? GOLD : level >= 9 ? '#eef3f8' : level >= 7 ? '#b8c0c8' : '#8a8a8a';
+          for (let i = 0; i <= cells; i++) {
+            const p = -size + i * (2 * size) / cells;
+            line(ctx, p, -size, p, size, tint, 1.5);
+            line(ctx, -size, p, size, p, tint, 1.5);
+          }
+        } else {
+          for (let i = 0; i < 6; i++) line(ctx, -size + 4 + i * 8, -size + 3, -size + 4 + i * 8, size - 3, 'rgba(0,0,0,0.35)', 2); // ribs
         }
-        if (level === 3) polygon(ctx, [[-half - 2, -16], [-half + 12, -16], [-half + 10, -7], [-half, -7]], METAL[1]); // hopper
+        for (let i = 0; i < 1 + Math.floor(level / 3); i++) star(ctx, -12 + i * 7, 10 - (i % 2) * 14, 4); // gold caught
+      },
+      nozzles(ctx, level) {
+        const count = Math.max(1, TOOLS.nozzles.levels[level].count);
+        const color = level >= 12 ? GOLD : level >= 7 ? metal(12) : '#c9a13b';
+        const bars = level >= 6 ? 2 : 1;
+        for (let b = 0; b < bars; b++) {
+          const y = -18 + b * 12;
+          line(ctx, -26, y, 26, y, '#3355aa', 4);
+          const n = Math.ceil(count / bars);
+          for (let i = 0; i < n; i++) {
+            const x = -22 + i * 44 / Math.max(1, n - 1);
+            line(ctx, x, y + 2, x, y + 5, color, 2.5);
+            if (level) for (const dx of [-3, 0, 3]) line(ctx, x, y + 7, x + dx, y + 20 - b * 6, 'rgba(160,210,255,0.8)', 1);
+          }
+        }
+        polygon(ctx, [[-26, 20], [26, 20], [26, 26], [-26, 26]], DIRT);
+      },
+      length(ctx, level) {
+        ctx.rotate(0.2);
+        const half = 12 + level * 1.6;
+        const wood = level >= 12 ? '#2f6db5' : level >= 8 ? metal(8) : level >= 4 ? '#9c6b3a' : '#8b5a2b';
+        polygon(ctx, [[-half, -6], [half, -6], [half, 6], [-half, 6]], wood, edge(level), edgeWidth(level));
+        polygon(ctx, [[-half + 2, -2], [half - 2, -2], [half - 2, 2], [-half + 2, 2]], WATER, 'transparent');
+        const riffles = 3 + level;
+        for (let i = 0; i < riffles; i++) line(ctx, -half + 3 + i * (2 * half - 6) / (riffles - 1), -4, -half + 3 + i * (2 * half - 6) / (riffles - 1), 4, '#333', 1);
+        for (let x = -half + 3; x < half; x += 9) line(ctx, x, 6, x, 18, '#5b3a1a', 2);
+      },
+      water(ctx, level) {
+        // The water tank gets bigger (barrel, tote, big tank, steel tank) and more water pours out
+        const h = 18 + level * 1.2, w = 12 + level;
+        const color = level >= 9 ? metal(level) : level >= 7 ? '#2f5a34' : level >= 4 ? '#e8ecef' : '#8b5a2b';
+        polygon(ctx, [[-w, -h / 2 - 6], [w, -h / 2 - 6], [w, h / 2 - 6], [-w, h / 2 - 6]], color, edge(level), edgeWidth(level));
+        if (level >= 4 && level < 7) for (let i = -w; i <= w; i += 6) line(ctx, i, -h / 2 - 6, i, h / 2 - 6, '#777', 1); // tote cage
+        const streams = 1 + Math.floor(level / 3);
+        for (let i = 0; i < streams; i++) line(ctx, -6 + i * 4, h / 2 - 6, -8 + i * 5, 26, WATER, 2 + level * 0.15);
+        for (let i = 0; i < Math.min(5, level); i++) circle(ctx, -20 + i * 10, 26, 2, WATER, 'transparent');
+      },
+      pressure(ctx, level) {
+        // A pressure gauge: the needle points further round every level
+        circle(ctx, 0, 0, 24, '#f4f0e6', level >= 12 ? GOLD : '#c9a13b');
+        for (let i = 0; i <= 12; i++) {
+          const a = Math.PI * 0.75 + i / 12 * Math.PI * 1.5;
+          line(ctx, Math.cos(a) * 18, Math.sin(a) * 18, Math.cos(a) * 22, Math.sin(a) * 22, i >= 10 ? '#c0392b' : '#333', 1.5);
+        }
+        const a = Math.PI * 0.75 + level / 12 * Math.PI * 1.5;
+        line(ctx, 0, 0, Math.cos(a) * 17, Math.sin(a) * 17, '#b01e1e', 3);
+        circle(ctx, 0, 0, 3, '#333');
+      },
+      pumps(ctx, level) {
+        const count = Math.max(1, TOOLS.pumps.levels[level].count);
+        const color = ['#b03a2e', '#b03a2e', '#d8702a', YELLOW, '#2f6db5'][count];
+        const s = count > 2 ? 0.55 : 0.8;
+        for (let i = 0; i < count; i++) {
+          const x = count === 1 ? -2 : -18 + (i % 2) * 26, y = count <= 2 ? -6 + i * 22 - (count === 1 ? 0 : 6) : -12 + Math.floor(i / 2) * 22;
+          pumpShape(ctx, x + 4, y + 4, s + (level % 3) * 0.06, level ? color : '#888');
+        }
+        if (level >= 12) star(ctx, 22, -22, 6);
+      },
+      hoses(ctx, level) {
+        // A coiled hose: thicker every level; green garden hose, black rubber, blue lay-flat, steel-braided
+        const color = level >= 10 ? '#b8c0c8' : level >= 7 ? '#2f5fb0' : level >= 4 ? '#1a1a1a' : '#2e7d32';
+        const width = 3 + level * 0.4;
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.arc(0, 0, 8 + i * 7, 0, Math.PI * 2);
+          ctx.strokeStyle = color;
+          ctx.lineWidth = width;
+          ctx.stroke();
+        }
+        line(ctx, 22, 0, 30, 18, color, width);
+        circle(ctx, 30, 20, 3 + width * 0.3, level >= 12 ? GOLD : level >= 4 ? '#c9a13b' : '#777'); // fitting
+      },
+      generators(ctx, level) {
+        const count = Math.max(1, TOOLS.generators.levels[level].count);
+        const color = level >= 4 ? YELLOW : level ? '#c0392b' : '#888';
+        const s = count === 1 ? 1 + level * 0.06 : count === 2 ? 0.9 : 0.75;
+        for (let i = 0; i < count; i++) generatorBox(ctx, count === 1 ? 0 : -14 + i * (28 / (count - 1)), -4 + (i % 2) * 14, s, color);
+        if (level >= 10) { circle(ctx, -14, 22, 4, '#333'); circle(ctx, 14, 22, 4, '#333'); } // trailer wheels
+        if (level >= 12) star(ctx, 24, -22, 6);
+      },
+
+      // ----- Tailing pond upgrades (shop icons) -----
+      pondSize(ctx, level) {
+        const rx = 14 + level * 1.3, ry = 8 + level * 0.6;
+        ctx.beginPath();
+        ctx.ellipse(0, 4, rx + 4, ry + 4, 0, 0, Math.PI * 2);
+        ctx.fillStyle = level >= 8 ? '#9a948a' : '#8b5a2b'; // the bank (rocks from level 8)
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(0, 4, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#3d7f96';
+        ctx.fill();
+        ctx.strokeStyle = level >= 12 ? GOLD : level >= 4 ? '#111' : '#5b3a1a';
+        ctx.lineWidth = level >= 12 ? 3 : 2;
+        ctx.stroke();
+        if (level >= 11) polygon(ctx, [[rx, 0], [rx + 10, -2], [rx + 10, 8], [rx, 6]], '#a8a49a'); // spillway
+      },
+      filters(ctx, level) {
+        // A straw bale, then more and fancier filters, with gold twinkling on them
+        polygon(ctx, [[-24, 4], [-4, 4], [-4, 18], [-24, 18]], '#d8b860');
+        line(ctx, -18, 4, -18, 18, '#6a5020', 1.5);
+        line(ctx, -10, 4, -10, 18, '#6a5020', 1.5);
+        if (level >= 2) { for (let i = 0; i < 4; i++) line(ctx, 2 + i * 7, -2, 2 + i * 7, 18, '#5b3a1a', 2); line(ctx, 2, 4, 23, 4, '#222', 5); } // silt fence
+        if (level >= 3) polygon(ctx, [[-26, -16], [4, -10], [4, -4], [-26, -10]], metal(level));                              // riffle flume
+        if (level >= 7) polygon(ctx, [[10, -24], [14, -24], [14, -4], [10, -4]], '#5b3a1a');                                   // baffle
+        if (level >= 9) for (let i = 0; i < 4; i++) circle(ctx, 18 + (i % 2) * 6, -22 + i * 5, 2.5, YELLOW);                  // floats
+        if (level >= 12) polygon(ctx, [[-26, -30], [-12, -30], [-12, -18], [-26, -18]], '#9c6b3a', GOLD, 2);                  // filter house
+        for (let i = 0; i < 1 + Math.floor(level / 2); i++) star(ctx, -20 + (i * 11) % 40, 12 - (i * 7) % 26, 3.5);
+      },
+
+      // ----- Summary icons for the tool bar: the whole sluice and the whole pond -----
+      sluiceAll(ctx) {
+        const L = state.levels;
+        ctx.rotate(0.2);
+        const half = 14 + L.length * 1.2;
+        const wood = L.length >= 12 ? '#2f6db5' : L.length >= 8 ? metal(8) : L.length >= 4 ? '#9c6b3a' : '#8b5a2b';
+        const allMax = isMaxed('sluiceAll');
+        for (let x = -half + 3; x < half; x += 8) line(ctx, x, 6, x, 18, '#5b3a1a', 2);
+        polygon(ctx, [[-half, -6 - L.water * 0.3], [half, -6 - L.water * 0.3], [half, 6], [-half, 6]], wood, allMax ? GOLD : '#222', allMax ? 3 : 1.5);
+        polygon(ctx, [[-half + 2, -2], [half - 2, -2], [half - 2, 2], [-half + 2, 2]], WATER, 'transparent');
+        if (L.nozzles) line(ctx, -half + 4, -14, -half + 16, -14, '#3355aa', 3);
+        const pumps = toolNow('pumps').count;
+        for (let i = 0; i < pumps; i++) circle(ctx, -half + 8 + i * 7, 22, 3, ['#b03a2e', '#d8702a', YELLOW, '#2f6db5'][pumps - 1]);
+      },
+      pondAll(ctx) {
+        const size = state.levels.pondSize, filters = state.levels.filters;
+        ICONS.pondSize(ctx, size);
+        const fill = clamp(state.pond / toolNow('pondSize').holds, 0, 1);
+        ctx.beginPath(); // mud settling in it
+        ctx.ellipse(-6, 6, 4 + fill * 12, 2 + fill * 6, 0, 0, Math.PI * 2);
+        ctx.fillStyle = '#8a6a48';
+        ctx.fill();
+        for (let i = 0; i < 1 + Math.floor(filters / 3); i++) star(ctx, -12 + i * 7, -2 + (i % 2) * 8, 3.5);
       },
 
       // The excavator icon shows both excavator upgrades at once
@@ -2778,100 +4399,120 @@
         polygon(ctx, [[-26, -2], [6, -2], [6, 12], [-26, 12]], YELLOW, trim, width);      // body
         polygon(ctx, [[-24, -18], [-10, -18], [-10, -2], [-24, -2]], YELLOW, trim, width); // cab
         polygon(ctx, [[-21, -15], [-13, -15], [-13, -6], [-21, -6]], '#9fd4ff');          // window
-        line(ctx, -25, 6, 5, 6, '#222', 2);                                               // dark stripe
-        const stacks = engineLevel >= 2 ? 2 : 1;                                          // exhaust pipes
-        for (let i = 0; i < stacks; i++) line(ctx, -5 + i * 4, -2, -5 + i * 4, -8 - engineLevel * 2, engineLevel ? METAL[3] : '#333', 2.5);
+        line(ctx, -25, 6, 5, 6, engineLevel >= 12 ? GOLD : '#222', 2);                    // stripe (gold with the top Speed upgrade)
+        const stacks = engineLevel >= 10 ? 3 : engineLevel >= 5 ? 2 : 1;                  // exhaust pipes
+        for (let i = 0; i < stacks; i++) line(ctx, -6 + i * 4, -2, -6 + i * 4, -8 - Math.min(engineLevel, 6), engineLevel ? metal(12) : '#333', 2.5);
+        if (engineLevel >= 9) circle(ctx, -17, -21, 2.5, '#ff8800', '#aa5500');           // warning light
         const knee = [16, -23];                                                           // arm
         const tip = [24, 3];
         line(ctx, 4, 0, knee[0], knee[1], YELLOW, 4);
         line(ctx, knee[0], knee[1], tip[0], tip[1], YELLOW, 3);
-        const b = 4 + bucketLevel * 1.5;                                                  // bigger bucket
+        const b = 4 + bucketLevel * 0.5;                                                  // bigger bucket
         polygon(ctx, [[tip[0] - b, tip[1]], [tip[0] + b, tip[1]], [tip[0], tip[1] + b * 1.6]], '#555');
       },
 
       digBucket(ctx, level) {
-        const s = 0.8 + level * 0.12;
+        const s = 0.8 + level * 0.035;
         ctx.scale(s, s);
-        const trim = level === 3 ? GOLD : '#222';
-        if (level >= 1) circle(ctx, -2, -8, 12 + level, '#6b4423', 'transparent');       // dirt heaped up in it
+        if (level >= 1) circle(ctx, -2, -8, 10 + level * 0.4, DIRT, 'transparent');     // dirt heaped up in it
         polygon(ctx, [[-10, -22], [-2, -22], [-2, -8], [-10, -8]], '#333');               // mounting ears
-        polygon(ctx, [[-20, -8], [16, -8], [22, 14], [4, 19], [-12, 15], [-20, 4]], YELLOW, trim, level === 3 ? 3 : 1.5); // body
+        polygon(ctx, [[-20, -8], [16, -8], [22, 14], [4, 19], [-12, 15], [-20, 4]], YELLOW, edge(level), edgeWidth(level)); // body
         polygon(ctx, [[-16, 12], [2, 16], [18, 12], [4, 18], [-12, 15]], '#333', 'transparent'); // dark bottom edge
-        const teeth = 1 + level;
+        const teeth = level >= 10 ? 8 : level >= 7 ? 7 : level >= 4 ? 6 : level >= 2 ? 5 : 4;
         for (let i = 0; i < teeth; i++) {
-          const y = teeth === 1 ? 9 : 4 + i * 10 / (teeth - 1); // spread along the front edge
-          polygon(ctx, [[19, y - 3], [28, y], [20, y + 3]], level === 3 ? METAL[3] : '#222', '#111', 1);
+          const y = 3 + i * 12 / (teeth - 1); // spread along the front edge
+          polygon(ctx, [[19, y - 2], [27, y], [20, y + 2]], level >= 9 ? metal(12) : '#222', '#111', 1);
         }
-        if (level >= 2) line(ctx, -14, 2, 12, 6, '#222', 3);                              // wear strip
+        if (level >= 3) line(ctx, -14, 2, 12, 6, '#222', 3);                               // wear strip
+        if (level >= 6) polygon(ctx, [[12, -8], [18, -8], [21, 6], [15, 6]], '#333');      // side cutter
       },
 
       speed(ctx, level) { // an engine with a lightning bolt
-        const trim = level === 3 ? GOLD : '#222';
-        const lw = level === 3 ? 3 : 1.5;
-        polygon(ctx, [[-22, -6], [16, -6], [16, 18], [-22, 18]], level === 0 ? METAL[0] : YELLOW, trim, lw); // engine block
+        const trim = edge(level);
+        const lw = edgeWidth(level);
+        polygon(ctx, [[-22, -6], [16, -6], [16, 18], [-22, 18]], level === 0 ? metal(0) : YELLOW, trim, lw); // engine block
         for (let i = 0; i < 4; i++) polygon(ctx, [[-19 + i * 9, -12], [-13 + i * 9, -12], [-13 + i * 9, -6], [-19 + i * 9, -6]], '#333'); // cylinders
         for (let i = 0; i < 3; i++) line(ctx, -18, 2 + i * 5, 12, 2 + i * 5, '#222', 1.5);   // cooling fins
-        const stacks = level >= 2 ? 2 : 1;
+        const stacks = level >= 10 ? 3 : level >= 5 ? 2 : 1;
         for (let i = 0; i < stacks; i++) {
-          const x = 22 + i * 6;
+          const x = 20 + i * 5;
           line(ctx, x - 6, 4, x, 4, '#333', 3);
-          line(ctx, x, 4, x, -14 - level * 2, level ? METAL[3] : '#333', 3);               // exhaust stack
-          for (let p = 0; p < level; p++) circle(ctx, x - 2 + p * 2, -19 - level * 2 - p * 4, 2 + p, 'rgba(160,160,160,0.7)', 'transparent'); // smoke: more with a better engine
+          line(ctx, x, 4, x, -12 - Math.min(level, 6), level ? metal(12) : '#333', 3);        // exhaust stack
+          for (let p = 0; p < Math.min(3, Math.ceil(level / 4)); p++) circle(ctx, x - 2 + p * 2, -17 - Math.min(level, 6) - p * 4, 2 + p, 'rgba(160,160,160,0.7)', 'transparent'); // smoke
         }
-        if (level === 3) {                                                                 // turbo snail
-          circle(ctx, -24, 6, 7, METAL[2]);
+        if (level >= 5) {                                                                    // turbo snail
+          circle(ctx, -24, 6, 7, metal(level));
           ctx.beginPath();
           ctx.arc(-24, 6, 3.5, 0, Math.PI * 1.5);
           ctx.strokeStyle = '#333';
           ctx.lineWidth = 1.5;
           ctx.stroke();
         }
-        if (level >= 1) polygon(ctx, [[-4, -2], [-10, 8], [-4, 8], [-8, 16], [4, 4], [-2, 4], [2, -2]], '#fff', '#222', 1); // lightning bolt
+        if (level >= 1) polygon(ctx, [[-4, -2], [-10, 8], [-4, 8], [-8, 16], [4, 4], [-2, 4], [2, -2]], level >= 12 ? GOLD : '#fff', '#222', 1); // lightning bolt
       },
     };
+    // The mat colours for the Mesh icon (the same as the sluice's mat, as CSS colours)
+    const MAT_CSS = MAT_COLORS.map((c) => `#${c.toString(16).padStart(6, '0')}`);
 
     const toolbarEl = document.getElementById('toolbar');
 
-    // Draw one tool's icon on a canvas (used by the tool bar and the shop)
+    // Draw one icon on a canvas (used by the tool bar and the shop)
     function drawToolIcon(canvas, id, level) {
       const ctx = canvas.getContext('2d');
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.scale(canvas.width / 64, canvas.height / 64); // the icons are drawn 64 x 64, then scaled to fit
       ctx.translate(32, 32);                             // (0, 0) is now the middle of the icon
-      ctx.scale(0.75 + level * 0.06, 0.75 + level * 0.06); // better tools look a bit bigger
+      ctx.scale(0.8 + level * 0.017, 0.8 + level * 0.017); // better tools look a bit bigger
       ICONS[id](ctx, level);
     }
 
-    // Is this tool as good as it gets? (The excavator is when both of its upgrades are.)
+    // The tool bar: the tools you own, then the sluice and the pond (each showing all their upgrades), then the excavator
+    const TOOLBAR = ['shovel', 'carrier', 'pickaxe', 'classifier', 'highbanker', 'sluiceAll', 'pondAll', 'excavator'];
+    const toolbarTitle = { sluiceAll: 'Sluice Box', pondAll: 'Tailing Pond' };
+    // Levels bought out of all there are, for the sluice and the pond (like 34 of 96)
+    const levelsOf = (ids) => ids.reduce((sum, id) => sum + state.levels[id], 0);
+    const maxLevelsOf = (ids) => ids.reduce((sum, id) => sum + TOOLS[id].levels.length - 1, 0);
+
+    // Is this as good as it gets? (The excavator, sluice and pond are when all their upgrades are.)
     function isMaxed(id) {
       if (id === 'excavator') return EXCAVATOR_PARTS.every((part) => !toolNext(part));
+      if (id === 'sluiceAll') return SLUICE_PARTS.every((part) => !toolNext(part));
+      if (id === 'pondAll') return POND_PARTS.every((part) => !toolNext(part));
       return !toolNext(id);
     }
 
-    // Redraw the whole tool bar. "justUpgraded" is the tool you just bought, so its icon can bounce.
+    // Redraw the whole tool bar. "justUpgraded" is what you just bought, so its icon can bounce.
     function updateToolbar(justUpgraded) {
       toolbarEl.innerHTML = '';
-      for (const id of TOOL_ORDER) {
-        if (!ownsTool(id)) continue; // tools you haven't bought don't show up
-        const level = state.levels[id];
+      for (const id of TOOLBAR) {
+        if (TOOLS[id] && !ownsTool(id)) continue; // tools you haven't bought don't show up
+        const level = TOOLS[id] ? state.levels[id] : 0;
         const slot = document.createElement('div');
         slot.className = 'tool-slot';
         if (isMaxed(id)) slot.classList.add('max');
-        // Upgrading an excavator part makes the excavator icon bounce too, since it changes as well
-        if (id === justUpgraded || (id === 'excavator' && EXCAVATOR_PARTS.includes(justUpgraded))) slot.classList.add('upgraded');
+        // Upgrading a part of the excavator, sluice or pond makes its icon bounce too
+        const bounce = id === justUpgraded
+          || (id === 'excavator' && EXCAVATOR_PARTS.includes(justUpgraded))
+          || (id === 'sluiceAll' && SLUICE_PARTS.includes(justUpgraded))
+          || (id === 'pondAll' && POND_PARTS.includes(justUpgraded));
+        if (bounce) slot.classList.add('upgraded');
 
         const canvas = document.createElement('canvas');
         canvas.width = canvas.height = 128; // double size, so it stays sharp on high-res screens
         drawToolIcon(canvas, id, level);
-        slot.title = toolNow(id).name;
+        slot.title = toolbarTitle[id] || toolNow(id).name;
         slot.append(canvas);
 
-        if (id !== 'excavator') { // the excavator has no levels of its own; its upgrades have their own icons
-          const badge = document.createElement('span');
-          badge.className = 'badge';
-          badge.textContent = `Lv ${level}`;
-          slot.append(badge);
+        let badge = '';
+        if (id === 'sluiceAll') badge = `Lv ${levelsOf(SLUICE_PARTS)}/${maxLevelsOf(SLUICE_PARTS)}`;
+        else if (id === 'pondAll') badge = `Lv ${levelsOf(POND_PARTS)}/${maxLevelsOf(POND_PARTS)}`;
+        else if (id !== 'excavator') badge = `Lv ${level}`; // the excavator has no levels of its own; its upgrades show on its icon
+        if (badge) {
+          const tag = document.createElement('span');
+          tag.className = 'badge';
+          tag.textContent = badge;
+          slot.append(tag);
         }
         toolbarEl.appendChild(slot);
       }
@@ -2915,6 +4556,7 @@
         if (e.button === 0) keys.MouseLeft = true;
         if (e.button === 2) keys.MouseRight = true;
       } else if (e.button === 0) {
+        keys.MouseLeft = true; // (holding it keeps digging, once you have a pickaxe)
         interact();
       }
     });
@@ -2948,8 +4590,12 @@
       }
 
       if (state.shopOpen) {
+        // Number keys buy the row with that number on the open tab; the arrow keys switch tabs
+        const items = TABS.find((tab) => tab.id === shopTab).items;
         const number = Number(e.key);
-        if (number >= 1 && number <= TOOL_ORDER.length) buy(TOOL_ORDER[number - 1]);
+        if (number >= 1 && number <= items.length) buy(items[number - 1]);
+        if (e.code === 'ArrowLeft') switchShopTab(-1);
+        if (e.code === 'ArrowRight') switchShopTab(1);
         if (e.code === 'Escape') closeShop();
         return;
       }
@@ -2966,8 +4612,26 @@
       return distanceFromPoint(bounds, camera.position.x, camera.position.z);
     }
 
+    // The closest thing you can use that's within reach (or undefined)
     function nearbyThing() {
-      return interactables.find((thing) => (!thing.onlyIf || thing.onlyIf()) && distanceTo(thing.bounds) < SETTINGS.reach);
+      let nearest, nearestDistance = SETTINGS.reach;
+      for (const thing of interactables) {
+        if (thing.onlyIf && !thing.onlyIf()) continue;
+        const distance = distanceTo(thing.bounds);
+        if (distance < nearestDistance) {
+          nearest = thing;
+          nearestDistance = distance;
+        }
+      }
+      return nearest;
+    }
+
+    // With a pickaxe, holding E or the left mouse button at the pile keeps digging (dig() waits between digs)
+    function keepDigging(dt) {
+      state.digTimer = Math.max(0, state.digTimer - dt);
+      if (!playing || state.inExcavator || !ownsTool('pickaxe') || !(keys.KeyE || keys.MouseLeft)) return;
+      const thing = nearbyThing();
+      if (thing && thing.hold && state.carrying < toolNow('carrier').capacity) thing.use();
     }
 
     function interact() {
@@ -3076,7 +4740,18 @@
       const bar = (fraction) => `<div class="mini"><i style="width: ${Math.round(fraction * 100)}%"></i></div>`;
       let html = row(carrier.name, `${state.carrying} / ${carrier.capacity} scoops`) + bar(state.carrying / carrier.capacity);
       html += row('Shovel', `${shovel.name} (${shovel.scoops} per dig)`);
-      html += row('Sluice', state.sluiceQueue > 0 ? `${state.sluiceQueue} scoops to wash` : 'waiting for dirt');
+      const slowed = pondFull() ? SETTINGS.pondFullSpeed : 1;
+      html += row('Sluice', state.sluiceQueue > 0
+        ? `${Math.ceil(state.sluiceQueue).toLocaleString('en-US')} to wash (${(sluiceSpeed() * slowed).toFixed(1)}/s)`
+        : `waiting for dirt (${sluiceSpeed().toFixed(1)}/s)`);
+      if (ownsTool('highbanker')) {
+        html += row('Highbanker', state.highbankerQueue > 0 ? `${Math.ceil(state.highbankerQueue).toLocaleString('en-US')} to wash` : 'waiting for dirt');
+      }
+      // The tailing pond: how full it is, and the gold waiting on its filters
+      const pondSize = toolNow('pondSize');
+      html += row('Tailing pond', `${Math.floor(state.pond).toLocaleString('en-US')} / ${pondSize.holds.toLocaleString('en-US')} t`) + bar(state.pond / pondSize.holds);
+      if (state.pondGold >= 1) html += row('Gold on the filters', `$${Math.floor(state.pondGold).toLocaleString('en-US')} (press E at the pond)`);
+      if (pondFull()) html += '<div class="warn">Pond FULL: sluice at 30%. Upgrade Pond Size!</div>';
       if (!ownsTool('excavator')) {
         html += row('Excavator', `for sale in the shop ($${TOOLS.excavator.levels[1].price.toLocaleString('en-US')})`);
       } else if (state.inExcavator) {
@@ -3145,7 +4820,7 @@
     // The game is over once the pile is empty and there's no dirt left anywhere to wash
     function checkForEnd() {
       if (state.finished) return;
-      const dirtLeft = state.pile + state.carrying + state.sluiceQueue + state.exc.load;
+      const dirtLeft = state.pile + state.carrying + state.sluiceQueue + state.highbankerQueue + state.exc.load;
       if (dirtLeft <= 0) showEndScreen();
     }
 
@@ -3177,12 +4852,13 @@
     function resetGame() {
       if (state.inExcavator) exitExcavator();
       Object.assign(state, {
-        money: 0, carrying: 0, sluiceQueue: 0, washTimer: 0,
+        money: 0, carrying: 0, sluiceQueue: 0, washTimer: 0, highbankerQueue: 0, highbankerTimer: 0,
+        pond: 0, pondGold: 0, rocks: 0, digTimer: 0,
         pile: SETTINGS.pileTons / SETTINGS.tonsPerScoop,
         goldFound: 0, nuggets: 0, timePlayed: 0, finished: false,
       });
       state.exc = { ...EXCAVATOR_START };
-      applyToolLevels({}); // small sluice, excavator not bought
+      applyToolLevels({}); // no upgrades: small sluice, puddle pond, nothing else bought
       updatePile();
       camera.position.set(0, 1.6, 2);
       yaw = 0;
@@ -3199,11 +4875,12 @@
 
     // =====================================================================
     // ---------- TEST CHEATS: for trying things out without grinding ----------
-    // K = add money, R = reset everything back to the start, P = dig away most of the pile (to test the end screen).
+    // K = add money, R = reset everything back to the start, P = dig away most of the pile (to test the end screen),
+    // O = fill the tailing pond (to test the sluice slowing down).
     // Set CHEATS_ON to false (or delete this whole block) before the game is finished.
     // =====================================================================
     const CHEATS_ON = true;
-    const CHEAT_MONEY = 10000;
+    const CHEAT_MONEY = 25000;
     const CHEAT_PILE_LEFT = 5; // tons the P cheat leaves in the pile
 
     function cheatAddMoney() {
@@ -3222,6 +4899,11 @@
       showMessage(`Pile shrunk to ${tons(state.pile)} t (test cheat)`);
     }
 
+    function cheatFillPond() {
+      state.pond = toolNow('pondSize').holds;
+      showMessage('Pond filled up (test cheat)');
+    }
+
     if (CHEATS_ON) {
       // Its own key listener, so the rest of the game doesn't need to know about cheats.
       // Works while playing and while the shop is open (but not on the end screen).
@@ -3230,6 +4912,7 @@
         if (e.code === 'KeyK') cheatAddMoney();
         if (e.code === 'KeyR') cheatResetEverything();
         if (e.code === 'KeyP') cheatShrinkPile();
+        if (e.code === 'KeyO') cheatFillPond();
       });
     }
     // ---------- END OF TEST CHEATS ----------
@@ -3253,7 +4936,10 @@
       }
 
       if ((playing || state.shopOpen) && !state.finished) state.timePlayed += dt; // not while paused
+      keepDigging(dt);
       updateSluice(dt);
+      updateHighbanker(dt);
+      updatePond(dt);
       checkForEnd();
       updateEffects(dt);
       updateSounds(dt);

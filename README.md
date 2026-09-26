@@ -13,8 +13,8 @@ Dig dirt, wash it in the sluice box, find gold, and buy better tools.
 |---|---|
 | W A S D | Walk |
 | Mouse | Look around |
-| E or left click | Dig, dump dirt, or get in the excavator (when you're close to something) |
-| B | Open or close the shop (then click an item or press 1 to 6 to buy it) |
+| E or left click | Dig, dump dirt, collect gold at the pond, or get in the excavator (when you're close to something). With a pickaxe, hold it at the pile to keep digging. |
+| B | Open or close the shop (← → switch tabs; click an item or press its number to buy it) |
 | M | Turn all sounds off or on (or click the speaker in the top right) |
 | G | Switch the graphics between High and Low (Low runs faster on slower computers; the frame rate is shown in the bottom right) |
 | Esc | Pause and get your mouse back |
@@ -25,15 +25,23 @@ Using the excavator (these controls are also shown on screen while you sit in it
 |---|---|
 | A / D | Swing the arm left / right |
 | Q or hold left click | Curl the bucket in to scoop (with the bucket above the dirt pile) |
-| F or hold right click | Tip the bucket out to dump (over the sluice) |
+| F or hold right click | Tip the bucket out to dump (over the sluice or the highbanker) |
 | Mouse | Look around |
 | E | Get out |
 
-The tools you own are shown along the bottom of the screen, each with its level. Upgraded tools get better-looking icons, and upgrading the sluice box or the excavator also changes how they look in the game.
+The tools you own are shown along the bottom of the screen, each with its level. Upgraded tools get better-looking icons, and every sluice, pond and excavator upgrade also changes how things look in the game.
 
-The loop: walk to the **DIRT** pile and dig until your bucket is full. Carry it to the **SLUICE** and dump it in. The sluice washes the dirt and pays you for any gold it finds. Press **B** to spend your money on a better shovel, a bigger bucket or wheelbarrow, and a bigger and faster sluice. Then save up for the excavator. Once you buy it, it appears between the pile and the sluice: climb in, scoop from the pile and swing over to dump into the sluice. Upgrade its bucket size and speed to dig even faster.
+The loop: walk to the **DIRT** pile and dig until your bucket is full. Carry it to the **SLUICE** and dump it in. The sluice washes the dirt and pays you for any gold it finds. The gold it misses flows into the **tailing pond** with the muddy water: walk up to the pond and press E to collect what the filters caught. If the pond fills up, the sluice slows down until you make the pond bigger.
 
-There is one giant pile of dirt (5,000 tons) for the whole game. The tons left are always shown in the top left, and the pile shrinks as you dig. When every last ton has been dug up and washed, the game ends and shows how much gold you found, how many big nuggets, and how long you played.
+Press **B** to open the shop. It has four tabs:
+- **Tools:** shovel, bucket/wheelbarrow, and three new tools that unlock in order: the pickaxe (hold to dig), the classifier screen (screens out rocks) and the highbanker (a second washer next to the pile).
+- **Sluice:** mesh, nozzles, length, extra water, pressure, pumps, hoses and generators. Some need others first (for example, more pumps need a bigger generator).
+- **Tailing Pond:** pond size and filters.
+- **Excavator:** the last and most expensive tool, plus its bucket size and speed. It parks between the pile and the sluice: climb in, scoop from the pile and swing over to dump into the sluice or the highbanker.
+
+Every upgrade has 12 levels.
+
+There is one giant pile of dirt (22,000 tons) for the whole game. The tons left are always shown in the top left, and the pile shrinks as you dig. When every last ton has been dug up and washed, the game ends and shows how much gold you found, how many big nuggets, and how long you played.
 
 ## If double-clicking doesn't work
 
