@@ -14,7 +14,16 @@ Core loop:
 5. Spend money on better tools and equipment so you can dig and process more dirt, faster.
 6. There is one giant dirt pile for the whole game. When it's all dug up and washed, the game ends.
 
-## Current state (version 9: phones and tablets)
+## Current state (version 10: saving)
+
+- **Saving and loading:** the game saves itself in the browser (`localStorage`, key `goldRush.save`) and carries on exactly where you left off.
+  - **What's saved** (`makeSave()`): wallet, dirt left in the pile, dirt you're carrying, the sluice queue, pond fill, gold on the filters, the rock pile, every tool and upgrade level (`state.levels`), cash bundles found, total gold, nuggets, time played, whether the game is finished, the excavator (arm swing, bucket tilt, dirt in the bucket, whether you're in the cab and where you're looking), where you're standing and looking, the last shop tab, and the settings (sound, graphics quality, excavator controls guide open or closed).
+  - **When:** every 30 seconds (`AUTOSAVE_SECONDS`), right after every purchase (`buy()`) and cash pickup (`collectCash()`), and when the page is closed or hidden (`pagehide`, `visibilitychange`: switching apps on a phone counts). Changing a setting saves quietly. A small "Saved" note flashes in the bottom left (`showSaved()`, `#saved`; bottom middle on touch screens). Nothing is saved until you've pressed play once (`everPlayed`), so just opening the page doesn't make a save.
+  - **Loading:** on page load, `readSave()` + `loadSave()` put everything back straight away (behind the start screen). The start screen then says **Continue** and shows a **New Game** button (`updateStartScreen()`); New Game asks "Are you sure? This erases your progress." first (`#confirm`). New Game keeps your settings.
+  - **Settings** (a button on the start/pause screen, `#settings`): sound, graphics and controls guide switches, and **Backup**: a code to copy (`makeBackupCode()`: `GOLDRUSH-` + the save as base64 text) and a box to paste one in on another device or browser (`readBackupCode()`, which replaces the current game). Esc closes it; the game's keys are off while it's open (`menuOpen()`), so typing a code doesn't press M or G.
+  - **Old saves** (`upgradeSave()`, `SAVE_VERSION` = 1): every value is checked as it loads (`savedNumber()` keeps it a proper number and in range). Anything missing starts at its normal starting value, anything unknown (old tools, old fields) is ignored, levels past the maximum are capped, and a save that can't be read at all starts a new game. **If you change what's in a save in a way old saves can't handle, raise `SAVE_VERSION` and add a step to `upgradeSave()`.** New upgrades and new state need nothing: they just start at 0 / their default in old saves. If you add something new to `state` that should survive a reload, add it to both `makeSave()` and `loadSave()`.
+
+### Version 9: phones and tablets
 
 - **Upgrades:** 17 things to buy, each with **12 levels** (the excavator itself is one purchase): 193 purchases, **$220,120** in total. They're in four shop tabs:
   - **Tools:** Shovel, Bucket / Wheelbarrow (both owned from the start), then two new tools you unlock in order: **Pickaxe → Classifier Screen**.
@@ -95,7 +104,7 @@ Core loop:
 - **Excavator:** parked in one spot (`EXCAVATOR_SPOT`); it never drives.
   - It isn't there at all until you buy it: `showExcavatorIfOwned()` hides the model and takes it out of `solids`.
   - Walk up and press **E** to climb into the cab. Controls: **A/D** swing the arm, **Q** (or hold left click) curls the bucket in to scoop, **F** (or hold right click) tips it out to dump, mouse looks around, **E** gets out. A controls guide (on the right) and a hint under the crosshair help.
-  - **H** (only while in the excavator) folds the guide away into a tiny "H show controls" tab in the corner, and back again. You can also click its title or tab while the mouse is free (paused with Esc); during play the mouse turns the camera, so clicks don't reach it. It's open the very first time; after that the browser remembers open or closed in `localStorage` (key `goldRush.excavatorHelp`, see `toggleExcavatorHelp()` and `updateExcavatorHelp()`), so it stays that way after a reload. This is a per-browser setting, not part of the game save.
+  - **H** (only while in the excavator) folds the guide away into a tiny "H show controls" tab in the corner, and back again. You can also click its title or tab while the mouse is free (paused with Esc); during play the mouse turns the camera, so clicks don't reach it. It's open the very first time; after that open or closed is saved with the game's settings (see Saving and loading; `toggleExcavatorHelp()`, `updateExcavatorHelp()`), and it can also be switched in Settings. The old separate key `goldRush.excavatorHelp` is still read as the starting value for players who closed it before saving existed.
   - Scooping: swing the bucket above the dirt pile and hold Q. It fills as it curls, for as long as it's above the pile (`bucketOverPile()`, measured at the bucket's hinge).
   - Dumping: tip the bucket past `DUMP_PITCH`. Over the sluice it goes into the sluice (through the classifier); over the pile back on the pile; anywhere else it's spilled (`dumpTarget()`).
   - The arm stays at `EXCAVATOR_START.boom` and has one fixed length (`BOOM_LENGTH`, `STICK_LENGTH`). Swinging all the way round, the bucket passes the pile (swing about -2.46 to -1.42) and the sluice (0.55 to 1.15), at the smallest and largest upgrades. If you move the pile, sluice or excavator, check it can still reach both.
@@ -116,7 +125,6 @@ Core loop:
   - `manifest.json` gives the name, colours, full-screen landscape and icons. The icons in `icons/` (a gold nugget and a pickaxe on a wooden badge) are drawn by `icons/make-icons.ps1` (run it again to change them). `apple-touch-icon.png` is the iPhone's, and `icon-maskable-512.png` has its picture in the middle for phones that cut icons into circles.
   - `sw.js` is the service worker. When installing it saves the game's files, Three.js and the Google Fonts (`GAME_FILES`). After that the game's own files come from the internet when possible (so updates arrive) and from the saved copy when offline; Three.js and the fonts always come from the saved copy. **If you add a file the game needs (or change the Three.js version), add it to `GAME_FILES` and change the version in `CACHE`.**
   - Service workers only run on https (or `localhost`), so none of this works when `index.html` is opened straight from disk; the game still plays normally then. The game is published on GitHub Pages at https://mik3yd.github.io/gold-rush/ (from the `main` branch).
-- No saving yet. Progress resets when you reload the page. (Found cash bundles are stored in `state.cashFound`, ready for a save; see below.)
 - **Test cheats (off by default):** add `?cheats` to the end of the game's address (for example `.../index.html?cheats`) to turn them on; the browser tab's title then says "(test cheats on)" and a message lists the keys. **K** adds $25,000, **R** resets everything to the start (same as "Play again"), **P** digs away most of the pile, leaving 5 t (`CHEAT_PILE_LEFT`), to test the end screen, **O** fills the tailing pond to test the slowdown. All cheat code is in one block marked `TEST CHEATS` near the end of the script; `CHEATS_ON` reads the address. To have them always on while working, set `CHEATS_ON = true`, but put it back before sharing the game.
 
 ### Tools and prices
@@ -147,7 +155,6 @@ Totals: Tools $25,874, Sluice $60,378, Pond $13,768, Excavator $120,100, everyth
 
 Removed features: the Gold Pan and pan tub (version 3), the Metal Detector with its buried nuggets (version 4), in version 5 the dump truck, driving the excavator, the Excavator Arm upgrade and the old Excavator Engine upgrade (now Excavator Speed), in version 6 buying new loads of dirt and the Dirt Loads upgrade, and in version 8 the one-piece Sluice Box upgrade (now the Sluice tab) and the sluice's puddle (the water now runs down a flume into the pond). A Highbanker (a second washer next to the pile) was added in version 8 and then taken out again. The excavator used to dig by itself (version 3).
 
-Future ideas: saving progress.
 
 ## Code layout
 
@@ -165,7 +172,7 @@ Future ideas: saving progress.
   9. signs, shop, camp props, hiding spots (boulders, camp trees, bush), solids
   10. excavator, sounds, effects, hidden cash
   11. game logic, shop (with `TOUCH_WORDS`), tool bar, controls, touch controls, HUD
-  12. quality setting, end of game, cheats and the game loop
+  12. quality setting, end of game, saving and loading (with Settings and New Game), cheats and the game loop
 - The camp props (tent, crates, barrels) are solid: their boxes are added to `solids`. `crowded()` keeps rocks and grass off the pile, sluice, pad, pond, shop and excavator.
 - Three.js is loaded through an import map from jsDelivr (version pinned to 0.170.0).
 - The `SETTINGS` object at the top of the script holds the general tuning numbers: gold chances and values, `sluiceBaseSpeed`, `pondFullSpeed`, `digPause`, walking, tons per scoop, **the total dirt in the game (`pileTons`)**, excavator arm speeds.
@@ -178,7 +185,7 @@ Future ideas: saving progress.
   - the pond (`pond` tons, `pondGold` dollars), `rocks`, `digTimer`
   - the pile, the end-screen numbers (`goldFound`, `nuggets`, `timePlayed`, `finished`)
   - tool levels, whether you're in the excavator (`inExcavator`), and the arm's pose and bucket load in `state.exc`
-- **Saving (for later):** load tool levels with `applyToolLevels(saved)`. It only reads the ids in `TOOL_ORDER`, so old `pan`, `detector`, `engine`, `arm`, `dirtLoad` and `sluice` (the old one-piece sluice) entries are ignored, and it keeps each level in range. It also rebuilds the sluice area, the excavator and the tool bar. `resetGame()` uses it with `{}`. A save should also store `state.pile`, `pond`, `pondGold`, `rocks`, `goldFound`, `nuggets` and `timePlayed` (then call `updatePile()`), and `state.cashFound` (a list of bundle ids; load it with `applyCashFound(saved)`, which ignores unknown ids and hides the bundles already found, so they stay gone after a reload).
+- **Saving and loading** (the section just before the test cheats; see "Saving and loading" above for what and when): `makeSave()` builds the save object, `saveGame(showNote)` writes it, `readSave()` reads it, `upgradeSave()` brings old saves up to date, and `loadSave(save)` puts the game back (it's used for the saved game on page load and for pasted backup codes). `loadSave()` uses `applyToolLevels(saved)`, which only reads the ids in `TOOL_ORDER` (so old `pan`, `detector`, `engine`, `arm`, `dirtLoad` and `sluice` entries are ignored), keeps each level in range and rebuilds the sluice area, the excavator and the tool bar; and `applyCashFound(saved)`, which ignores unknown bundle ids and hides the ones already found. `resetGame()` uses both with empty lists (and leaves the settings alone).
 - **Hidden cash:** `CASH_BUNDLES` lists each bundle's `id`, spot, `turn` and `value`. `makeCashBundle()` builds the model (bill textures `TEX.bill` and `TEX.billEdge`), `collectCash(bundle)` picks one up, `showCashBundles()` shows the ones not found yet, and `twinkleCash(dt)` makes the faint sparkles. Each bundle has an entry in `interactables`. `resetGame()` hides them all again with `applyCashFound([])`.
 - **Helpers:**
   - `toolNow(id)` and `toolNext(id)` return the level you own and the one you can buy next.

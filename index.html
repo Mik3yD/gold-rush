@@ -166,6 +166,27 @@
     #end-stats td:first-child { text-align: left; color: var(--tan); }
     #end-stats td:last-child { text-align: right; font-weight: 700; color: var(--gold); }
     #end .btn { margin: 6px; }
+    /* Under "Click to play" / "Continue": New Game and Settings */
+    #start-buttons { display: flex; justify-content: center; gap: 10px; margin: -6px 0 14px; }
+    #start-buttons .btn { font-size: 14px; padding: 6px 14px; }
+
+    /* ---- Settings panel and the "Are you sure?" box (both sit above the pause and end screens) ---- */
+    #settings, #confirm { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.55); }
+    #settings[hidden], #confirm[hidden] { display: none; }
+    #settings .card, #confirm .card { width: min(520px, 92vw); max-height: 94dvh; overflow-y: auto; touch-action: pan-y; text-align: left; }
+    #settings h2, #confirm h2 { margin: 0 0 10px; font: 30px Rye, Georgia, serif; text-align: center; }
+    #settings .set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid rgba(200, 154, 58, 0.3); }
+    #settings .set-row .btn { min-width: 110px; }
+    #settings h3 { margin: 14px 0 4px; font: 18px Rye, Georgia, serif; color: var(--gold); }
+    #settings p, #confirm p { margin: 4px 0; font-size: 14px; color: #f1e4c4; }
+    #settings textarea { width: 100%; height: 70px; box-sizing: border-box; margin: 6px 0; padding: 6px; resize: vertical; font: 12px monospace; color: #3b2410; background: #f4e6c4; border: 1px solid var(--brass); border-radius: 6px; -webkit-user-select: text; user-select: text; touch-action: auto; }
+    #settings .buttons, #confirm .buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
+    #backup-note { min-height: 1.3em; font-weight: 700; color: var(--gold) !important; }
+    #confirm .card { text-align: center; }
+
+    /* The little "Saved" note in the corner after the game saves */
+    #saved { position: fixed; left: 12px; bottom: 46px; padding: 4px 10px; font-size: 12px; color: #e6d3a8; pointer-events: none; opacity: 0; transition: opacity 0.4s; z-index: 8; }
+    #saved.show { opacity: 1; }
 
     /* ======== Phones and tablets ========
        The page gets the class "touch" the first time you touch the screen (and straight away on phones and tablets).
@@ -210,6 +231,7 @@
     body.touch #gfx kbd { display: none; }
     body.touch.shop-open #gfx, body.touch.shop-open #sound { display: none; } /* out of the way of the shop's close button */
     body.touch #cash-count { left: 50%; bottom: max(8px, env(safe-area-inset-bottom)); transform: translateX(-50%); }
+    body.touch #saved { left: 50%; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 32px); transform: translateX(-50%); }
     body.touch #hud { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); }
     body.touch #status .hint { display: none; }
     body.touch #excavator-help { display: none !important; } /* the touch buttons are labelled instead */
@@ -313,6 +335,7 @@
   </div>
   <div id="gfx" class="plaque"></div>
   <div id="cash-count" class="plaque"></div>
+  <div id="saved" class="plaque">Saved</div>
 
   <div id="excavator-help" class="plaque" hidden>
     <!-- The title doubles as a button that folds the guide away (its text is set by updateExcavatorHelp()) -->
@@ -331,7 +354,12 @@
     <div class="card plaque">
       <h1 class="gold-text">Gold Rush</h1>
       <div class="tagline">Dig &middot; Wash &middot; Strike it rich</div>
-      <div class="play"><span class="only-desktop">Click to play</span><span class="only-touch">Tap to play</span></div>
+      <!-- The words change to "Continue" when there's a saved game (see updateStartScreen()) -->
+      <div class="play" id="play"><span class="only-desktop">Click to play</span><span class="only-touch">Tap to play</span></div>
+      <div id="start-buttons">
+        <button id="new-game" class="btn" type="button" hidden>New Game</button>
+        <button id="open-settings" class="btn" type="button">Settings</button>
+      </div>
       <div class="controls only-touch">
         <span>Left thumb</span><span>drag anywhere on the left to walk</span>
         <span>Right thumb</span><span>drag on the right to look around</span>
@@ -353,6 +381,7 @@
       <p>Unlock the pickaxe and the classifier, then save up for the excavator.</p>
       <p>The game ends when the whole pile has been dug up and washed.</p>
       <p>Rumour has it some cash is hidden around the camp. Keep your eyes peeled!</p>
+      <p>Your game saves by itself, so you can stop any time and carry on later.</p>
     </div>
   </div>
 
@@ -363,6 +392,37 @@
       <table id="end-stats"></table>
       <button id="end-again" class="btn">Play again</button>
       <button id="end-walk" class="btn">Keep walking around</button>
+    </div>
+  </div>
+
+  <!-- Settings: sound, graphics, the excavator guide, and a backup of the saved game -->
+  <div id="settings" hidden>
+    <div class="card plaque">
+      <h2 class="gold-text">Settings</h2>
+      <div class="set-row"><span>Sound</span><button id="set-sound" class="btn" type="button"></button></div>
+      <div class="set-row"><span>Graphics</span><button id="set-gfx" class="btn" type="button"></button></div>
+      <div class="set-row"><span>Excavator controls guide</span><button id="set-help" class="btn" type="button"></button></div>
+      <h3>Backup</h3>
+      <p>The game saves by itself in this browser. To move your game to another device or browser, copy this code and keep it somewhere safe:</p>
+      <textarea id="export-code" readonly></textarea>
+      <div class="buttons"><button id="copy-code" class="btn" type="button">Copy code</button></div>
+      <p>To load a backup, paste its code here. <b>This replaces the game you have now.</b></p>
+      <textarea id="import-code" placeholder="Paste a backup code here"></textarea>
+      <div class="buttons"><button id="load-code" class="btn" type="button">Load backup</button></div>
+      <p id="backup-note"></p>
+      <div class="buttons"><button id="close-settings" class="btn" type="button">Done</button></div>
+    </div>
+  </div>
+
+  <!-- "Are you sure?" before New Game wipes the saved game -->
+  <div id="confirm" hidden>
+    <div class="card plaque">
+      <h2 class="gold-text">New Game</h2>
+      <p>Are you sure? This erases your progress.</p>
+      <div class="buttons">
+        <button id="confirm-yes" class="btn" type="button">Yes, start over</button>
+        <button id="confirm-no" class="btn" type="button">No, keep my game</button>
+      </div>
     </div>
   </div>
 
@@ -3373,6 +3433,7 @@
       state.muted = !state.muted;
       if (master) master.gain.setTargetAtTime(state.muted ? 0 : 1, audio.currentTime, 0.02);
       updateSoundIcon();
+      saveGame(false); // remember it (quietly)
     }
 
     // Speaker icon, drawn with SVG. It gets a red cross when muted.
@@ -3790,6 +3851,7 @@
       hud.wallet.classList.remove('bump');
       void hud.wallet.offsetWidth; // restart the bump animation
       hud.wallet.classList.add('bump');
+      saveGame(); // so a found bundle stays found
     }
 
     // Now and then a faint twinkle floats up off each bundle you haven't found, so a careful eye can spot it
@@ -3950,6 +4012,7 @@
       if (SLUICE_PARTS.includes(id) || POND_PARTS.includes(id) || id === 'classifier') upgradeSluiceModel();
       if (id === 'excavator' || EXCAVATOR_PARTS.includes(id)) rebuildExcavator();
       updateToolbar(id);
+      saveGame(); // right after every purchase
     }
 
     // Rebuild the sluice, pond, equipment pad and classifier with their new upgrades,
@@ -4077,12 +4140,13 @@
     const helpToggle = document.getElementById('help-toggle');
     const crosshair = document.getElementById('crosshair');
 
-    // The controls guide can be folded away with H (or by clicking its title while the mouse is free).
-    // The browser remembers your choice, even after a reload. The very first time, it starts open.
-    const HELP_STORAGE_KEY = 'goldRush.excavatorHelp';
+    // The controls guide can be folded away with H (or by clicking its title while the mouse is free, or in Settings).
+    // It's saved with the game's settings (see "Saving and loading"). The very first time, it starts open.
+    // (Older versions kept it under its own key: that's still read, for players who had already closed it.)
+    const OLD_HELP_KEY = 'goldRush.excavatorHelp';
     let helpOpen = true;
     try {
-      helpOpen = localStorage.getItem(HELP_STORAGE_KEY) !== 'closed';
+      helpOpen = localStorage.getItem(OLD_HELP_KEY) !== 'closed';
     } catch (e) { /* storage blocked (like in a private window): just start open */ }
 
     function updateExcavatorHelp() {
@@ -4095,10 +4159,8 @@
 
     function toggleExcavatorHelp() {
       helpOpen = !helpOpen;
-      try {
-        localStorage.setItem(HELP_STORAGE_KEY, helpOpen ? 'open' : 'closed');
-      } catch (e) { /* can't remember it: it still works until you reload */ }
       updateExcavatorHelp();
+      saveGame(false); // remember it (quietly)
     }
     helpToggle.addEventListener('click', () => {
       toggleExcavatorHelp();
@@ -4851,6 +4913,7 @@
     let yaw = 0;    // looking left/right
     let pitch = 0;  // looking up/down
     let playing = false;
+    let everPlayed = false; // true once you've started playing (from then on the game saves itself)
     const keys = {};
     const startScreen = document.getElementById('start');
     let touchMode = false; // true while you're playing with your fingers (see "Touch controls" below)
@@ -4858,6 +4921,7 @@
     // Start or pause the game. While paused, the start screen shows (unless the shop or the end screen is open).
     function setPlaying(on) {
       playing = on;
+      if (on) everPlayed = true;
       startScreen.style.display = playing || state.shopOpen || state.endScreenOpen ? 'none' : 'flex';
       document.body.classList.toggle('playing', playing);
       if (!playing) {
@@ -4922,6 +4986,10 @@
     document.addEventListener('contextmenu', (e) => e.preventDefault()); // no right-click menu
 
     addEventListener('keydown', (e) => {
+      if (menuOpen()) { // Settings or "Are you sure?" is open: Esc closes it, other keys are for typing a backup code
+        if (e.code === 'Escape') closeMenus();
+        return;
+      }
       keys[e.code] = true;
       if (e.repeat) return;
 
@@ -4931,8 +4999,7 @@
       }
 
       if (e.code === 'KeyG') {
-        setQuality(quality === 'High' ? 'Low' : 'High');
-        showMessage(`Graphics: ${quality}`);
+        switchQuality();
         return;
       }
 
@@ -5354,11 +5421,13 @@
       updateParticleScale();
     }
     setQuality(TOUCH_DEVICE ? 'Low' : 'High');
-    // On a touch screen, tap the Graphics label (top right) to switch
-    hud.gfx.addEventListener('click', () => {
+    // G, the Graphics label (tap it, top right on a touch screen) or Settings switch it, and the choice is saved
+    function switchQuality() {
       setQuality(quality === 'High' ? 'Low' : 'High');
       showMessage(`Graphics: ${quality}`);
-    });
+      saveGame(false);
+    }
+    hud.gfx.addEventListener('click', switchQuality);
 
     // Count frames per second, show them in the corner, and suggest Low graphics if the game is struggling
     let fpsFrames = 0, fpsTime = 0, slowSeconds = 0, warnedSlow = false;
@@ -5441,9 +5510,290 @@
     document.getElementById('end-walk').addEventListener('click', closeEndScreen);
     document.getElementById('end-again').addEventListener('click', () => {
       resetGame();
+      saveGame();
       closeEndScreen();
       showMessage('A brand new pile of dirt. Good luck!');
     });
+
+    // =====================================================================
+    // ---------- Saving and loading ----------
+    // The game saves itself in this browser (localStorage) every 30 seconds, right after you buy something or
+    // find cash, and when you close or leave the page (or switch to another app on a phone).
+    // When you come back it loads straight away, and the start screen says "Continue" (with a New Game button).
+    // A save is one plain object (see makeSave()). The backup code in Settings is that same object, as text.
+    //
+    // Old saves: SAVE_VERSION is the save's layout. If a future update changes the layout, raise it and add a step
+    // to upgradeSave(). Anything a save doesn't have (a new upgrade, say) simply starts at its normal starting value,
+    // and anything it has that the game no longer knows (an old tool) is ignored. Broken numbers are replaced too.
+    // =====================================================================
+    const SAVE_KEY = 'goldRush.save';
+    const SAVE_VERSION = 1;
+    const AUTOSAVE_SECONDS = 30;
+    const FULL_PILE = SETTINGS.pileTons / SETTINGS.tonsPerScoop; // scoops in a full pile
+    let hasSave = false; // true when this browser has a saved game
+
+    // Everything needed to carry on later, as a plain object
+    function makeSave() {
+      const exc = state.exc;
+      return {
+        version: SAVE_VERSION,
+        savedAt: new Date().toISOString(),
+        money: state.money,
+        pile: state.pile,
+        carrying: state.carrying,
+        sluiceQueue: state.sluiceQueue,
+        pond: state.pond,
+        pondGold: state.pondGold,
+        rocks: state.rocks,
+        goldFound: state.goldFound,
+        nuggets: state.nuggets,
+        timePlayed: state.timePlayed,
+        finished: state.finished,
+        cashFound: [...state.cashFound],
+        levels: { ...state.levels },
+        // The swing is kept between -pi and pi (it can wind round and round)
+        excavator: {
+          swing: Math.atan2(Math.sin(exc.swing), Math.cos(exc.swing)), bucketPitch: exc.bucketPitch, load: exc.load,
+          inCab: state.inExcavator, lookYaw: cabYaw, lookPitch: cabPitch,
+        },
+        player: { x: camera.position.x, z: camera.position.z, yaw, pitch },
+        settings: { muted: state.muted, quality, controlsGuide: helpOpen },
+        shopTab,
+      };
+    }
+
+    // Save the game. showNote: flash "Saved" in the corner. Nothing is saved until you've started playing once
+    // (so just opening the page doesn't make a save), and if the browser won't store it the game still plays.
+    function saveGame(showNote = true) {
+      if (!everPlayed && !hasSave) return;
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(makeSave()));
+      } catch (e) {
+        return; // storage blocked (a private window) or full
+      }
+      hasSave = true;
+      if (showNote) showSaved();
+    }
+
+    // The saved game in this browser, or null if there isn't one (or it's broken)
+    function readSave() {
+      try {
+        const save = JSON.parse(localStorage.getItem(SAVE_KEY));
+        return save && typeof save === 'object' ? save : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    // Brings an older save up to date, one version at a time. Version 1 is the first, so there's nothing to do yet.
+    // When the layout changes, add a step like:  if (save.version < 2) { save.newThing = save.oldThing; }
+    function upgradeSave(save) {
+      if (!(save.version >= 1)) save.version = 1; // a save without a version number counts as version 1
+      return save;
+    }
+
+    // A number from a save: the fallback if it's missing or not a proper number, and kept between min and max
+    function savedNumber(value, fallback, min = -Infinity, max = Infinity) {
+      return typeof value === 'number' && Number.isFinite(value) ? clamp(value, min, max) : fallback;
+    }
+
+    // Put the game back the way a save says. Works on old and damaged saves too (see above).
+    function loadSave(save) {
+      save = upgradeSave(save);
+      if (state.inExcavator) exitExcavator();
+      const exc = save.excavator && typeof save.excavator === 'object' ? save.excavator : {};
+      Object.assign(state, {
+        money: savedNumber(save.money, 0, 0),
+        pile: savedNumber(save.pile, FULL_PILE, 0, FULL_PILE),
+        carrying: savedNumber(save.carrying, 0, 0),
+        sluiceQueue: savedNumber(save.sluiceQueue, 0, 0),
+        washTimer: 0, digTimer: 0,
+        pond: savedNumber(save.pond, 0, 0),
+        pondGold: savedNumber(save.pondGold, 0, 0),
+        rocks: savedNumber(save.rocks, 0, 0),
+        goldFound: savedNumber(save.goldFound, 0, 0),
+        nuggets: Math.floor(savedNumber(save.nuggets, 0, 0)),
+        timePlayed: savedNumber(save.timePlayed, 0, 0),
+        finished: save.finished === true,
+        endScreenOpen: false,
+      });
+      state.exc = {
+        ...EXCAVATOR_START,
+        swing: savedNumber(exc.swing, EXCAVATOR_START.swing, -Math.PI, Math.PI),
+        bucketPitch: savedNumber(exc.bucketPitch, EXCAVATOR_START.bucketPitch, -1.6, 1.0),
+        load: savedNumber(exc.load, 0, 0),
+      };
+      // Tools and upgrades (this also rebuilds the sluice area, the excavator and the tool bar)
+      applyToolLevels(save.levels && typeof save.levels === 'object' ? save.levels : {});
+      // Nothing more than the (saved) tools can hold
+      state.carrying = Math.min(state.carrying, toolNow('carrier').capacity);
+      state.pond = Math.min(state.pond, toolNow('pondSize').holds);
+      state.exc.load = Math.min(state.exc.load, toolNow('digBucket').scoops);
+      poseExcavator();
+      applyCashFound(save.cashFound);
+      updatePile();
+
+      // Where you were standing and looking (inside the fence, and out of anything solid)
+      const player = save.player && typeof save.player === 'object' ? save.player : {};
+      camera.position.set(savedNumber(player.x, 0, -28, 28), 1.6, savedNumber(player.z, 2, -28, 28));
+      yaw = savedNumber(player.yaw, 0);
+      pitch = savedNumber(player.pitch, 0, -1.5, 1.5);
+      pushOutOfSolids();
+      // Sitting in the excavator's cab
+      if (exc.inCab === true && ownsTool('excavator')) {
+        enterExcavator();
+        cabYaw = savedNumber(exc.lookYaw, 0, -2, 2);
+        cabPitch = savedNumber(exc.lookPitch, -0.3, -1.2, 1.2);
+      }
+
+      // Settings (a setting the save doesn't have stays as it is)
+      const settings = save.settings && typeof save.settings === 'object' ? save.settings : {};
+      if (typeof settings.muted === 'boolean') {
+        state.muted = settings.muted;
+        if (master) master.gain.value = state.muted ? 0 : 1;
+        updateSoundIcon();
+      }
+      if (settings.quality === 'High' || settings.quality === 'Low') setQuality(settings.quality);
+      if (typeof settings.controlsGuide === 'boolean') {
+        helpOpen = settings.controlsGuide;
+        updateExcavatorHelp();
+      }
+      if (TABS.some((tab) => tab.id === save.shopTab)) shopTab = save.shopTab;
+      // The wallet shows the loaded money straight away (no counting up, no "+$" popup)
+      shownMoney = lastMoney = state.money;
+    }
+
+    // The little "Saved" note in the corner
+    const savedNote = document.getElementById('saved');
+    let savedTimeout;
+    function showSaved() {
+      savedNote.classList.add('show');
+      clearTimeout(savedTimeout);
+      savedTimeout = setTimeout(() => savedNote.classList.remove('show'), 1500);
+    }
+
+    // When to save: every 30 seconds, and when you close or leave the page (switching apps on a phone
+    // counts as leaving; phones may close a page in the background without warning)
+    setInterval(() => saveGame(), AUTOSAVE_SECONDS * 1000);
+    addEventListener('pagehide', () => saveGame(false));
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) saveGame(false);
+    });
+
+    // ---- The start screen: "Continue" and New Game when there's a saved game ----
+    const playButton = document.getElementById('play');
+    const newGameButton = document.getElementById('new-game');
+    function updateStartScreen() {
+      playButton.innerHTML = hasSave
+        ? 'Continue'
+        : '<span class="only-desktop">Click to play</span><span class="only-touch">Tap to play</span>';
+      newGameButton.hidden = !hasSave;
+    }
+
+    // New Game asks first, in its own box (clicks on it don't reach the start screen behind it)
+    const confirmEl = document.getElementById('confirm');
+    newGameButton.addEventListener('click', (e) => {
+      e.stopPropagation(); // not a click on the start screen (that would start playing)
+      confirmEl.hidden = false;
+    });
+    document.getElementById('confirm-no').addEventListener('click', () => { confirmEl.hidden = true; });
+    document.getElementById('confirm-yes').addEventListener('click', () => {
+      confirmEl.hidden = true;
+      resetGame(); // your settings stay as they are
+      saveGame(false);
+      updateStartScreen();
+      resumePlaying();
+      showMessage('A brand new pile of dirt. Good luck!');
+    });
+
+    // ---- Settings: sound, graphics, the controls guide, and the backup code ----
+    const settingsEl = document.getElementById('settings');
+    const exportCode = document.getElementById('export-code');
+    const importCode = document.getElementById('import-code');
+    const backupNote = document.getElementById('backup-note');
+    const BACKUP_PREFIX = 'GOLDRUSH-'; // so a backup code is easy to recognise
+
+    // Is Settings or the "Are you sure?" box open? (Then the game's keys are switched off.)
+    function menuOpen() { return !settingsEl.hidden || !confirmEl.hidden; }
+    function closeMenus() {
+      settingsEl.hidden = true;
+      confirmEl.hidden = true;
+    }
+
+    // The save as a backup code: the save's text turned into letters and numbers (base64), so it copies safely
+    function makeBackupCode() {
+      return BACKUP_PREFIX + btoa(JSON.stringify(makeSave()));
+    }
+    // Turn a backup code back into a save, or null if it isn't one. (Spaces and line breaks from copying are ignored.)
+    function readBackupCode(code) {
+      try {
+        const text = code.replace(/\s/g, '').replace(BACKUP_PREFIX, '');
+        const save = JSON.parse(atob(text));
+        return save && typeof save === 'object' && 'money' in save && 'levels' in save ? save : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function updateSettings() {
+      document.getElementById('set-sound').textContent = state.muted ? 'Off' : 'On';
+      document.getElementById('set-gfx').textContent = quality;
+      document.getElementById('set-help').textContent = helpOpen ? 'Shown' : 'Hidden';
+      exportCode.value = makeBackupCode();
+    }
+
+    document.getElementById('open-settings').addEventListener('click', (e) => {
+      e.stopPropagation(); // not a click on the start screen (that would start playing)
+      importCode.value = '';
+      backupNote.textContent = '';
+      updateSettings();
+      settingsEl.hidden = false;
+    });
+    document.getElementById('close-settings').addEventListener('click', closeMenus);
+    document.getElementById('set-sound').addEventListener('click', () => { toggleMute(); updateSettings(); });
+    document.getElementById('set-gfx').addEventListener('click', () => { switchQuality(); updateSettings(); });
+    document.getElementById('set-help').addEventListener('click', () => { toggleExcavatorHelp(); updateSettings(); });
+
+    document.getElementById('copy-code').addEventListener('click', () => {
+      exportCode.value = makeBackupCode();
+      const copied = () => { backupNote.textContent = 'Code copied! Paste it somewhere safe (a note or an email to yourself).'; };
+      // The clipboard needs https or localhost; otherwise select the text and copy it the old way
+      const oldWay = () => {
+        exportCode.select();
+        if (document.execCommand('copy')) copied();
+        else backupNote.textContent = 'Couldn\'t copy by itself: select the code and copy it yourself.';
+      };
+      if (navigator.clipboard) navigator.clipboard.writeText(exportCode.value).then(copied, oldWay);
+      else oldWay();
+    });
+
+    document.getElementById('load-code').addEventListener('click', () => {
+      const save = readBackupCode(importCode.value);
+      if (!save) {
+        backupNote.textContent = 'That code doesn\'t look right. Check you copied all of it.';
+        return;
+      }
+      loadSave(save);
+      everPlayed = true; // so it's saved in this browser straight away
+      saveGame(false);
+      updateStartScreen();
+      updateSettings();
+      importCode.value = '';
+      backupNote.textContent = 'Backup loaded! Close Settings and carry on.';
+    });
+
+    // ---- On page load: carry on from the saved game, if there is one ----
+    const startingSave = readSave();
+    if (startingSave) {
+      try {
+        loadSave(startingSave);
+        hasSave = true;
+      } catch (e) {
+        console.warn('Gold Rush: the saved game could not be loaded, starting a new one', e);
+        resetGame();
+      }
+    }
+    updateStartScreen();
 
     // =====================================================================
     // ---------- TEST CHEATS: for trying things out without grinding ----------
@@ -5485,7 +5835,7 @@
       // Its own key listener, so the rest of the game doesn't need to know about cheats.
       // Works while playing and while the shop is open (but not on the end screen).
       addEventListener('keydown', (e) => {
-        if (e.repeat || state.endScreenOpen) return;
+        if (e.repeat || state.endScreenOpen || menuOpen()) return;
         if (e.code === 'KeyK') cheatAddMoney();
         if (e.code === 'KeyR') cheatResetEverything();
         if (e.code === 'KeyP') cheatShrinkPile();
