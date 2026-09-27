@@ -1,0 +1,16 @@
+{
+  "name": "Gold Rush",
+  "short_name": "Gold Rush",
+  "description": "Dig dirt, wash it in the sluice, find gold and buy better tools. A first-person 3D gold mining game.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#2c1a0a",
+  "theme_color": "#2c1a0a",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

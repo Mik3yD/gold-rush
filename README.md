@@ -43,6 +43,26 @@ Every upgrade has 12 levels.
 
 There is one giant pile of dirt (19,000 tons) for the whole game. The tons left are always shown in the top left, and the pile shrinks as you dig. When every last ton has been dug up and washed, the game ends and shows how much gold you found, how many big nuggets, and how long you played.
 
+## Playing on a phone or tablet
+
+Open **https://mik3yd.github.io/gold-rush/** on your phone and turn it sideways. Touch controls appear by themselves:
+
+| Touch | Action |
+|---|---|
+| Left thumb (drag anywhere on the left half) | Walk: a joystick appears under your thumb |
+| Right thumb (drag on the right half) | Look around |
+| Interact | Dump, collect, open the shop, climb in... (its label says what) |
+| Dig | Dig at the pile (hold it once you have a pickaxe) |
+| Shop | Open the shop (tap an item to buy it, scroll with your finger) |
+| Top right | Graphics High/Low, pause, sound on/off |
+| In the excavator | ◀ ▶ swing, Scoop, Dump, Get out |
+
+Phones start on Low graphics so the game runs smoothly; tap "Graphics" to switch.
+
+**Add it to your home screen** to get a Gold Rush icon that opens full-screen like an app, and works even without signal once it has loaded once:
+- **Android (Chrome):** menu (⋮) → *Add to Home screen* / *Install app*.
+- **iPhone / iPad (Safari):** Share button → *Add to Home Screen*.
+
 ## If double-clicking doesn't work
 
 First check that you're online. If you still see only a blue screen, some browser settings block pages opened straight from a file. You can get around that by running a tiny local web server:

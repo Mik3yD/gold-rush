@@ -14,7 +14,7 @@ Core loop:
 5. Spend money on better tools and equipment so you can dig and process more dirt, faster.
 6. There is one giant dirt pile for the whole game. When it's all dug up and washed, the game ends.
 
-## Current state (version 8: deep upgrades)
+## Current state (version 9: phones and tablets)
 
 - **Upgrades:** 17 things to buy, each with **12 levels** (the excavator itself is one purchase): 193 purchases, **$220,120** in total. They're in four shop tabs:
   - **Tools:** Shovel, Bucket / Wheelbarrow (both owned from the start), then two new tools you unlock in order: **Pickaxe → Classifier Screen**.
@@ -60,7 +60,7 @@ Core loop:
     - for nuggets, `nuggetShine()`: a gold nugget pops up spinning, with rays of light, a sparkle burst, a flash of golden light and a golden glow around the screen
     - splashes into the flume and the pond, spray from the spray bars, generator smoke (`generatorSmoke()`), and overflow splashes when the pond is full
   - **Screen display:** gold-rush style: dark wood panels with brass edges, the Rye (western) and Bitter fonts from Google Fonts, a gold coin wallet that counts up with a "+$" popup, keyboard keys drawn as keycaps, a tabbed shop with parchment cards, tool icons, level pips and gold price tags.
-  - **Graphics quality:** press **G** to switch between High and Low (`QUALITY`, `setQuality()`). Low draws fewer pixels on high-resolution screens, turns off shadows, and shows a third of the grass and half the particles. The frame rate is shown in the bottom right corner (`countFps()`); if it stays under 30 on High, the game suggests pressing G.
+  - **Graphics quality:** press **G** to switch between High and Low (`QUALITY`, `setQuality()`). Low draws fewer pixels on high-resolution screens, turns off shadows, and shows a third of the grass and half the particles. The frame rate is shown in the bottom right corner (`countFps()`); if it stays under 30 on High, the game suggests pressing G. Phones and tablets (`TOUCH_DEVICE`) start on Low, and their High is capped at 1.5× pixels instead of 2×; on a touch screen you tap the Graphics label (top right) to switch.
 - **Shop:** press **B** anywhere (or E at the shop table).
   - Four tabs (`TABS`): click one or press **← / →**. The shop remembers the last tab.
   - The number keys 1 to 8 buy the row with that number on the open tab.
@@ -91,6 +91,7 @@ Core loop:
     - the excavator engine and hydraulics
   - One-off sounds (`sfx`): footsteps, digging, dumping, flake "tings", a nugget fanfare, "ka-ching" for buying, a power-up for upgrading, a buzzer for not enough money, a "locked" sound, a tab click, shop open/close chimes, pond gold (splash and coins), rocks rattling down the classifier, a pond-full gurgle, a "thunk" when the pile runs out, bucket scraping, and a drum roll and victory tune on the end screen.
   - **M** (or the speaker button) mutes everything. Sound starts after the first click, because browsers require that.
+  - Phones: `startAudio()` also runs on every tap (`touchend`, which is when iPhones allow sound) and when you tap to play again after switching apps. It uses `webkitAudioContext` on older iPhones, and asks newer iPhones to play even with the silent switch on (`navigator.audioSession.type = 'playback'`).
 - **Excavator:** parked in one spot (`EXCAVATOR_SPOT`); it never drives.
   - It isn't there at all until you buy it: `showExcavatorIfOwned()` hides the model and takes it out of `solids`.
   - Walk up and press **E** to climb into the cab. Controls: **A/D** swing the arm, **Q** (or hold left click) curls the bucket in to scoop, **F** (or hold right click) tips it out to dump, mouse looks around, **E** gets out. A controls guide (on the right) and a hint under the crosshair help.
@@ -102,6 +103,19 @@ Core loop:
     - Bucket Size: 15 to 30 t and 4.5% bigger per level, 4 → 8 teeth, wear strips, side plates, side cutters, a lip plate, chrome teeth, and gold trim at 12.
     - Speed: chrome exhaust, air filter, vents, taller stack, twin stacks, a turbo pipe, a hood scoop, stripes, a beacon, triple stacks, chrome rams (`ramColor`), and gold stripes at 12.
 - **Hidden cash:** 7 bundles of bills (tied with string) are hidden around the camp, worth $25 to $400 each, **$1,000 in total**. Some are easy to spot, a couple are really well hidden, and the better hidden ones are worth more. Each gives off a faint twinkle now and then (`twinkleCash()`). Walk up and press **E** to pick one up: a cash sound (`sfx.cash()`), the money goes in the wallet (not into `goldFound`, since it isn't gold), a "Found $N!" message and a burst of sparkles. A small "Cash found: 2/7" counter sits in the bottom left, and the end screen shows how many you found. The start screen hints that cash is hidden. The spots are listed in `CASH_BUNDLES` in the code (**spoilers!**); some hide behind scenery added for them (`CAMP_BOULDERS`, `CAMP_TREES`, `CAMP_BUSH`: two boulders, three trees and a bush inside the fence, all solid). If you move the camp props, the sluice area or that scenery, check the bundles still sit where they should and can be reached. Balance: $1,000 is a nice early boost (the first upgrades cost $25 to $60, the Pickaxe $150) but under 0.5% of the $220,120 all the upgrades cost.
+- **Phones and tablets (touch controls):** everything works with fingers, and keyboard and mouse still work on computers.
+  - **Touch mode** (`touchMode`, the `touch` class on `<body>`) is on from the start on phones and tablets (`TOUCH_DEVICE`: the main pointer is "coarse"), switches on with any touch, and off again when you use a mouse (`setTouchMode()`, from `pointerdown`). The touch buttons only show in touch mode while playing (`body.touch.playing`).
+  - **Playing and pausing:** phones can't capture the mouse, so `setPlaying(on)` starts and pauses the game in both modes (mouse: from `pointerlockchange`), and `resumePlaying()` is "back to the game" (tap to play, closing the shop or end screen). In touch mode it goes full-screen and locks landscape where the browser allows it (`goFullScreen()`, Android). A pause button (top right), switching apps and turning the phone upright pause it.
+  - **Walking:** a joystick appears wherever your left thumb goes down on the left half of the screen (`stick`, `STICK_RADIUS` 60 px, `#touch-area`); how far you push it sets the speed (`movePlayer()`). Dragging anywhere else looks around (`lookAround()`, `SETTINGS.touchSensitivity`).
+  - **Buttons** (`touchButton()`): **Interact** (does E; its label says what: Dig, Dump, Collect, Shop, Get in, Pick up, from each `interactables` entry's `label`; dimmed when nothing's in reach), **Dig** (dig at the pile, hold with a pickaxe: `keys.TouchDig`), **Shop**, pause, and the speaker button. `updateTouchButtons()` runs every frame.
+  - **Excavator:** ◀ ▶ Swing on the left, Scoop, Dump and Get out on the right. They hold down the same `keys` as the keyboard (`data-key` on the buttons: KeyA, KeyD, KeyQ, KeyF). The arm doesn't go up and down on purpose (see Excavator). The keyboard guide is hidden in touch mode.
+  - **Words:** on a touch screen, hints and messages talk about buttons instead of keys: `forScreen(text)` swaps them using `TOUCH_WORDS` ("Press E" → "Tap Interact", "hold Q" → "hold Scoop"...). Text written once (shop descriptions, start screen, shop tabs) has both versions, and CSS shows the right one (`.only-touch`, `.only-desktop`, `bothVersions()`). If you add a hint with a key in it, check it reads well on a phone too.
+  - **Layout:** on a touch screen the tool bar moves to the top middle (smaller icons), Graphics, pause and sound sit in a row at the top right, and the cash counter at the bottom middle. Short screens (under 540 px tall: phones held sideways) get a smaller HUD, start screen and end screen, and a full-screen shop with a sticky header (money and a big ✕) and tabs ("Tailing Pond" becomes "Pond"). Everything keeps clear of notches (`env(safe-area-inset-...)`).
+  - **Portrait:** a "Please rotate your phone" message covers the game (`#rotate`) and pauses it.
+- **Installable app (PWA):** players can add Gold Rush to their home screen and open it full-screen like an app, and it works with no signal once it has loaded once.
+  - `manifest.json` gives the name, colours, full-screen landscape and icons. The icons in `icons/` (a gold nugget and a pickaxe on a wooden badge) are drawn by `icons/make-icons.ps1` (run it again to change them). `apple-touch-icon.png` is the iPhone's, and `icon-maskable-512.png` has its picture in the middle for phones that cut icons into circles.
+  - `sw.js` is the service worker. When installing it saves the game's files, Three.js and the Google Fonts (`GAME_FILES`). After that the game's own files come from the internet when possible (so updates arrive) and from the saved copy when offline; Three.js and the fonts always come from the saved copy. **If you add a file the game needs (or change the Three.js version), add it to `GAME_FILES` and change the version in `CACHE`.**
+  - Service workers only run on https (or `localhost`), so none of this works when `index.html` is opened straight from disk; the game still plays normally then. The game is published on GitHub Pages at https://mik3yd.github.io/gold-rush/ (from the `main` branch).
 - No saving yet. Progress resets when you reload the page. (Found cash bundles are stored in `state.cashFound`, ready for a save; see below.)
 - **Test cheats (off by default):** add `?cheats` to the end of the game's address (for example `.../index.html?cheats`) to turn them on; the browser tab's title then says "(test cheats on)" and a message lists the keys. **K** adds $25,000, **R** resets everything to the start (same as "Play again"), **P** digs away most of the pile, leaving 5 t (`CHEAT_PILE_LEFT`), to test the end screen, **O** fills the tailing pond to test the slowdown. All cheat code is in one block marked `TEST CHEATS` near the end of the script; `CHEATS_ON` reads the address. To have them always on while working, set `CHEATS_ON = true`, but put it back before sharing the game.
 
@@ -138,6 +152,7 @@ Future ideas: saving progress.
 ## Code layout
 
 - `index.html` holds everything: the page, the HUD, and the game code in one `<script type="module">`.
+- For the installable app: `manifest.json`, `sw.js` (the service worker, registered near the end of the script) and `icons/` (with `make-icons.ps1`, which draws them).
 - **Script order:**
   1. settings and tools
   2. the scene and renderer
@@ -149,7 +164,7 @@ Future ideas: saving progress.
   8. sluice, pond, equipment pad, classifier (`buildSluiceArea()` builds all four in the right order)
   9. signs, shop, camp props, hiding spots (boulders, camp trees, bush), solids
   10. excavator, sounds, effects, hidden cash
-  11. game logic, shop, tool bar, controls, HUD
+  11. game logic, shop (with `TOUCH_WORDS`), tool bar, controls, touch controls, HUD
   12. quality setting, end of game, cheats and the game loop
 - The camp props (tent, crates, barrels) are solid: their boxes are added to `solids`. `crowded()` keeps rocks and grass off the pile, sluice, pad, pond, shop and excavator.
 - Three.js is loaded through an import map from jsDelivr (version pinned to 0.170.0).
@@ -180,9 +195,9 @@ Future ideas: saving progress.
 - **Solids:** `solids` is the list of things you can't walk through (created at the start of the sluice section, filled in under "Solid things"). Each one is a `Box3`, a turnable "rect" (`excavatorRect`) or a "circle" (`pileCircle`, `pondCircle`, `rockCircle`); `nearestPoint()` and `distanceFromPoint()` work with all three.
   - The pile's circle has an `edge` profile (`PILE_EDGE`, measured from the heap's own shape by `edgeProfile()`), because its lumps stick out up to about 9% past a plain circle; `circleRadius()` and `edgeAt()` read it. It scales with the pile as it shrinks, and `pileCircle.off` makes it not solid once the pile is gone (a solid with `off: true` is skipped).
   - **Walking into things** (`movePlayer()`): each move is split into steps of at most `MAX_STEP` (0.1 m), so a slow frame can't jump you past an edge. After each step `pushAway()` pushes you out of anything you touch (`pushOut()` also works when your middle has ended up inside a solid: out through the nearest edge). If you'd still overlap something (`stuckInSolid()`: a gap narrower than you are), that step isn't taken. `pushOutOfSolids()` runs every frame and when things appear or grow, and if you're wedged in (say an upgrade made the sluice grow onto you), `moveToFreeSpot()` hops you to the nearest spot where you fit. `PLAYER_RADIUS` is 0.4 m.
-- **Interacting:** `interactables` lists what E works on (cash bundles, pile, sluice, pond, shop, excavator); `nearbyThing()` picks the **closest** one in reach. `keepDigging()` handles holding E with a pickaxe.
+- **Interacting:** `interactables` lists what E works on (cash bundles, pile, sluice, pond, shop, excavator); `nearbyThing()` picks the **closest** one in reach. `keepDigging()` handles holding E (or the left mouse button, or the Dig button) with a pickaxe. Each entry's `label` is what the touch Interact button says.
 - **Excavator:** `buildExcavator()` rebuilds the model from the current upgrades (the moving parts end up in `ex`), `poseExcavator()` moves the arm and bucket to match `state.exc` (including the hydraulic rams), and `operateExcavator(dt)` handles the controls, scooping and dumping. The excavator's own "forward" is +x. `enterExcavator()` and `exitExcavator()` get you in and out; `excavatorHint()` is the hint under the crosshair.
-- **Sounds:** `startAudio()` creates the sound system on the first click. `tone()` and `noise()` make one-off sounds, `sfx` has one function per game sound, and `loops` holds the sounds that keep running, which `updateSounds()` adjusts 10 times a second. `toggleMute()` switches everything on or off.
+- **Sounds:** `startAudio()` creates the sound system on the first click or tap (and wakes it up again after that). `tone()` and `noise()` make one-off sounds, `sfx` has one function per game sound, and `loops` holds the sounds that keep running, which `updateSounds()` adjusts 10 times a second. `toggleMute()` switches everything on or off.
 - **Shop:** `makeShopRow()` makes one row per upgrade, `showShopTab(id)` / `switchShopTab(step)` switch tabs, `shopSummaryText()` is the line at the top, `updateShop()` refreshes the open tab.
 - **Icons:** `ICONS` has one drawing function per tool, upgrade and summary icon (`sluiceAll`, `pondAll`), and `updateToolbar()` redraws the bar (it runs after every purchase).
 

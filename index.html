@@ -2,8 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- viewport-fit=cover: use the whole screen on phones with a notch (see the safe-area padding below) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Gold Rush</title>
+  <!-- Installable app (PWA): the manifest gives the name, icon and full-screen landscape; sw.js makes it work offline -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#2c1a0a">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Gold Rush">
   <!-- Two free fonts from Google Fonts: Rye (old western poster letters) and Bitter (easy to read) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +28,8 @@
       --panel: linear-gradient(180deg, rgba(62, 38, 18, 0.9), rgba(30, 18, 8, 0.9));
     }
     html, body { margin: 0; height: 100%; overflow: hidden; background: #b9d3e6; font-family: Bitter, Georgia, serif; color: #fff; }
+    /* Phones: no pinch-zooming, page dragging, text selecting or grey flashes when you tap (the shop can still scroll) */
+    body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
     button { font-family: inherit; }
     /* Shiny gold writing */
     .gold-text { background: linear-gradient(180deg, #fff7c9 0%, #ffd84d 45%, #d39b1f 72%, #ffe98a 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.8)); }
@@ -29,7 +41,7 @@
     /* A gold coin with a $ on it */
     .coin { width: 40px; height: 40px; flex: none; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 35% 30%, #fff6c0, #ffd23f 40%, #b07d12 100%); box-shadow: inset 0 0 0 3px rgba(120, 80, 10, 0.5), 0 2px 4px rgba(0, 0, 0, 0.5); color: #7a5208; font: 22px Rye, Georgia, serif; }
     .btn { padding: 9px 18px; font-size: 16px; font-weight: 700; cursor: pointer; border-radius: 8px; border: 2px solid var(--brass); background: linear-gradient(180deg, #6b4520, #3d2410); color: #ffe7a6; }
-    .btn:hover { background: linear-gradient(180deg, #82552a, #4d2e14); }
+    @media (hover: hover) { .btn:hover { background: linear-gradient(180deg, #82552a, #4d2e14); } }
 
     /* ---- HUD in the top left: wallet, dirt pile and what you're doing ---- */
     #hud { position: fixed; top: 12px; left: 12px; width: 290px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
@@ -105,7 +117,7 @@
     /* Tabs across the top: Tools, Sluice, Tailing Pond, Excavator */
     #shop-tabs { display: flex; gap: 6px; margin: 8px 0 4px; }
     .shop-tab { flex: 1; padding: 7px 10px; cursor: pointer; font: 18px Rye, Georgia, serif; color: #e6d3a8; background: linear-gradient(180deg, #5a3a1c, #2e1c0c); border: 2px solid #7d5a26; border-radius: 8px 8px 0 0; }
-    .shop-tab:hover { color: #fff3c8; }
+    @media (hover: hover) { .shop-tab:hover { color: #fff3c8; } }
     .shop-tab.on { color: var(--ink); background: linear-gradient(180deg, #ffe680, #d49a1c); border-color: #7a5208; }
     .shop-tab kbd { font-size: 12px; margin-left: 6px; }
     #shop-summary { margin: 6px 0 2px; padding: 6px 12px; border-radius: 6px; background: rgba(0, 0, 0, 0.35); color: #f1e4c4; font-size: 14px; }
@@ -115,7 +127,7 @@
     #shop-items { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
     @media (max-width: 820px) { #shop-items { grid-template-columns: 1fr; } }
     .shop-item { display: flex; gap: 12px; align-items: center; width: 100%; margin: 6px 0; padding: 8px 12px; text-align: left; background: linear-gradient(180deg, #f7e9c6, #e6cf98); color: var(--ink); border: 2px solid #b8862b; border-radius: 8px; font: inherit; font-size: 14px; line-height: 1.35; cursor: pointer; box-shadow: 0 2px 0 #7a5516; transition: transform 0.1s, box-shadow 0.1s; }
-    .shop-item:hover:not(.cant) { transform: translateY(-2px); box-shadow: 0 4px 0 #7a5516, 0 0 14px rgba(255, 213, 74, 0.6); }
+    @media (hover: hover) { .shop-item:hover:not(.cant) { transform: translateY(-2px); box-shadow: 0 4px 0 #7a5516, 0 0 14px rgba(255, 213, 74, 0.6); } }
     .shop-item.cant { opacity: 0.5; filter: grayscale(0.9); cursor: not-allowed; } /* can't buy it (yet) */
     .shop-item kbd { font-size: 18px; }
     .shop-item canvas { width: 52px; height: 52px; flex: none; border-radius: 8px; border: 2px solid #7d5a26; background: radial-gradient(circle at 50% 35%, #5a3b1d, #24160a); }
@@ -154,6 +166,108 @@
     #end-stats td:first-child { text-align: left; color: var(--tan); }
     #end-stats td:last-child { text-align: right; font-weight: 700; color: var(--gold); }
     #end .btn { margin: 6px; }
+
+    /* ======== Phones and tablets ========
+       The page gets the class "touch" the first time you touch the screen (and straight away on phones and tablets).
+       Then the touch buttons show up, and some things move to make room for your thumbs.
+       env(safe-area-inset-...) is the space a phone's notch or rounded corners take up. */
+    body:not(.touch) .only-touch { display: none !important; }
+    body.touch .only-desktop { display: none !important; }
+
+    /* The invisible layer that catches thumbs: left half = joystick, right half = look around */
+    #touch-area { position: fixed; inset: 0; z-index: 1; display: none; }
+    body.touch.playing #touch-area { display: block; }
+    /* The joystick appears where your left thumb lands */
+    #stick { position: absolute; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; border: 3px solid rgba(255, 225, 150, 0.55); background: radial-gradient(circle, rgba(60, 36, 16, 0.25), rgba(30, 18, 8, 0.45)); pointer-events: none; }
+    #stick[hidden] { display: none; }
+    #knob { position: absolute; left: 50%; top: 50%; width: 56px; height: 56px; margin: -28px 0 0 -28px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff6c0, #ffd23f 45%, #b07d12); box-shadow: 0 2px 6px rgba(0, 0, 0, 0.6); }
+
+    /* Round thumb buttons */
+    #touch-buttons { display: none; }
+    body.touch.playing #touch-buttons { display: block; }
+    .tbtn { position: fixed; z-index: 3; display: flex; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: 0; border-radius: 50%; border: 3px solid var(--brass); background: radial-gradient(circle at 50% 35%, rgba(107, 69, 32, 0.92), rgba(40, 24, 10, 0.92)); color: #ffe7a6; font: 700 13px Bitter, Georgia, serif; letter-spacing: 0.5px; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5); touch-action: none; }
+    .tbtn .ico { font-size: 26px; line-height: 1; }
+    .tbtn.held { transform: scale(0.92); border-color: var(--gold); background: radial-gradient(circle at 50% 35%, #ffe680, #b07d12); color: var(--ink); }
+    .tbtn.dim { opacity: 0.45; }
+    .tbtn.gold { border-color: #7a5208; background: radial-gradient(circle at 50% 35%, #ffe680, #d49a1c); color: var(--ink); }
+    #t-use { right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); width: 92px; height: 92px; }
+    #t-dig { right: calc(max(18px, env(safe-area-inset-right)) + 104px); bottom: max(28px, env(safe-area-inset-bottom)); width: 80px; height: 80px; }
+    #t-shop { right: calc(max(18px, env(safe-area-inset-right)) + 16px); bottom: calc(max(18px, env(safe-area-inset-bottom)) + 104px); width: 62px; height: 62px; }
+    #t-left { left: max(18px, env(safe-area-inset-left)); bottom: max(22px, env(safe-area-inset-bottom)); width: 86px; height: 86px; }
+    #t-right { left: calc(max(18px, env(safe-area-inset-left)) + 100px); bottom: max(22px, env(safe-area-inset-bottom)); width: 86px; height: 86px; }
+    #t-scoop { right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); width: 92px; height: 92px; }
+    #t-dump { right: calc(max(18px, env(safe-area-inset-right)) + 104px); bottom: max(18px, env(safe-area-inset-bottom)); width: 92px; height: 92px; }
+    #t-exit { right: calc(max(18px, env(safe-area-inset-right)) + 16px); bottom: calc(max(18px, env(safe-area-inset-bottom)) + 108px); width: 62px; height: 62px; }
+    /* Walking buttons while walking, excavator buttons while in the excavator */
+    body.in-excavator .walk-btn, body:not(.in-excavator) .dig-btn { display: none; }
+    #t-pause { position: fixed; top: max(12px, env(safe-area-inset-top)); right: calc(max(12px, env(safe-area-inset-right)) + 58px); width: 48px; height: 48px; padding: 0; z-index: 20; color: #fff; font-size: 20px; }
+    body:not(.touch) #t-pause, body.touch:not(.playing) #t-pause { display: none; }
+
+    /* Where the usual display goes on a touch screen */
+    body.touch #sound { top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
+    body.touch #sound .k { display: none; }
+    body.touch #gfx { right: calc(max(12px, env(safe-area-inset-right)) + 116px); top: max(12px, env(safe-area-inset-top)); bottom: auto; padding: 0 12px; height: 48px; box-sizing: border-box; display: flex; align-items: center; pointer-events: auto; z-index: 20; }
+    body.touch #gfx kbd { display: none; }
+    body.touch.shop-open #gfx, body.touch.shop-open #sound { display: none; } /* out of the way of the shop's close button */
+    body.touch #cash-count { left: 50%; bottom: max(8px, env(safe-area-inset-bottom)); transform: translateX(-50%); }
+    body.touch #hud { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); }
+    body.touch #status .hint { display: none; }
+    body.touch #excavator-help { display: none !important; } /* the touch buttons are labelled instead */
+    /* The tool bar moves to the top middle, out of the way of your thumbs */
+    body.touch #toolbar { top: max(8px, env(safe-area-inset-top)); bottom: auto; gap: 6px; padding: 5px 6px 4px; }
+    body.touch .tool-slot, body.touch .tool-slot canvas { width: 40px; height: 40px; }
+    body.touch .tool-slot .badge { top: auto; bottom: -7px; right: -5px; font-size: 9px; padding: 0 4px; }
+
+    /* Short screens (phones in landscape): a smaller display */
+    @media (max-height: 540px) {
+      #hud { width: 190px; gap: 5px; }
+      #wallet-box { padding: 4px 10px; gap: 8px; }
+      #wallet-box .coin { width: 28px; height: 28px; font-size: 16px; }
+      #wallet { font-size: 22px; }
+      #gain { font-size: 15px; top: 10px; right: auto; left: calc(100% + 8px); white-space: nowrap; } /* next to the wallet, not over it */
+      .label { font-size: 9px; letter-spacing: 1px; }
+      #pile-box { padding: 4px 10px 6px; }
+      #pile-text { font-size: 15px; }
+      #pile-text small { font-size: 11px; }
+      #pile-bar { height: 7px; margin-top: 3px; }
+      #status { padding: 4px 10px; font-size: 11px; }
+      #status .row { padding: 0; }
+      #prompt { top: 60%; font-size: 14px; padding: 4px 12px; max-width: 60vw; white-space: normal; text-align: center; }
+      #message { font-size: 26px; }
+      /* Start and end screens: smaller, and they scroll if they still don't fit */
+      .card { max-height: 94dvh; overflow-y: auto; padding: 12px 18px; touch-action: pan-y; }
+      #start h1 { font-size: 44px; }
+      .tagline { margin: 4px 0 8px; font-size: 12px; }
+      .play { margin-bottom: 8px; padding: 8px 24px; }
+      .controls { font-size: 13px; gap: 3px 12px; margin-bottom: 6px; }
+      #start p, #end p { font-size: 13px; margin: 3px 0; }
+      #end h2 { font-size: 28px; }
+      #end-stats { font-size: 16px; margin: 6px auto; }
+      /* The shop fills the whole screen */
+      #shop-panel { width: 100vw; max-height: none; height: 100dvh; border-radius: 0; border-width: 0; padding: 0 max(10px, env(safe-area-inset-right)) 10px max(10px, env(safe-area-inset-left)); }
+      #shop h2 { font-size: 22px; }
+      #shop-money { font-size: 20px; }
+      .shop-tab { font-size: 15px; padding: 6px 4px; }
+      #shop-summary { font-size: 12px; padding: 4px 8px; }
+    }
+    /* The shop on a touch screen: scrolls with your finger, big rows and tabs, a close button that stays in view */
+    body.touch #shop-panel { touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+    body.touch #shop-top { position: sticky; top: 0; z-index: 2; padding-top: 6px; background: linear-gradient(180deg, #4a2d14, #3f2610); }
+    body.touch #shop kbd { display: none; }
+    body.touch .shop-tab { min-height: 44px; }
+    body.touch .shop-item { min-height: 60px; }
+    body.touch #shop-close { padding: 12px 22px; }
+    #shop-x { width: 48px; height: 48px; margin-left: 10px; padding: 0; font-size: 24px; line-height: 1; }
+    body.touch #shop-money { margin-left: auto; }
+
+    /* Phones held upright: ask to turn them sideways */
+    #rotate { position: fixed; inset: 0; z-index: 50; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; background: radial-gradient(ellipse at center, #4a2d14, #1a0f05); }
+    #rotate h2 { margin: 0; font: 30px Rye, Georgia, serif; }
+    #rotate p { margin: 0; color: #f1e4c4; font-size: 16px; }
+    #rotate .phone { width: 54px; height: 92px; border: 4px solid var(--gold); border-radius: 10px; animation: turn 2.2s ease-in-out infinite; }
+    @keyframes turn { 0%, 25% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
+    @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
+    @media (orientation: portrait) { body.touch #rotate { display: flex; } }
   </style>
 </head>
 <body>
@@ -176,6 +290,27 @@
   <div id="flash"></div>
   <div id="toolbar" class="plaque"></div>
   <button id="sound" class="plaque" title="Sound on/off (M)"></button>
+
+  <!-- Touch screens only (see "Touch controls" in the script) -->
+  <div id="touch-area"><div id="stick" hidden><div id="knob"></div></div></div>
+  <button id="t-pause" class="plaque" type="button" aria-label="Pause">&#10074;&#10074;</button>
+  <div id="touch-buttons">
+    <!-- Walking -->
+    <button id="t-use" class="tbtn walk-btn gold" type="button"><span class="ico">&#9995;</span><span id="t-use-label">Interact</span></button>
+    <button id="t-dig" class="tbtn walk-btn" type="button"><span class="ico">&#9935;</span>Dig</button>
+    <button id="t-shop" class="tbtn walk-btn" type="button"><span class="ico" style="font-size:20px">$</span>Shop</button>
+    <!-- In the excavator (data-key: which keyboard key the button holds down) -->
+    <button id="t-left" class="tbtn dig-btn" type="button" data-key="KeyA"><span class="ico">&#9664;</span>Swing</button>
+    <button id="t-right" class="tbtn dig-btn" type="button" data-key="KeyD"><span class="ico">&#9654;</span>Swing</button>
+    <button id="t-dump" class="tbtn dig-btn" type="button" data-key="KeyF"><span class="ico">&#11015;</span>Dump</button>
+    <button id="t-scoop" class="tbtn dig-btn gold" type="button" data-key="KeyQ"><span class="ico">&#11014;</span>Scoop</button>
+    <button id="t-exit" class="tbtn dig-btn" type="button"><span class="ico" style="font-size:20px">&#8617;</span>Get out</button>
+  </div>
+  <div id="rotate">
+    <div class="phone"></div>
+    <h2 class="gold-text">Please rotate your phone</h2>
+    <p>Gold Rush plays sideways (landscape).</p>
+  </div>
   <div id="gfx" class="plaque"></div>
   <div id="cash-count" class="plaque"></div>
 
@@ -196,8 +331,16 @@
     <div class="card plaque">
       <h1 class="gold-text">Gold Rush</h1>
       <div class="tagline">Dig &middot; Wash &middot; Strike it rich</div>
-      <div class="play">Click to play</div>
-      <div class="controls">
+      <div class="play"><span class="only-desktop">Click to play</span><span class="only-touch">Tap to play</span></div>
+      <div class="controls only-touch">
+        <span>Left thumb</span><span>drag anywhere on the left to walk</span>
+        <span>Right thumb</span><span>drag on the right to look around</span>
+        <span>Interact</span><span>use things (dump, collect, climb in)</span>
+        <span>Dig</span><span>dig at the pile (hold it once you have a pickaxe)</span>
+        <span>Shop</span><span>buy tools and upgrades</span>
+        <span>Top right</span><span>graphics high/low &middot; pause &middot; sound</span>
+      </div>
+      <div class="controls only-desktop">
         <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>walk</span>
         <span>Mouse</span><span>look around</span>
         <span><kbd>E</kbd> or left click</span><span>use things (dig, dump, collect, climb in)</span>
@@ -206,7 +349,7 @@
         <span><kbd>Esc</kbd></span><span>pause</span>
       </div>
       <p>Dig dirt at the giant pile, carry it to the sluice box, and wash it to find gold.</p>
-      <p>Gold the sluice misses ends up in the tailing pond: press <kbd>E</kbd> there to collect it.</p>
+      <p>Gold the sluice misses ends up in the tailing pond: <span class="only-desktop">press <kbd>E</kbd></span><span class="only-touch">tap Interact</span> there to collect it.</p>
       <p>Unlock the pickaxe and the classifier, then save up for the excavator.</p>
       <p>The game ends when the whole pile has been dug up and washed.</p>
       <p>Rumour has it some cash is hidden around the camp. Keep your eyes peeled!</p>
@@ -225,16 +368,20 @@
 
   <div id="shop" hidden>
     <div id="shop-panel">
-      <div id="shop-head">
-        <h2 class="gold-text">Miner's Supply Shop</h2>
-        <div id="shop-money"></div>
+      <div id="shop-top">
+        <div id="shop-head">
+          <h2 class="gold-text">Miner's Supply Shop</h2>
+          <div id="shop-money"></div>
+          <button id="shop-x" class="btn only-touch" type="button" aria-label="Close the shop">&times;</button>
+        </div>
+        <div id="shop-tabs"></div>
       </div>
-      <div id="shop-tabs"></div>
       <div id="shop-summary"></div>
       <div id="shop-items"></div>
       <div id="shop-foot">
-        <span>Click an item or press its number key to buy it. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch tabs. Greyed out = you can't buy it yet.</span>
-        <button id="shop-close" class="btn">Back to the game (B)</button>
+        <span class="only-desktop">Click an item or press its number key to buy it. <kbd>&larr;</kbd> <kbd>&rarr;</kbd> switch tabs. Greyed out = you can't buy it yet.</span>
+        <span class="only-touch">Tap an item to buy it. Greyed out = you can't buy it yet.</span>
+        <button id="shop-close" class="btn">Back to the game<span class="only-desktop"> (B)</span></button>
       </div>
     </div>
   </div>
@@ -251,6 +398,7 @@
     const SETTINGS = {
       walkSpeed: 5,            // meters per second
       mouseSensitivity: 0.002,
+      touchSensitivity: 0.006, // looking around by dragging a finger (turns per pixel, like the mouse)
       reach: 1.5,              // how close (in meters) you must be to use something
       // Gold in the dirt. Every scoop holds about $2.00 of gold on average:
       //   nuggets: 1% x $50 = $0.50 (heavy, so the sluice always catches them)
@@ -734,6 +882,9 @@
 
     const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1000);
     camera.position.set(0, 1.6, 2); // 1.6 m is roughly eye height
+
+    // Phones and tablets: their main "pointer" is a finger ("coarse"). They get touch controls and lighter graphics.
+    const TOUCH_DEVICE = matchMedia('(pointer: coarse)').matches;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setSize(innerWidth, innerHeight);
@@ -2898,9 +3049,12 @@
     let noiseBuffer = null;  // one second of random hiss: the raw material for dirt, footsteps and water
     const loops = {};        // sounds that keep running: water, the excavator, pumps, generators, spray, the pond
 
+    // Called on every click and tap (phones block sound until you touch the screen, and pause it when you switch apps)
     function startAudio() {
       if (!audio) {
-        audio = new AudioContext();
+        // iPhones: play sound even when the silent switch is on (like a game, not a ringtone). Newer Safari only.
+        if (navigator.audioSession) navigator.audioSession.type = 'playback';
+        audio = new (window.AudioContext || window.webkitAudioContext)(); // (older iPhones call it webkitAudioContext)
         master = audio.createGain();
         master.gain.value = state.muted ? 0 : 1;
         master.connect(audio.destination);
@@ -2915,7 +3069,7 @@
         loops.spray = makeHissSound();             // the spray bars
         loops.pond = makeWaterSound();             // water trickling into the pond
       }
-      audio.resume();
+      if (audio.state !== 'running') audio.resume();
     }
 
     // One note that fades out. type can be 'sine' (soft), 'triangle', 'square' (buzzy) or 'sawtooth' (harsh).
@@ -3671,6 +3825,7 @@
         onlyIf: () => !cashIsFound(bundle),
         prompt: () => 'Press E to pick up the cash',
         use: () => collectCash(bundle),
+        label: 'Pick up', // what the Interact button says on a touch screen
       })),
       {
         bounds: pileCircle,
@@ -3680,12 +3835,14 @@
           return ownsTool('pickaxe') ? 'Hold E to dig' : 'Press E to dig';
         },
         use: () => { if (state.pile > 0) dig(); },
+        label: 'Dig',
         hold: true, // with a pickaxe you can hold E (or the left mouse button) to keep digging
       },
       {
         bounds: sluiceBounds,
         prompt: () => state.carrying > 0 ? `Press E to dump ${state.carrying} scoops into the sluice` : 'Bring dirt here to wash it',
         use: dumpIntoSluice,
+        label: 'Dump',
       },
       {
         bounds: pondCircle,
@@ -3695,17 +3852,20 @@
           return 'Tailing pond: gold the sluice misses collects on the filters';
         },
         use: collectPondGold,
+        label: 'Collect',
       },
       {
         bounds: shopBounds,
         prompt: () => 'Press E to open the shop (or press B anywhere)',
         use: openShop,
+        label: 'Shop',
       },
       {
         bounds: excavatorRect,
         onlyIf: () => ownsTool('excavator'), // it isn't there until you buy it
         prompt: () => 'Press E to get in the excavator',
         use: enterExcavator,
+        label: 'Get in',
       },
     ];
 
@@ -4074,6 +4234,31 @@
     const shopSummary = document.getElementById('shop-summary');
     let shopTab = 'tools'; // the tab that's showing (the shop remembers it)
 
+    // Hints and descriptions for touch screens: the buttons instead of the keys ("Press E" becomes "Tap Interact")
+    const TOUCH_WORDS = [
+      [/hold E \(or the left mouse button\)/g, 'hold Dig'],
+      [/Press E to dig/g, 'Tap Dig'],
+      [/Hold E/g, 'Hold Dig'],
+      [/Press E/g, 'Tap Interact'],
+      [/press E/g, 'tap Interact'],
+      [/ \(or press B anywhere\)/g, ''],
+      [/ \(B\)/g, ''],
+      [/hold Q/g, 'hold Scoop'],
+      [/hold F/g, 'hold Dump'],
+      [/ \(F\)/g, ' (Dump)'],
+      [/\(A \/ D\)/g, '(the Swing buttons)'],
+      [/Press G/g, 'Tap Graphics (top right)'],
+    ];
+    function touchWords(text) {
+      for (const [find, replace] of TOUCH_WORDS) text = text.replace(find, replace);
+      return text;
+    }
+    // Both versions of a text, and the page shows the right one (for things written once, like the shop rows)
+    function bothVersions(text) {
+      const touchText = touchWords(text);
+      return touchText === text ? text : `<span class="only-desktop">${text}</span><span class="only-touch">${touchText}</span>`;
+    }
+
     // Make one shop row. Every upgrade gets a row; only the rows on the open tab are shown.
     function makeShopRow(id, key) {
       const tool = TOOLS[id];
@@ -4085,7 +4270,7 @@
         <canvas width="104" height="104"></canvas>
         <span>
           <b class="title">${tool.title}</b> <span class="level"></span><span class="pips">${maxLevel > 1 ? '<i></i>'.repeat(maxLevel) : ''}</span><br>
-          <span class="about">${tool.about}</span><br>
+          <span class="about">${bothVersions(tool.about)}</span><br>
           <span class="now"></span><br>
           <span class="next"></span>
           <span class="need"></span>
@@ -4112,11 +4297,14 @@
       const tabButton = document.createElement('button');
       tabButton.className = 'shop-tab';
       tabButton.dataset.tab = tab.id;
-      tabButton.textContent = tab.title;
+      // A shorter name on touch screens, so the four tabs fit across a phone ("Tailing Pond" becomes "Pond")
+      const short = tab.title.replace('Tailing ', '');
+      tabButton.innerHTML = short === tab.title ? tab.title : `<span class="only-desktop">${tab.title}</span><span class="only-touch">${short}</span>`;
       tabButton.addEventListener('click', () => showShopTab(tab.id));
       shopTabs.appendChild(tabButton);
     }
     document.getElementById('shop-close').addEventListener('click', () => closeShop());
+    document.getElementById('shop-x').addEventListener('click', () => closeShop());
 
     // Show one tab's rows (and light up its tab button)
     function showShopTab(id, quiet = false) {
@@ -4187,19 +4375,22 @@
     function openShop() {
       state.shopOpen = true;
       shopEl.hidden = false;
+      document.body.classList.add('shop-open');
       startScreen.style.display = 'none';
-      for (const code in keys) keys[code] = false; // stop walking
+      setPlaying(false); // stop walking
       if (document.pointerLockElement) document.exitPointerLock(); // give the mouse back for clicking
       showShopTab(shopTab, true);
+      shopEl.querySelector('#shop-panel').scrollTop = 0;
       sfx.shopOpen();
     }
 
     function closeShop() {
       state.shopOpen = false;
       shopEl.hidden = true;
+      document.body.classList.remove('shop-open');
       startScreen.style.display = 'flex'; // hidden again as soon as the mouse is captured
       sfx.shopClose();
-      lockPointer();
+      resumePlaying();
     }
 
     // ---------- Tool bar: an icon for every tool you own, drawn with simple shapes ----------
@@ -4656,39 +4847,66 @@
     }
     updateToolbar();
 
-    // ---------- Controls: mouse look, WASD, E to use ----------
+    // ---------- Controls: mouse look, WASD, E to use (touch controls for phones are further down) ----------
     let yaw = 0;    // looking left/right
     let pitch = 0;  // looking up/down
     let playing = false;
     const keys = {};
     const startScreen = document.getElementById('start');
+    let touchMode = false; // true while you're playing with your fingers (see "Touch controls" below)
 
-    // Capture the mouse so it turns the camera. Also switches on sound (browsers only allow it after a click or key press).
+    // Start or pause the game. While paused, the start screen shows (unless the shop or the end screen is open).
+    function setPlaying(on) {
+      playing = on;
+      startScreen.style.display = playing || state.shopOpen || state.endScreenOpen ? 'none' : 'flex';
+      document.body.classList.toggle('playing', playing);
+      if (!playing) {
+        for (const code in keys) keys[code] = false; // let go of everything when paused
+        releaseTouches();
+      }
+    }
+
+    // Capture the mouse so it turns the camera
     function lockPointer() {
-      startAudio();
       const request = renderer.domElement.requestPointerLock();
       if (request && request.catch) request.catch(() => {}); // if it fails the "Click to play" screen stays up
     }
 
-    startScreen.addEventListener('click', lockPointer);
-    document.addEventListener('pointerlockchange', () => {
-      playing = document.pointerLockElement === renderer.domElement;
-      startScreen.style.display = playing || state.shopOpen || state.endScreenOpen ? 'none' : 'flex';
-      if (!playing) for (const code in keys) keys[code] = false; // let go of everything when paused
-    });
-    document.addEventListener('mousemove', (e) => {
-      if (!playing) return;
-      if (state.inExcavator) {
-        cabYaw = clamp(cabYaw - e.movementX * SETTINGS.mouseSensitivity, -2, 2);
-        cabPitch = clamp(cabPitch - e.movementY * SETTINGS.mouseSensitivity, -1.2, 1.2);
+    // Back to the game (from the start screen, the shop or the end screen). Also switches on sound: browsers,
+    // and phones especially, only allow it after a click or a tap.
+    function resumePlaying() {
+      startAudio();
+      if (touchMode) {
+        if (isPortrait()) return; // the "please rotate your phone" message is showing
+        goFullScreen();
+        setPlaying(true);
       } else {
-        yaw -= e.movementX * SETTINGS.mouseSensitivity;
-        pitch = clamp(pitch - e.movementY * SETTINGS.mouseSensitivity, -1.5, 1.5);
+        lockPointer(); // playing starts once the mouse is captured (pointerlockchange)
       }
+    }
+
+    startScreen.addEventListener('click', resumePlaying);
+    document.addEventListener('pointerlockchange', () => {
+      setPlaying(document.pointerLockElement === renderer.domElement);
+    });
+
+    // Turn the camera. dx and dy are how far the mouse or finger moved, in pixels.
+    function lookAround(dx, dy, sensitivity) {
+      if (state.inExcavator) {
+        cabYaw = clamp(cabYaw - dx * sensitivity, -2, 2);
+        cabPitch = clamp(cabPitch - dy * sensitivity, -1.2, 1.2);
+      } else {
+        yaw -= dx * sensitivity;
+        pitch = clamp(pitch - dy * sensitivity, -1.5, 1.5);
+      }
+    }
+    document.addEventListener('mousemove', (e) => {
+      if (playing && document.pointerLockElement) lookAround(e.movementX, e.movementY, SETTINGS.mouseSensitivity);
     });
     // Mouse buttons: left click uses things when walking. In the excavator, hold left to scoop and right to dump.
+    // (Only while the mouse is captured: taps on a phone also make pretend mouse clicks, which mustn't count.)
     document.addEventListener('mousedown', (e) => {
-      if (!playing) return;
+      if (!playing || !document.pointerLockElement) return;
       if (state.inExcavator) {
         if (e.button === 0) keys.MouseLeft = true;
         if (e.button === 2) keys.MouseRight = true;
@@ -4746,6 +4964,166 @@
     });
     addEventListener('keyup', (e) => { keys[e.code] = false; });
 
+    // ---------- Touch controls: phones and tablets ----------
+    // Left thumb: a joystick that appears wherever you put your thumb down on the left half of the screen.
+    // Right thumb: drag to look around. Round buttons do what the keys do (they press the same `keys`).
+    // Touch mode switches on with your first touch (and straight away on phones), and off again if you use a mouse.
+    const touchArea = document.getElementById('touch-area');
+    const stickEl = document.getElementById('stick');
+    const knobEl = document.getElementById('knob');
+    const STICK_RADIUS = 60; // pixels: push the knob this far from the middle to walk at full speed
+    const stick = { id: null, startX: 0, startY: 0, x: 0, y: 0 }; // x: right, y: down (each -1 to 1)
+    let lookTouch = null; // the finger that's looking around: { id, x, y }
+
+    function setTouchMode(on) {
+      if (on === touchMode) return;
+      touchMode = on;
+      document.body.classList.toggle('touch', on);
+      // Switched to the mouse in the middle of a game: pause, so a click can capture the mouse
+      if (!on && playing && !document.pointerLockElement) setPlaying(false);
+    }
+    if (TOUCH_DEVICE) setTouchMode(true);
+    addEventListener('pointerdown', (e) => setTouchMode(e.pointerType !== 'mouse'), true);
+    // Phones only allow sound once you've tapped, and only when the finger lifts (touchend), so try on every tap
+    addEventListener('touchend', startAudio, true);
+    // iPhones: no pinch-zooming the page
+    document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+    function isPortrait() { return innerHeight > innerWidth; }
+
+    // Phones: go full-screen and stay sideways (Android). iPhones can't do this in Safari, only as an installed app.
+    function goFullScreen() {
+      if (matchMedia('(display-mode: fullscreen), (display-mode: standalone)').matches) return; // installed: already full-screen
+      const page = document.documentElement;
+      if (document.fullscreenElement || !page.requestFullscreen) return;
+      page.requestFullscreen({ navigationUI: 'hide' })
+        .then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'))
+        .catch(() => {}); // not allowed: it still works, just not full-screen
+    }
+
+    // Let go of the joystick, the look finger and any held buttons (when pausing)
+    function releaseTouches() {
+      stick.id = null;
+      stick.x = stick.y = 0;
+      stickEl.hidden = true;
+      lookTouch = null;
+      for (const button of document.querySelectorAll('.tbtn.held')) button.classList.remove('held');
+    }
+
+    touchArea.addEventListener('touchstart', (e) => {
+      e.preventDefault(); // no pretend mouse clicks, no scrolling
+      for (const t of e.changedTouches) {
+        const leftHalf = t.clientX < innerWidth / 2;
+        if (leftHalf && !state.inExcavator && stick.id === null) {
+          // A new joystick, right under your thumb
+          Object.assign(stick, { id: t.identifier, startX: t.clientX, startY: t.clientY, x: 0, y: 0 });
+          stickEl.style.left = `${t.clientX}px`;
+          stickEl.style.top = `${t.clientY}px`;
+          knobEl.style.transform = '';
+          stickEl.hidden = false;
+        } else if (!lookTouch) {
+          lookTouch = { id: t.identifier, x: t.clientX, y: t.clientY };
+        }
+      }
+    }, { passive: false });
+
+    touchArea.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      for (const t of e.changedTouches) {
+        if (t.identifier === stick.id) {
+          let dx = t.clientX - stick.startX, dy = t.clientY - stick.startY;
+          const distance = Math.hypot(dx, dy);
+          if (distance > STICK_RADIUS) { // the knob stays inside the ring
+            dx *= STICK_RADIUS / distance;
+            dy *= STICK_RADIUS / distance;
+          }
+          stick.x = dx / STICK_RADIUS;
+          stick.y = dy / STICK_RADIUS;
+          knobEl.style.transform = `translate(${dx}px, ${dy}px)`;
+        } else if (lookTouch && t.identifier === lookTouch.id) {
+          lookAround(t.clientX - lookTouch.x, t.clientY - lookTouch.y, SETTINGS.touchSensitivity);
+          lookTouch.x = t.clientX;
+          lookTouch.y = t.clientY;
+        }
+      }
+    }, { passive: false });
+
+    function endTouch(e) {
+      for (const t of e.changedTouches) {
+        if (t.identifier === stick.id) {
+          stick.id = null;
+          stick.x = stick.y = 0;
+          stickEl.hidden = true;
+        } else if (lookTouch && t.identifier === lookTouch.id) {
+          lookTouch = null;
+        }
+      }
+    }
+    touchArea.addEventListener('touchend', endTouch);
+    touchArea.addEventListener('touchcancel', endTouch);
+
+    // A round button that does something when your thumb goes down (and maybe when it lifts)
+    function touchButton(id, onDown, onUp) {
+      const button = document.getElementById(id);
+      button.addEventListener('touchstart', (e) => {
+        e.preventDefault(); // no pretend mouse click afterwards
+        button.classList.add('held');
+        if (playing) onDown();
+      }, { passive: false });
+      const lift = (e) => {
+        e.preventDefault();
+        button.classList.remove('held');
+        if (onUp) onUp();
+      };
+      button.addEventListener('touchend', lift);
+      button.addEventListener('touchcancel', lift);
+      return button;
+    }
+
+    // Is the dirt pile within reach?
+    const pileThing = interactables.find((thing) => thing.hold);
+    function pileInReach() { return state.pile > 0 && distanceTo(pileThing.bounds) < SETTINGS.reach; }
+
+    const useButton = touchButton('t-use', interact);
+    const useLabel = document.getElementById('t-use-label');
+    const digButton = touchButton('t-dig', () => {
+      keys.TouchDig = true; // holding it keeps digging, once you have a pickaxe (keepDigging())
+      if (pileInReach()) pileThing.use();
+      else if (state.pile > 0) showMessage('Walk up to the DIRT pile to dig');
+    }, () => { keys.TouchDig = false; });
+    touchButton('t-shop', openShop);
+    touchButton('t-exit', exitExcavator);
+    // The excavator's buttons hold down the same keys as the keyboard: A / D swing, Q scoops, F dumps
+    for (const button of document.querySelectorAll('.tbtn[data-key]')) {
+      touchButton(button.id, () => { keys[button.dataset.key] = true; }, () => { keys[button.dataset.key] = false; });
+    }
+    document.getElementById('t-pause').addEventListener('click', () => setPlaying(false));
+
+    // Every frame: the right buttons for walking or the excavator, and the Interact button's label
+    function updateTouchButtons() {
+      if (!touchMode) return;
+      document.body.classList.toggle('in-excavator', state.inExcavator);
+      if (state.inExcavator) return;
+      const thing = nearbyThing();
+      setHtml(useLabel, thing ? thing.label : 'Interact');
+      useButton.classList.toggle('dim', !thing);
+      digButton.classList.toggle('dim', !pileInReach());
+    }
+
+    // Turning the phone upright pauses the game (the "please rotate" message covers it).
+    // Switching to another app pauses it too.
+    addEventListener('resize', () => {
+      if (touchMode && playing && isPortrait()) setPlaying(false);
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && touchMode) setPlaying(false);
+    });
+
+    // On a touch screen, the hints talk about the buttons instead of the keys (see touchWords())
+    function forScreen(text) {
+      return touchMode ? touchWords(text) : text;
+    }
+
     function distanceTo(bounds) {
       return distanceFromPoint(bounds, camera.position.x, camera.position.z);
     }
@@ -4764,10 +5142,10 @@
       return nearest;
     }
 
-    // With a pickaxe, holding E or the left mouse button at the pile keeps digging (dig() waits between digs)
+    // With a pickaxe, holding E, the left mouse button or the Dig button at the pile keeps digging (dig() waits between digs)
     function keepDigging(dt) {
       state.digTimer = Math.max(0, state.digTimer - dt);
-      if (!playing || state.inExcavator || !ownsTool('pickaxe') || !(keys.KeyE || keys.MouseLeft)) return;
+      if (!playing || state.inExcavator || !ownsTool('pickaxe') || !(keys.KeyE || keys.MouseLeft || keys.TouchDig)) return;
       const thing = nearbyThing();
       if (thing && thing.hold && state.carrying < toolNow('carrier').capacity) thing.use();
     }
@@ -4830,9 +5208,14 @@
       if (keys.KeyS) forward -= 1;
       if (keys.KeyD) right += 1;
       if (keys.KeyA) right -= 1;
+      // The touch joystick: push it a little to walk slowly, all the way to walk at full speed
+      if (Math.hypot(stick.x, stick.y) > 0.15) { // (a small wobble in the middle doesn't count)
+        forward -= stick.y;
+        right += stick.x;
+      }
       if (forward === 0 && right === 0) return;
 
-      const length = Math.hypot(forward, right); // so diagonal walking isn't faster
+      const length = Math.max(1, Math.hypot(forward, right)); // so diagonal walking isn't faster
       const step = (SETTINGS.walkSpeed * dt) / length;
       const sin = Math.sin(yaw), cos = Math.cos(yaw);
       const moveX = (-sin * forward + cos * right) * step;
@@ -4852,7 +5235,7 @@
         }
       }
 
-      stepDistance += SETTINGS.walkSpeed * dt;
+      stepDistance += SETTINGS.walkSpeed * dt * Math.min(1, Math.hypot(forward, right));
       if (stepDistance > 1.9) {
         stepDistance = 0;
         sfx.step();
@@ -4873,7 +5256,7 @@
     };
     let messageTimeout;
     function showMessage(text) {
-      hud.message.textContent = text;
+      hud.message.textContent = forScreen(text);
       hud.message.classList.add('show');
       clearTimeout(messageTimeout);
       messageTimeout = setTimeout(() => hud.message.classList.remove('show'), 2000);
@@ -4939,22 +5322,24 @@
       }
       if (state.pile <= 0 && !state.finished) html += '<div class="warn">The pile is gone! Wash the last of your dirt to finish</div>';
       html += '<div class="hint"><kbd>B</kbd> shop &nbsp; <kbd>M</kbd> sound &nbsp; <kbd>G</kbd> graphics</div>';
-      setHtml(hud.status, html);
+      setHtml(hud.status, forScreen(html));
       setHtml(hud.cashCount, `Cash found: <b>${state.cashFound.length}/${CASH_BUNDLES.length}</b>`);
 
       if (state.inExcavator) {
-        setHtml(hud.prompt, excavatorHint());
+        setHtml(hud.prompt, forScreen(excavatorHint()));
       } else {
         const thing = nearbyThing();
-        setHtml(hud.prompt, thing ? thing.prompt() : '');
+        setHtml(hud.prompt, thing ? forScreen(thing.prompt()) : '');
       }
+      updateTouchButtons();
     }
 
     // ---------- Graphics quality: G switches between High and Low. Low runs faster on slower computers. ----------
     // High: sharp on high-resolution screens, shadows, lots of grass and particles.
     // Low: fewer pixels, no shadows, a third of the grass, half the particles.
+    // Phones and tablets start on Low (they're weaker than computers), and their High is a little less sharp.
     const QUALITY = {
-      High: { pixelRatio: Math.min(devicePixelRatio, 2), shadows: true, grass: 1, particles: 1 },
+      High: { pixelRatio: Math.min(devicePixelRatio, TOUCH_DEVICE ? 1.5 : 2), shadows: true, grass: 1, particles: 1 },
       Low: { pixelRatio: Math.min(devicePixelRatio, 1), shadows: false, grass: 0.35, particles: 0.5 },
     };
     let quality = 'High';
@@ -4968,6 +5353,12 @@
       particleAmount = q.particles;
       updateParticleScale();
     }
+    setQuality(TOUCH_DEVICE ? 'Low' : 'High');
+    // On a touch screen, tap the Graphics label (top right) to switch
+    hud.gfx.addEventListener('click', () => {
+      setQuality(quality === 'High' ? 'Low' : 'High');
+      showMessage(`Graphics: ${quality}`);
+    });
 
     // Count frames per second, show them in the corner, and suggest Low graphics if the game is struggling
     let fpsFrames = 0, fpsTime = 0, slowSeconds = 0, warnedSlow = false;
@@ -5009,6 +5400,7 @@
       if (state.shopOpen) {
         state.shopOpen = false;
         shopEl.hidden = true;
+        document.body.classList.remove('shop-open');
       }
       endStats.innerHTML = `
         <tr><td>Total gold found</td><td>$${state.goldFound.toLocaleString('en-US')}</td></tr>
@@ -5016,7 +5408,7 @@
         <tr><td>Hidden cash found</td><td>${state.cashFound.length} of ${CASH_BUNDLES.length}</td></tr>
         <tr><td>Time played</td><td>${formatTime(state.timePlayed)}</td></tr>`;
       endScreen.hidden = false;
-      for (const code in keys) keys[code] = false;
+      setPlaying(false);
       if (document.pointerLockElement) document.exitPointerLock(); // give the mouse back for the buttons
       sfx.finish();
     }
@@ -5024,7 +5416,7 @@
     function closeEndScreen() {
       state.endScreenOpen = false;
       endScreen.hidden = true;
-      lockPointer();
+      resumePlaying();
     }
 
     // Start a brand new game: no money, no tools, a full pile, back at the start
@@ -5101,6 +5493,12 @@
       });
     }
     // ---------- END OF TEST CHEATS ----------
+
+    // ---------- Installable app: sw.js (the "service worker") keeps a copy of the game, so it works offline ----------
+    // Only on a real web address (https, or localhost while testing): not when the file is opened straight from disk.
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      navigator.serviceWorker.register('sw.js').catch(() => {}); // no service worker: the game still works online
+    }
 
     // ---------- Game loop: runs about 60 times per second ----------
     const clock = new THREE.Clock();
