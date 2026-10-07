@@ -946,6 +946,10 @@
       excavatorBoughtAt: null, // time played (seconds) when you bought the excavator; null = not bought yet
     };
 
+    // Photo mode (add ?photo to the address): for taking cutscene pictures with tools/capture-cutscene.mjs.
+    // The game doesn't run by itself and never saves; see "PHOTO MODE" near the end of the script.
+    const PHOTO_MODE = new URLSearchParams(location.search).has('photo');
+
     // ---------- Game state: everything that changes while you play ----------
     const state = {
       money: 0,
@@ -1506,7 +1510,7 @@
     const skyMaterial = new THREE.ShaderMaterial({
       side: THREE.BackSide, // we're inside the ball
       depthWrite: false,
-      uniforms: { sunDirection: { value: SUN_DIRECTION }, time: { value: 0 } },
+      uniforms: { sunDirection: { value: SUN_DIRECTION }, time: { value: 0 }, dusk: { value: 0 } }, // dusk: 0 = day, 1 = sunset (photo mode only)
       vertexShader: `
         varying vec3 vDirection;
         void main() {
@@ -1516,6 +1520,7 @@
       fragmentShader: `
         uniform vec3 sunDirection;
         uniform float time;
+        uniform float dusk;
         varying vec3 vDirection;
         float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
         float noise(vec2 p) {
@@ -1530,19 +1535,23 @@
         }
         void main() {
           vec3 dir = normalize(vDirection);
-          vec3 horizon = vec3(0.79, 0.86, 0.91);
-          // Deep blue overhead, pale near the horizon, dusty brown below it
-          vec3 sky = mix(horizon, vec3(0.30, 0.54, 0.86), pow(max(dir.y, 0.0), 0.5));
-          if (dir.y < 0.0) sky = mix(horizon, vec3(0.50, 0.46, 0.38), min(-dir.y * 4.0, 1.0));
-          // The sun: a warm glow and a bright disc
           float sun = max(dot(dir, sunDirection), 0.0);
-          sky += vec3(1.0, 0.85, 0.6) * pow(sun, 12.0) * 0.3;
-          sky += vec3(1.0, 0.97, 0.9) * smoothstep(0.9993, 0.9997, sun) * 2.0;
+          // At sunset the horizon glows orange (brightest towards the sun) and the sky overhead goes deep blue
+          vec3 duskHorizon = mix(vec3(0.85, 0.42, 0.30), vec3(1.0, 0.62, 0.28), pow(sun, 3.0));
+          vec3 horizon = mix(vec3(0.79, 0.86, 0.91), duskHorizon, dusk);
+          vec3 overhead = mix(vec3(0.30, 0.54, 0.86), vec3(0.16, 0.20, 0.42), dusk);
+          // Deep blue overhead, pale near the horizon, dusty brown below it
+          vec3 sky = mix(horizon, overhead, pow(max(dir.y, 0.0), mix(0.5, 0.35, dusk)));
+          if (dir.y < 0.0) sky = mix(horizon, mix(vec3(0.50, 0.46, 0.38), vec3(0.30, 0.20, 0.16), dusk), min(-dir.y * 4.0, 1.0));
+          // The sun: a warm glow and a bright disc (a bigger, redder glow at sunset)
+          sky += mix(vec3(1.0, 0.85, 0.6) * 0.3, vec3(1.0, 0.55, 0.2) * 0.9, dusk) * pow(sun, mix(12.0, 6.0, dusk));
+          sky += mix(vec3(1.0, 0.97, 0.9), vec3(1.0, 0.8, 0.5), dusk) * smoothstep(0.9993, 0.9997, sun) * 2.0;
           // Soft clouds, painted on a flat "ceiling" high above and drifting slowly
           if (dir.y > 0.0) {
             vec2 p = dir.xz / (dir.y + 0.12) * 1.4 + vec2(time * 0.006, time * 0.002);
             float cloud = smoothstep(0.5, 0.78, fbm(p)) * smoothstep(0.0, 0.2, dir.y);
             vec3 cloudColor = mix(vec3(0.78, 0.8, 0.86), vec3(1.0, 0.98, 0.95), fbm(p * 1.7 + 3.0));
+            cloudColor = mix(cloudColor, mix(vec3(0.55, 0.32, 0.38), vec3(1.0, 0.6, 0.35), pow(sun, 2.0)), dusk); // pink and orange at sunset
             sky = mix(sky, cloudColor, cloud * 0.85);
           }
           gl_FragColor = vec4(pow(sky, vec3(2.2)), 1.0); // screen colours -> the "linear" colours three.js works in
@@ -1561,7 +1570,8 @@
     scene.environmentIntensity = 0.55;
 
     // ---------- Lights ----------
-    scene.add(new THREE.HemisphereLight(0xd6e6ff, 0x7a6448, 0.55)); // sky above, bounced light from the dirt below
+    const skyLight = new THREE.HemisphereLight(0xd6e6ff, 0x7a6448, 0.55); // sky above, bounced light from the dirt below
+    scene.add(skyLight);
     const sun = new THREE.DirectionalLight(0xfff0d8, 2.6);
     sun.target.position.set(0, 0, -4);
     sun.position.copy(SUN_DIRECTION).multiplyScalar(80).add(sun.target.position);
@@ -5750,6 +5760,7 @@
     // (so just opening the page doesn't make a save), and if the browser won't store it the game still plays.
     function saveGame(showNote = true) {
       if (!everPlayed && !hasSave) return;
+      if (PHOTO_MODE) return; // photo mode stages made-up scenes: never save them over a real game
       try {
         localStorage.setItem(SAVE_KEY, JSON.stringify(makeSave()));
       } catch (e) {
@@ -6048,6 +6059,219 @@
     }
     // ---------- END OF TEST CHEATS ----------
 
+    // =====================================================================
+    // ---------- PHOTO MODE: staging scenes for cutscene pictures (only with ?photo in the address) ----------
+    // tools/capture-cutscene.mjs opens the game in a hidden browser and uses window.goldRushPhoto to set up
+    // each shot (upgrades, how much of the pile is left, the camera, a miner, sunset...), move time forward,
+    // and take a picture of just the 3D view (no on-screen display). The game loop doesn't run in photo mode,
+    // and nothing is saved.
+    // =====================================================================
+    if (PHOTO_MODE) {
+      const PHOTO_WIDTH = 1920, PHOTO_HEIGHT = 1080;
+      const PHOTO_SHARPNESS = 2; // draw at twice the size, then shrink it: smoother edges and finer detail
+
+      renderer.setPixelRatio(PHOTO_SHARPNESS);
+      renderer.setSize(PHOTO_WIDTH, PHOTO_HEIGHT, false);
+      camera.aspect = PHOTO_WIDTH / PHOTO_HEIGHT;
+      camera.updateProjectionMatrix();
+      updateParticleScale();
+      sun.shadow.mapSize.set(4096, 4096); // sharper shadows than in the game
+      const DAY = { // the normal daytime light, to go back to after a sunset shot
+        sun: SUN_DIRECTION.clone(), sunColor: sun.color.clone(), sunPower: sun.intensity,
+        skyColor: skyLight.color.clone(), groundColor: skyLight.groundColor.clone(), skyPower: skyLight.intensity,
+        fog: scene.fog.color.clone(), exposure: renderer.toneMappingExposure,
+      };
+
+      // The miner (you!), seen from outside: boots, jeans, a red shirt, a beard and a felt hat, holding a shovel
+      const miner = new THREE.Group();
+      // A cylinder from one point to another (arms, legs, the shovel handle)
+      function rod(from, to, radius, color) {
+        const length = from.distanceTo(to);
+        const mesh = cylinder(radius, length, color, 0, 0, 0);
+        mesh.position.copy(from).add(to).multiplyScalar(0.5);
+        mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), to.clone().sub(from).normalize());
+        return mesh;
+      }
+      const v = (x, y, z) => new THREE.Vector3(x, y, z);
+      {
+        const JEANS = 0x34507a, SHIRT = 0xa3302a, SKIN = 0xd49a72, HAIR = 0x5a3b22, HAT = 0x6b4a2b, BOOTS = 0x3a2615;
+        // Facing +z (towards the pile), leaning in, with the left foot forward
+        miner.add(box(0.16, 0.12, 0.3, BOOTS, -0.12, 0.06, 0.28), box(0.16, 0.12, 0.3, BOOTS, 0.13, 0.06, -0.12));
+        miner.add(rod(v(-0.12, 0.1, 0.25), v(-0.11, 0.92, 0.05), 0.085, JEANS), rod(v(0.13, 0.1, -0.15), v(0.11, 0.92, -0.02), 0.085, JEANS));
+        const body = new THREE.Group(); // everything above the hips, leaning forward
+        body.position.set(0, 0.92, 0);
+        body.rotation.x = 0.45;
+        body.add(box(0.44, 0.1, 0.26, 0x2a1a0e, 0, 0.02, 0));          // belt
+        body.add(box(0.46, 0.56, 0.27, SHIRT, 0, 0.34, 0));            // shirt
+        body.add(box(0.05, 0.56, 0.28, 0x2a1a0e, -0.12, 0.34, 0), box(0.05, 0.56, 0.28, 0x2a1a0e, 0.12, 0.34, 0)); // braces
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.13, 20, 14), materialFor(SKIN));
+        head.position.set(0, 0.77, 0.03);
+        const beard = new THREE.Mesh(new THREE.SphereGeometry(0.11, 16, 10), materialFor(HAIR));
+        beard.scale.set(1, 0.8, 0.7);
+        beard.position.set(0, 0.7, 0.1);
+        body.add(head, beard);
+        body.add(cylinder(0.25, 0.025, HAT, 0, 0.87, 0.02), cylinder(0.14, 0.15, HAT, 0, 0.95, 0.02)); // hat brim and crown
+        miner.add(body);
+        // The shovel: the handle runs from his hands down to the blade, stuck into the foot of the pile
+        const handTop = v(0.22, 1.12, 0.3), handLow = v(-0.08, 0.86, 0.62), bladeTop = v(-0.4, 0.3, 1.15);
+        miner.add(rod(handTop, bladeTop, 0.02, WOOD_LIGHT));
+        const along = bladeTop.clone().sub(handTop).normalize(); // the way the handle points
+        const blade = box(0.26, 0.32, 0.025, EXC_STEEL, 0, 0, 0);
+        blade.quaternion.setFromUnitVectors(v(0, 1, 0), along); // the blade carries on in line with the handle
+        blade.position.copy(bladeTop).addScaledVector(along, 0.15);
+        const scoop = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), materialFor(DIRT_COLOR)); // dirt on the blade
+        scoop.scale.set(1.1, 0.5, 1.2);
+        scoop.position.copy(bladeTop).addScaledVector(along, 0.14).add(v(0, 0.05, 0));
+        miner.add(blade, scoop);
+        // Arms from the shoulders to the hands on the handle
+        const shoulderL = v(-0.24, 1.38, 0.28), shoulderR = v(0.24, 1.38, 0.28);
+        miner.add(rod(shoulderR, handTop, 0.055, SHIRT), rod(shoulderL, handLow, 0.055, SHIRT));
+        for (const hand of [handTop, handLow]) {
+          const fist = new THREE.Mesh(new THREE.SphereGeometry(0.055, 12, 8), materialFor(SKIN));
+          fist.position.copy(hand);
+          miner.add(fist);
+        }
+        miner.userData.blade = bladeTop;
+        addShadows(miner);
+        miner.visible = false;
+        scene.add(miner);
+      }
+
+      window.goldRushPhoto = {
+        // Set up the game for a shot. levels: 'none' (a brand new game) or 'max' (everything bought).
+        // pileLeft: 0 to 1. pond: 0 to 1 full. Anything left out gets a sensible default.
+        setup({ levels = 'none', pileLeft = 1, sluiceQueue = 0, pond = 0, pondGold = 0, rocks = 0 } = {}) {
+          resetGame();
+          NUGGETS.chance = 0; // no surprise nuggets popping up in the pictures (nugget() makes one on purpose)
+          for (const system of particleSystems) system.update(1e6); // clear all particles away
+          const max = Object.fromEntries(TOOL_ORDER.map((id) => [id, TOOLS[id].levels.length - 1]));
+          applyToolLevels(levels === 'max' ? max : {});
+          applyNuggetsFound(HIDDEN_NUGGETS.map((spot) => spot.id)); // no hidden nuggets in the pictures (spoilers!)
+          state.pile = pileLeft * SETTINGS.pileTons / SETTINGS.tonsPerScoop;
+          updatePile();
+          state.sluiceQueue = sluiceQueue;
+          state.pond = pond * toolNow('pondSize').holds;
+          state.pondGold = pondGold;
+          state.rocks = rocks;
+          state.exc = { ...EXCAVATOR_START };
+          state.inExcavator = false;
+          for (const code in keys) keys[code] = false;
+          poseExcavator();
+          miner.visible = false;
+          this.sunset(false);
+          this.step(0.05);
+        },
+
+        // Where the camera is, what it looks at, and how wide it sees (in degrees)
+        camera(from, to, fov = 60) {
+          camera.position.set(...from);
+          camera.fov = fov;
+          camera.updateProjectionMatrix();
+          camera.lookAt(...to);
+        },
+
+        // Move time forward by "seconds", in small steps like the real game, so water, smoke and particles move
+        step(seconds, dt = 1 / 60) {
+          for (let t = 0; t < seconds; t += dt) {
+            if (state.inExcavator) operateExcavator(dt);
+            updateSluice(dt);
+            updatePond(dt);
+            updateEffects(dt);
+            skyMaterial.uniforms.time.value += dt;
+          }
+        },
+
+        // The excavator: swing (radians), bucket tilt, dirt in the bucket (0 to 1 full), and which controls are held
+        excavator({ swing = 0, bucketPitch = -0.3, load = 0, hold = [] } = {}) {
+          state.inExcavator = true; // so its exhaust smokes
+          state.exc = { ...EXCAVATOR_START, swing, bucketPitch, load: load * toolNow('digBucket').scoops };
+          for (const code in keys) keys[code] = hold.includes(code);
+          poseExcavator();
+        },
+        swingRange: { pile: [-2.46, -1.42], sluice: [0.55, 1.15] },
+
+        // Where things are right now, for pointing the camera at them
+        spots() {
+          const at = (object) => object.getWorldPosition(new THREE.Vector3()).toArray();
+          return {
+            pile: [pileCircle.x, pileSize().height * 0.4, pileCircle.z], pileHeight: pileSize().height, pileRadius: pileSize().radius,
+            bucket: at(ex.bucket), cab: at(ex.seat), sluiceTop: [sluiceSpot.x, sluiceSpot.y, sluiceSpot.z],
+            sluiceEnd: sluiceEnd.toArray(), nugget: at(nuggetModel), pond: [POND_SPOT.x, 0, POND_SPOT.z],
+          };
+        },
+
+        // Show the miner digging at the edge of the pile, at "angle" round from the camp side, with dirt flying
+        minerDigging(angle = 0) {
+          const towardsCamp = Math.atan2(-pileCircle.z, -pileCircle.x) + angle;
+          const far = { x: pileCircle.x + Math.cos(towardsCamp) * 40, z: pileCircle.z + Math.sin(towardsCamp) * 40 };
+          const edge = nearestPoint(pileCircle, far.x, far.z);
+          miner.position.set(edge.x + Math.cos(towardsCamp) * 1.2, 0, edge.z + Math.sin(towardsCamp) * 1.2);
+          miner.rotation.y = Math.atan2(-Math.cos(towardsCamp), -Math.sin(towardsCamp)); // face the pile (+z towards it)
+          miner.visible = true;
+          miner.updateMatrixWorld();
+          const blade = miner.localToWorld(miner.userData.blade.clone());
+          dirtBurst({ x: blade.x, y: 0.35, z: blade.z }, 40, { spread: 0.45, up: 1.3 });
+          return { x: miner.position.x, z: miner.position.z, facing: towardsCamp };
+        },
+
+        // Extra flying dirt at the excavator bucket's teeth ('tip') or its middle ('belly'), for a livelier picture.
+        // lift = meters higher up (so it isn't hidden inside the pile or the hopper); falling = pouring into the sluice
+        bucketDirt(part = 'tip', amount = 20, { falling = false, lift = 0 } = {}) {
+          const where = bucketWorld(ex[part]);
+          where.y += lift;
+          if (falling) dirtFalls(where, amount, 1.15);
+          else dirtBurst(where, amount, { spread: 0.6, up: 1.4 });
+        },
+
+        // The sluice finds a nugget of this size ('small', 'medium', 'large' or 'jackpot')
+        nugget(sizeName = 'large') {
+          foundSluiceNugget(sluiceSpot, NUGGETS.sizes.find((size) => size.name === sizeName));
+        },
+
+        // Sunset (true) or the normal day (false): a low orange sun, long shadows, a pink and orange sky
+        sunset(on) {
+          if (on) {
+            SUN_DIRECTION.set(-0.62, 0.075, 0.78).normalize();
+            sun.color.set(0xff9a52);
+            sun.intensity = 2.1;
+            skyLight.color.set(0xffb48a);
+            skyLight.groundColor.set(0x4a3326);
+            skyLight.intensity = 0.4;
+            scene.fog.color.set(0xd99a72);
+            renderer.toneMappingExposure = 1.1;
+          } else {
+            SUN_DIRECTION.copy(DAY.sun);
+            sun.color.copy(DAY.sunColor);
+            sun.intensity = DAY.sunPower;
+            skyLight.color.copy(DAY.skyColor);
+            skyLight.groundColor.copy(DAY.groundColor);
+            skyLight.intensity = DAY.skyPower;
+            scene.fog.color.copy(DAY.fog);
+            renderer.toneMappingExposure = DAY.exposure;
+          }
+          skyMaterial.uniforms.dusk.value = on ? 1 : 0;
+          sun.position.copy(SUN_DIRECTION).multiplyScalar(80).add(sun.target.position);
+          // Shiny things reflect the sky, so the reflections need painting again from the new sky
+          scene.environment = new THREE.PMREMGenerator(renderer).fromScene(skyForLight, 0.04, 1, 1000).texture;
+        },
+
+        // Take the picture: draw the 3D view (at double size) and shrink it to 1920 x 1080. Returns a PNG as text.
+        capture() {
+          sky.position.copy(camera.position);
+          renderer.render(scene, camera);
+          const picture = document.createElement('canvas');
+          picture.width = PHOTO_WIDTH;
+          picture.height = PHOTO_HEIGHT;
+          const ctx = picture.getContext('2d');
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(renderer.domElement, 0, 0, PHOTO_WIDTH, PHOTO_HEIGHT);
+          return picture.toDataURL('image/png');
+        },
+      };
+      document.title = 'Gold Rush (photo mode)';
+    }
+    // ---------- END OF PHOTO MODE ----------
+
     // ---------- Installable app: sw.js (the "service worker") keeps a copy of the game, so it works offline ----------
     // Only on a real web address (https, or localhost while testing): not when the file is opened straight from disk.
     if ('serviceWorker' in navigator && location.protocol !== 'file:') {
@@ -6087,7 +6311,7 @@
       countFps(frameTime);
       requestAnimationFrame(gameLoop);
     }
-    gameLoop();
+    if (!PHOTO_MODE) gameLoop(); // (in photo mode the capture script moves time forward itself)
   </script>
 </body>
 </html>
