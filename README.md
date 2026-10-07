@@ -41,7 +41,9 @@ Press **B** to open the shop. It has four tabs:
 
 Every upgrade has 12 levels.
 
-There is one giant pile of dirt (19,000 tons) for the whole game. The tons left are always shown in the top left, and the pile shrinks as you dig. When every last ton has been dug up and washed, the game ends and shows how much gold you found, how many big nuggets, and how long you played.
+There is one giant pile of dirt (19,000 tons) for the whole game. The tons left are always shown in the top left, and the pile shrinks as you dig. When every last ton has been dug up and washed, the game ends with a full stats screen: hidden nuggets found, gold earned and money spent, tons washed by hand and by excavator, flakes, nuggets, pond gold, tools bought, and how long you played.
+
+Keep your eyes open: real gold nuggets are hidden around the camp. Look for a little glint, walk up and press E (or tap Interact) to pick one up. Some are easy to spot, some are very well hidden, and a couple only turn up once the dirt pile has been dug away.
 
 ## Playing on a phone or tablet
 

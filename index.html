@@ -91,9 +91,6 @@
     #excavator-help.collapsed table { display: none; }
     #excavator-help.collapsed #help-toggle { margin: 0; font: 12px Bitter, Georgia, serif; color: #e6d3a8; }
     #gfx { position: fixed; right: 12px; bottom: 12px; padding: 4px 10px; font-size: 12px; color: #e6d3a8; pointer-events: none; }
-    /* Bottom left: how many of the hidden cash bundles you've found */
-    #cash-count { position: fixed; left: 12px; bottom: 12px; padding: 4px 10px; font-size: 12px; color: #e6d3a8; pointer-events: none; }
-    #cash-count b { color: #a8e59a; }
 
     /* ---- Tool bar along the bottom: one icon for every tool you own ---- */
     #toolbar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 9px 10px 7px; pointer-events: none; }
@@ -162,9 +159,13 @@
     .controls span:nth-child(odd) { text-align: right; }
     #start p, #end p { margin: 5px 0; font-size: 15px; color: #f1e4c4; }
     #end h2 { margin: 0 0 6px; font: 38px Rye, Georgia, serif; }
-    #end-stats { margin: 14px auto; font-size: 20px; border-spacing: 18px 6px; }
+    #end .card { max-height: 94dvh; overflow-y: auto; }
+    #end-stats { margin: 10px auto; font-size: 17px; border-spacing: 18px 3px; }
+    #end-stats th { padding-top: 10px; text-align: left; font: 15px Rye, Georgia, serif; letter-spacing: 1px; color: var(--gold); border-bottom: 1px solid rgba(201, 161, 59, 0.45); }
     #end-stats td:first-child { text-align: left; color: var(--tan); }
     #end-stats td:last-child { text-align: right; font-weight: 700; color: var(--gold); }
+    #end-stats .sub td { font-size: 14px; font-weight: 400; }
+    #end-stats .sub td:first-child { padding-left: 16px; }
     #end .btn { margin: 6px; }
     /* Under "Click to play" / "Continue": New Game and Settings */
     #start-buttons { display: flex; justify-content: center; gap: 10px; margin: -6px 0 14px; }
@@ -230,7 +231,6 @@
     body.touch #gfx { right: calc(max(12px, env(safe-area-inset-right)) + 116px); top: max(12px, env(safe-area-inset-top)); bottom: auto; padding: 0 12px; height: 48px; box-sizing: border-box; display: flex; align-items: center; pointer-events: auto; z-index: 20; }
     body.touch #gfx kbd { display: none; }
     body.touch.shop-open #gfx, body.touch.shop-open #sound { display: none; } /* out of the way of the shop's close button */
-    body.touch #cash-count { left: 50%; bottom: max(8px, env(safe-area-inset-bottom)); transform: translateX(-50%); }
     body.touch #saved { left: 50%; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 32px); transform: translateX(-50%); }
     body.touch #hud { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); }
     body.touch #status .hint { display: none; }
@@ -264,7 +264,8 @@
       .controls { font-size: 13px; gap: 3px 12px; margin-bottom: 6px; }
       #start p, #end p { font-size: 13px; margin: 3px 0; }
       #end h2 { font-size: 28px; }
-      #end-stats { font-size: 16px; margin: 6px auto; }
+      #end-stats { font-size: 14px; margin: 4px auto; border-spacing: 12px 2px; }
+      #end-stats th { font-size: 13px; padding-top: 6px; }
       /* The shop fills the whole screen */
       #shop-panel { width: 100vw; max-height: none; height: 100dvh; border-radius: 0; border-width: 0; padding: 0 max(10px, env(safe-area-inset-right)) 10px max(10px, env(safe-area-inset-left)); }
       #shop h2 { font-size: 22px; }
@@ -334,7 +335,6 @@
     <p>Gold Rush plays sideways (landscape).</p>
   </div>
   <div id="gfx" class="plaque"></div>
-  <div id="cash-count" class="plaque"></div>
   <div id="saved" class="plaque">Saved</div>
 
   <div id="excavator-help" class="plaque" hidden>
@@ -380,7 +380,7 @@
       <p>Gold the sluice misses ends up in the tailing pond: <span class="only-desktop">press <kbd>E</kbd></span><span class="only-touch">tap Interact</span> there to collect it.</p>
       <p>Unlock the pickaxe and the classifier, then save up for the excavator.</p>
       <p>The game ends when the whole pile has been dug up and washed.</p>
-      <p>Rumour has it some cash is hidden around the camp. Keep your eyes peeled!</p>
+      <p>Old-timers say gold nuggets lie hidden around the camp. Watch for a glint!</p>
       <p>Your game saves by itself, so you can stop any time and carry on later.</p>
     </div>
   </div>
@@ -390,7 +390,7 @@
       <h2 class="gold-text">The pile is all dug up!</h2>
       <p>Every last ton of dirt has been washed.</p>
       <table id="end-stats"></table>
-      <button id="end-again" class="btn">Play again</button>
+      <button id="end-again" class="btn">Play Again</button>
       <button id="end-walk" class="btn">Keep walking around</button>
     </div>
   </div>
@@ -879,6 +879,18 @@
     // bucketPitch = bucket tilt (up = holding dirt, down = dumping), load = scoops of dirt in the bucket.
     const EXCAVATOR_START = { swing: 0, boom: 0.9, bucketPitch: -0.3, load: 0 };
 
+    // Numbers kept only for the end-of-game stats screen. Every game starts with these (see resetGame()),
+    // and they're saved with the game (see makeSave()).
+    const STATS_START = {
+      moneySpent: 0,          // dollars spent in the shop
+      flakes: 0,              // gold flakes the sluice has caught
+      biggestNugget: 0,       // dollars: the most valuable single nugget (from the sluice or hidden)
+      pondGoldCollected: 0,   // dollars of gold collected from the tailing pond's filters
+      scoopsByHand: 0,        // dirt dumped into the sluice from your bucket or wheelbarrow
+      scoopsByExcavator: 0,   // dirt dumped into the sluice by the excavator
+      excavatorBoughtAt: null, // time played (seconds) when you bought the excavator; null = not bought yet
+    };
+
     // ---------- Game state: everything that changes while you play ----------
     const state = {
       money: 0,
@@ -890,12 +902,13 @@
       rocks: 0,           // scoops of rocks the classifier has screened out (only for the size of the rock pile)
       digTimer: 0,        // seconds until you can dig again
       pile: SETTINGS.pileTons / SETTINGS.tonsPerScoop, // scoops of dirt left in the DIRT pile (it starts full)
-      // For the end screen
-      goldFound: 0,       // dollars of gold found in total (spending doesn't lower it)
-      nuggets: 0,         // how many big nuggets you've found
+      // For the end screen (STATS_START has the rest of the numbers it shows)
+      goldFound: 0,       // dollars of gold found in total, pond gold and hidden nuggets included (spending doesn't lower it)
+      nuggets: 0,         // how many big nuggets the sluice has found
       timePlayed: 0,      // seconds, not counting time on the pause screen
+      ...STATS_START,
       finished: false,    // true once the end screen has been shown
-      cashFound: [],      // ids of the hidden cash bundles you've picked up (see CASH_BUNDLES)
+      nuggetsFound: [],   // ids of the hidden gold nuggets you've picked up (see HIDDEN_NUGGETS)
       endScreenOpen: false,
       levels: Object.fromEntries(TOOL_ORDER.map((id) => [id, 0])), // { shovel: 0, carrier: 0, ... }
       shopOpen: false,
@@ -1518,7 +1531,7 @@
     const POND_SPOT = { x: 18.2, z: -7 };        // middle of the tailing pond, past the sluice's low end (radius 2.5 to 5.5 m)
     const PAD = { x1: 4, x2: 13, z1: -5.6, z2: -2.9 }; // the gravel equipment pad for pumps, generators and tanks
 
-    // A few boulders, trees and a bush inside the fence: good hiding spots for the cash bundles (built further down)
+    // A few boulders, trees and a bush inside the fence: good hiding spots for the hidden nuggets (see HIDDEN_NUGGETS)
     const CAMP_BOULDERS = [{ x: 17, z: 11, size: 1.5 }, { x: 18.6, z: 10, size: 1 }];
     const CAMP_TREES = [{ x: -21, z: 19, kind: 'leafy' }, { x: 22, z: 20, kind: 'pine' }, { x: -24, z: 4, kind: 'pine' }];
     const CAMP_BUSH = { x: 26, z: -26 };
@@ -2654,7 +2667,7 @@
       }
     }
 
-    // ---------- Hiding spots: boulders, trees and a bush inside the fence (places to hide cash bundles) ----------
+    // ---------- Hiding spots: boulders, trees and a bush inside the fence (places to hide gold nuggets) ----------
     // Where they go is set near the top (CAMP_BOULDERS, CAMP_TREES, CAMP_BUSH). Each gets a round solid footprint.
     const campSolids = [];
     {
@@ -3337,11 +3350,10 @@
         tone(260, 0.45, { type: 'square', volume: 0.05, slideTo: 1040, delay: 0.1 });
         [523, 659, 784].forEach((f) => tone(f, 0.5, { type: 'triangle', volume: 0.1, delay: 0.55 }));
       },
-      cash() { // picking up hidden cash: bills rustling, a ka-ching and a happy run of notes
-        for (let i = 0; i < 3; i++) noise(0.07, { volume: 0.12, filter: 'highpass', freq: 2500 + i * 800, delay: i * 0.06 });
-        tone(1568, 0.5, { type: 'triangle', volume: 0.15, delay: 0.2 });
-        tone(2093, 0.7, { type: 'triangle', volume: 0.12, delay: 0.26 });
-        [784, 988, 1175, 1568].forEach((f, i) => tone(f, 0.18, { type: 'square', volume: 0.04, delay: 0.35 + i * 0.07 }));
+      hiddenNugget() { // picking up a hidden nugget: a "chunk" out of the ground, the nugget fanfare, then a sparkly run up
+        noise(0.12, { volume: 0.25, filter: 'bandpass', freq: 900, q: 1 });
+        sfx.nugget();
+        [1568, 1760, 2093, 2349, 2637, 3136].forEach((f, i) => tone(f, 0.2, { volume: 0.07, delay: 1.1 + i * 0.05 }));
       },
       denied() { // not enough money
         tone(196, 0.14, { type: 'square', volume: 0.08 });
@@ -3734,143 +3746,146 @@
       }
     }
 
-    // ---------- Hidden cash: bundles of bills hidden around the camp. Walk up and press E to pick one up. ----------
-    // SPOILERS: this list says where every bundle is hidden.
+    // ---------- Hidden gold nuggets: lying around the camp. Walk up and press E to pick one up. ----------
+    // SPOILERS: this list says where every nugget is hidden.
     // id = its name (a save remembers which ones you've found), x/z = where it is, y = how high it sits
-    // (leave it out to put it on the ground), turn = which way it points, value = dollars.
-    // The better hidden, the more it's worth. All together $1,000: a nice head start (the first upgrades cost $25 to $60,
-    // the Pickaxe $150), but small next to the $220,120 all the upgrades cost together.
-    const CASH_BUNDLES = [
-      { id: 'crates',   x: 3.58,  y: 1.4,  z: 7.43,  turn: 0.5, value: 25 },  // easy: on top of the crates by the shop
-      { id: 'barrel',   x: -10.3, y: 0.95, z: 5.15, turn: 2.2, value: 40 },  // easy: on the lid of a barrel
-      { id: 'sluice',   x: 3.6,              z: -8,    turn: 0.1, value: 60 },  // by the sluice's legs, on the side away from the camp
-      { id: 'tent',     x: -7.24,            z: 8.76,  turn: 1.9, value: 75 },  // just inside the tent's open end
-      { id: 'boulders', x: 18.9,             z: 12.2,  turn: 0.8, value: 150 }, // behind the two boulders (far side from the camp)
-      { id: 'tree',     x: -21.45,           z: 19.45, turn: 2.6, value: 250 }, // well hidden: at the foot of the leafy tree, fence side
-      { id: 'bush',     x: 26.5,             z: -26.5, turn: 0.7, value: 400 }, // best hidden: under the bush in the far corner
+    // (leave it out to put it on the ground), hide = how well hidden it is (see NUGGET_LOOKS), value = dollars.
+    // The better hidden, the more it's worth. All 14 together are worth $3,000: a nice boost early on (the first
+    // upgrades cost $25 to $60, the Pickaxe $150), but under 1.5% of the $220,120 all the upgrades cost together.
+    // The last two lie under the dirt pile and only turn up once the pile has shrunk away from them.
+    // Nothing on screen says how many there are: only the end screen tells you.
+    const HIDDEN_NUGGETS = [
+      // Easy: out in the open, big, sitting up, glinting often
+      { id: 'crates',    x: 3.58,  y: 1.4,  z: 7.43,  hide: 'easy',   value: 25 },  // on top of the crates by the shop
+      { id: 'path',      x: -3,               z: -2,    hide: 'easy',   value: 40 },  // on the bare ground on the way to the pile
+      { id: 'barrel',    x: -10.3, y: 0.95, z: 5.15,  hide: 'easy',   value: 50 },  // on the lid of a barrel
+      { id: 'yard',      x: 6,                z: 3,     hide: 'easy',   value: 60 },  // in the open, between the shop and the pumps
+      // Medium: tucked next to things
+      { id: 'sluice',    x: 3.6,              z: -8,    hide: 'medium', value: 75 },  // by the sluice's legs, on the side away from the camp
+      { id: 'tent',      x: -7.24,            z: 8.76,  hide: 'medium', value: 100 }, // just inside the tent's open end
+      { id: 'boulders',  x: 18.9,             z: 12.2,  hide: 'medium', value: 150 }, // behind the two boulders (far side from the camp)
+      { id: 'pond',      x: 25.4,             z: -9.8,  hide: 'medium', value: 200 }, // on the far bank of the tailing pond
+      { id: 'pine',      x: 23.3,             z: 21.4,  hide: 'medium', value: 300 }, // under the low branches of the pine in the corner
+      // Hard: small, half buried, glinting rarely
+      { id: 'tree',      x: -21.45,           z: 19.45, hide: 'hard',   value: 300 }, // at the foot of the leafy tree, fence side
+      { id: 'westPine',  x: -25.6,            z: 3,     hide: 'hard',   value: 350 }, // behind the pine on the west side, by the fence
+      { id: 'bush',      x: 26.5,             z: -26.5, hide: 'hard',   value: 400 }, // under the bush in the far corner
+      { id: 'underPile', x: -20,              z: -20,   hide: 'hard',   value: 450 }, // under the pile: turns up at about half the pile
+      { id: 'deepPile',  x: -12.2,            z: -16.1, hide: 'hard',   value: 500 }, // deep under the pile: turns up near the end
     ];
+    // How each kind looks: size (meters across, roughly), how deep it sits in the ground (0 = on top, 0.5 = half buried),
+    // and its glint: how big the flash is, and the seconds between flashes
+    const NUGGET_LOOKS = {
+      easy:   { size: 0.14, buried: 0.15, glint: 0.55, every: [2, 3.5] },
+      medium: { size: 0.11, buried: 0.3,  glint: 0.4,  every: [3, 5] },
+      hard:   { size: 0.09, buried: 0.45, glint: 0.28, every: [4.5, 7] },
+    };
 
-    // The paper: a pale green bill with a dark border, an oval in the middle and a big $ (painted on a canvas)
-    TEX.bill = canvasTexture(128, (ctx, size) => {
-      const h = size / 2; // bills are twice as long as they are wide, so only the top half is used
-      ctx.fillStyle = '#cfe0bb';
-      ctx.fillRect(0, 0, size, h);
-      ctx.strokeStyle = '#3f6b3a';
-      ctx.lineWidth = 4;
-      ctx.strokeRect(4, 4, size - 8, h - 8);
-      ctx.fillStyle = '#b3cc9c';
-      ctx.beginPath();
-      ctx.ellipse(size / 2, h / 2, 17, 20, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#2f5a2c';
-      ctx.font = 'bold 30px Georgia, serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('$', size / 2, h / 2 + 2);
-      ctx.font = 'bold 12px Georgia, serif';
-      for (const [x, y] of [[16, 14], [size - 16, 14], [16, h - 14], [size - 16, h - 14]]) ctx.fillText('100', x, y);
-    });
-    TEX.bill.repeat.set(1, 0.5); // just the top half, where the bill is painted
-    TEX.bill.offset.set(0, 0.5);
-    // The edge of a stack: thin light and dark lines, one pair for every bill
-    TEX.billEdge = canvasTexture(32, (ctx, size) => {
-      for (let y = 0; y < size; y += 4) {
-        ctx.fillStyle = '#e4eed8';
-        ctx.fillRect(0, y, size, 3);
-        ctx.fillStyle = '#8fa67d';
-        ctx.fillRect(0, y + 3, size, 1);
+    // A raw nugget straight out of the ground: lumpy, folded gold with dark dirt stuck in its dips and a chip
+    // of white quartz on one side. (The sluice's nuggets are smooth, bright and glowing, and they pop up spinning,
+    // so a nugget lying on the ground like this is clearly a hidden find.)
+    const rawGoldMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, metalness: 1, roughness: 0.3, flatShading: true, emissive: 0x6a4200, emissiveIntensity: 0.55, envMapIntensity: 0.7 });
+    const quartzMaterial = new THREE.MeshStandardMaterial({ color: 0xf1ede2, roughness: 0.45, flatShading: true });
+    function makeHiddenNugget(seed, look) {
+      const nugget = new THREE.Group();
+      const geometry = roughen(makeRockGeometry(seed), 0.35, seed);
+      // Colour every corner: mostly rich gold, darker in the dips (where dirt collects), a few bright spots
+      const p = geometry.attributes.position;
+      const colors = [];
+      const gold = new THREE.Color(0xe6b23a), dirt = new THREE.Color(0x5a3d1c), bright = new THREE.Color(0xffe07a), c = new THREE.Color();
+      for (let i = 0; i < p.count; i++) {
+        const x = p.getX(i), y = p.getY(i), z = p.getZ(i);
+        const dip = 1 - Math.min(1, Math.hypot(x, y / 0.7, z)); // 0 on the bumps, higher in the dips
+        const n = hash(x * 7.1 + seed, z * 6.3 + y * 5.2);
+        c.copy(gold).lerp(dirt, Math.min(1, dip * 2.2 + (n > 0.8 ? 0.5 : 0)));
+        if (n < 0.12) c.lerp(bright, 0.7);
+        colors.push(c.r, c.g, c.b);
       }
-    });
-    const billTop = new THREE.MeshStandardMaterial({ map: TEX.bill, roughness: 0.9 });
-    const billEdge = new THREE.MeshStandardMaterial({ map: TEX.billEdge, roughness: 1 });
-    const stringMaterial = new THREE.MeshStandardMaterial({ color: 0xc9a46a, roughness: 1 });
-
-    // One bundle: three slightly messy stacks of bills on top of each other, tied up like a parcel with string
-    function makeCashBundle() {
-      const bundle = new THREE.Group();
-      const length = 0.24, width = 0.11, layer = 0.022;
-      for (let i = 0; i < 3; i++) {
-        // Box sides are in this order: right, left, top, bottom, front, back. Only the top shows the painted bill.
-        const stack = new THREE.Mesh(new THREE.BoxGeometry(length, layer, width), [billEdge, billEdge, billTop, billEdge, billEdge, billEdge]);
-        stack.position.set(rand(-0.008, 0.008), layer * (i + 0.5), rand(-0.006, 0.006));
-        stack.rotation.y = rand(-0.05, 0.05);
-        bundle.add(stack);
-      }
-      const height = layer * 3;
-      bundle.add(box(0.012, height + 0.006, width + 0.008, stringMaterial, 0, height / 2, 0));  // string going round the short way
-      bundle.add(box(length + 0.012, height + 0.006, 0.012, stringMaterial, 0, height / 2, 0)); // ...and the long way
-      const knot = new THREE.Mesh(new THREE.SphereGeometry(0.012, 8, 6), stringMaterial);
-      knot.position.y = height + 0.005;
-      bundle.add(knot);
-      addShadows(bundle);
-      return bundle;
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+      const gold3d = new THREE.Mesh(geometry, rawGoldMaterial);
+      gold3d.scale.set(look.size * 0.6, look.size * 0.45, look.size * 0.5); // flatter and longer than a ball
+      gold3d.rotation.set(0.2, seed, 0.1);
+      const quartz = new THREE.Mesh(makeRockGeometry(seed + 9), quartzMaterial);
+      quartz.scale.setScalar(look.size * 0.18);
+      quartz.position.set(look.size * 0.3, look.size * 0.05, look.size * 0.1);
+      nugget.add(gold3d, quartz);
+      addShadows(nugget);
+      return nugget;
     }
 
-    for (const bundle of CASH_BUNDLES) {
-      bundle.y ??= groundHeight(bundle.x, bundle.z); // no y given: it lies on the ground
-      bundle.model = makeCashBundle();
-      bundle.model.position.set(bundle.x, bundle.y, bundle.z);
-      bundle.model.rotation.y = bundle.turn;
-      scene.add(bundle.model);
+    // The glint: a small star of light that flashes on a nugget now and then (it uses the nugget shine's picture)
+    const glintMaterial = new THREE.SpriteMaterial({ map: TEX.shine, color: 0xfff1b8, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false });
+
+    HIDDEN_NUGGETS.forEach((spot, i) => {
+      spot.look = NUGGET_LOOKS[spot.hide];
+      spot.y ??= groundHeight(spot.x, spot.z); // no y given: it lies on the ground
+      spot.model = makeHiddenNugget(i * 7 + 3, spot.look);
+      // Sink it partly into the ground (or the crate or barrel lid it sits on)
+      spot.model.position.set(spot.x, spot.y + spot.look.size * 0.45 * (0.5 - spot.look.buried), spot.z);
+      spot.model.rotation.y = i * 1.3;
+      spot.glint = new THREE.Sprite(glintMaterial);
+      spot.glint.position.set(spot.x, spot.y + spot.look.size * 0.35, spot.z);
+      spot.glint.visible = false;
+      scene.add(spot.model, spot.glint);
       // You can pick it up from within reach of this little box around it
-      bundle.bounds = new THREE.Box3(new THREE.Vector3(bundle.x - 0.2, 0, bundle.z - 0.2), new THREE.Vector3(bundle.x + 0.2, 2, bundle.z + 0.2));
-      bundle.twinkleTimer = rand(0, 1.5);
-    }
+      spot.bounds = new THREE.Box3(new THREE.Vector3(spot.x - 0.2, 0, spot.z - 0.2), new THREE.Vector3(spot.x + 0.2, 2, spot.z + 0.2));
+      spot.glintTimer = rand(0, spot.look.every[1]); // each one flashes at its own moment
+    });
 
-    const cashIsFound = (bundle) => state.cashFound.includes(bundle.id);
+    const nuggetIsFound = (spot) => state.nuggetsFound.includes(spot.id);
+    // Is it still under the dirt pile? (Then you can't see it or pick it up.)
+    const underPile = (spot) => !pileCircle.off && state.pile > 0 && distanceFromPoint(pileCircle, spot.x, spot.z) === 0;
+    const nuggetIsThere = (spot) => !nuggetIsFound(spot) && !underPile(spot);
 
-    // Show the bundles you haven't found yet, hide the ones you have
-    function showCashBundles() {
-      for (const bundle of CASH_BUNDLES) bundle.model.visible = !cashIsFound(bundle);
-    }
-
-    // Set which bundles have been found from a list of ids (for example from a saved game). Unknown ids are ignored.
-    function applyCashFound(saved) {
+    // Set which nuggets have been found from a list of ids (for example from a saved game). Unknown ids are ignored.
+    function applyNuggetsFound(saved) {
       const ids = Array.isArray(saved) ? saved : [];
-      state.cashFound = CASH_BUNDLES.map((bundle) => bundle.id).filter((id) => ids.includes(id));
-      showCashBundles();
+      state.nuggetsFound = HIDDEN_NUGGETS.map((spot) => spot.id).filter((id) => ids.includes(id));
     }
 
-    function collectCash(bundle) {
-      if (cashIsFound(bundle)) return;
-      state.cashFound.push(bundle.id);
-      state.money += bundle.value;
-      bundle.model.visible = false;
-      const allFound = state.cashFound.length === CASH_BUNDLES.length;
-      showMessage(allFound ? `Found $${bundle.value}! That's all the hidden cash!` : `Found $${bundle.value}!`);
-      sfx.cash();
-      // A little burst of green and gold sparkles where it was
-      for (let i = 0; i < 25; i++) {
-        const angle = rand(0, Math.PI * 2), speed = rand(0.4, 1.5);
+    function pickUpNugget(spot) {
+      if (!nuggetIsThere(spot)) return;
+      state.nuggetsFound.push(spot.id);
+      earn(spot.value);
+      state.biggestNugget = Math.max(state.biggestNugget, spot.value);
+      showMessage(`Found a nugget! +$${spot.value}`);
+      sfx.hiddenNugget();
+      // A puff of dirt where it came out of the ground, and a burst of gold sparkles
+      dirtBurst({ x: spot.x, y: spot.y + 0.05, z: spot.z }, 4, { spread: 0.25, up: 0.5 });
+      for (let i = 0; i < 30; i++) {
+        const angle = rand(0, Math.PI * 2), speed = rand(0.4, 1.6);
         glitter.add({
-          x: bundle.x, y: bundle.y + 0.1, z: bundle.z,
-          vx: Math.cos(angle) * speed, vy: rand(0.8, 2.2), vz: Math.sin(angle) * speed, gravity: 3, drag: 1.5,
-          size: rand(0.08, 0.2), life: rand(0.8, 1.4), fade: 0.5, twinkle: true, color: pick([0x9dff8a, 0xd8ffc8, ...GOLD_SHADES]),
+          x: spot.x, y: spot.y + 0.15, z: spot.z,
+          vx: Math.cos(angle) * speed, vy: rand(1, 2.6), vz: Math.sin(angle) * speed, gravity: 3, drag: 1.5,
+          size: rand(0.1, 0.25), life: rand(0.8, 1.5), fade: 0.5, twinkle: true, color: pick(GOLD_SHADES),
         });
       }
       hud.wallet.classList.remove('bump');
       void hud.wallet.offsetWidth; // restart the bump animation
       hud.wallet.classList.add('bump');
-      saveGame(); // so a found bundle stays found
+      saveGame(); // so a found nugget stays found
     }
 
-    // Now and then a faint twinkle floats up off each bundle you haven't found, so a careful eye can spot it
-    function twinkleCash(dt) {
-      for (const bundle of CASH_BUNDLES) {
-        if (cashIsFound(bundle)) continue;
-        bundle.twinkleTimer -= dt;
-        if (bundle.twinkleTimer > 0) continue;
-        bundle.twinkleTimer = rand(0.7, 1.8);
-        glitter.add({
-          x: bundle.x + rand(-0.1, 0.1), y: bundle.y + rand(0.05, 0.1), z: bundle.z + rand(-0.1, 0.1),
-          vy: rand(0.05, 0.2), size: rand(0.07, 0.12), life: rand(0.5, 0.9), fade: 0.4, alpha: 0.8,
-          twinkle: true, color: pick([0xffffff, 0xfff4c0, 0xe0ffd0]),
-        });
+    // Show the nuggets that are still there, and make each one glint for a moment now and then,
+    // so a careful eye can spot it
+    function updateHiddenNuggets(dt) {
+      const flashTime = 0.35;
+      for (const spot of HIDDEN_NUGGETS) {
+        const there = nuggetIsThere(spot);
+        spot.model.visible = there;
+        spot.glintTimer -= dt;
+        if (spot.glintTimer <= -flashTime) spot.glintTimer = rand(...spot.look.every);
+        const flashing = there && spot.glintTimer < 0;
+        spot.glint.visible = flashing;
+        if (flashing) {
+          const t = -spot.glintTimer / flashTime; // 0 at the start of the flash, 1 at the end
+          spot.glint.scale.setScalar(spot.look.glint * Math.sin(Math.PI * t) + 0.001);
+        }
       }
     }
 
     function updateEffects(dt) {
-      twinkleCash(dt);
+      updateHiddenNuggets(dt);
       animateWater(dt);
       exhaustSmoke(dt);
       generatorSmoke(dt);
@@ -3881,12 +3896,12 @@
     // ---------- Things you can use with E ----------
     // When several are in reach, the closest one wins (see nearbyThing()).
     const interactables = [
-      // Hidden cash (E works on whichever thing in reach is closest, so standing by a bundle picks it up)
-      ...CASH_BUNDLES.map((bundle) => ({
-        bounds: bundle.bounds,
-        onlyIf: () => !cashIsFound(bundle),
-        prompt: () => 'Press E to pick up the cash',
-        use: () => collectCash(bundle),
+      // Hidden nuggets (E works on whichever thing in reach is closest, so standing by a nugget picks it up)
+      ...HIDDEN_NUGGETS.map((spot) => ({
+        bounds: spot.bounds,
+        onlyIf: () => nuggetIsThere(spot),
+        prompt: () => 'Press E to pick up the gold nugget',
+        use: () => pickUpNugget(spot),
         label: 'Pick up', // what the Interact button says on a touch screen
       })),
       {
@@ -3954,6 +3969,7 @@
       if (state.carrying === 0) return;
       dirtFalls({ x: sluice.position.x - 1.4, y: 1.6, z: sluice.position.z }, state.carrying, 1.15);
       addToSluice(state.carrying);
+      state.scoopsByHand += state.carrying;
       state.carrying = 0;
       sfx.dump(1);
     }
@@ -3976,6 +3992,7 @@
       if (amount < 1) return;
       state.pondGold -= amount;
       earn(amount);
+      state.pondGoldCollected += amount;
       showMessage(`Collected $${amount.toLocaleString('en-US')} from the filters!`);
       sfx.pondGold(amount);
       for (let i = 0; i < Math.min(30, 5 + amount / 5); i++) sparkle(0.1, pondFilters);
@@ -4000,7 +4017,9 @@
       const brandNew = !tool.startsOwned && tool.tab === 'tools' || id === 'excavator';
       const firstOne = brandNew && state.levels[id] === 0;
       state.money -= next.price;
+      state.moneySpent += next.price;
       state.levels[id] += 1;
+      if (id === 'excavator') state.excavatorBoughtAt = state.timePlayed;
       const where = {
         excavator: 'Bought the excavator! It is parked between the pile and the sluice',
         classifier: 'Bought the classifier! It is next to the sluice',
@@ -4058,6 +4077,7 @@
       if (Math.random() < SETTINGS.nuggetChance) { // nuggets are heavy: they never get missed
         earn(SETTINGS.nuggetValue);
         state.nuggets += 1;
+        state.biggestNugget = Math.max(state.biggestNugget, SETTINGS.nuggetValue);
         showMessage(`BIG NUGGET! +$${SETTINGS.nuggetValue}`);
         for (let i = 0; i < 3; i++) sparkle(0.25, where);
         nuggetShine(where);
@@ -4069,6 +4089,7 @@
         if (toPond) state.pondGold += (flakes - caught) * SETTINGS.flakeValue * toolNow('filters').catches;
         if (caught === 0) return;
         earn(caught * SETTINGS.flakeValue);
+        state.flakes += caught;
         for (let i = 0; i < caught; i++) sparkle(0.07, where);
         // A little "ting" (but not dozens at once when the sluice is going fast)
         if (audio && audio.currentTime - lastFlakeSound > 0.06) {
@@ -4226,6 +4247,7 @@
       sfx.dump(2);
       if (target === 'sluice') {
         addToSluice(Math.round(scoops));
+        state.scoopsByExcavator += Math.round(scoops);
         showMessage(`+${tons(scoops)} t in the sluice`);
       } else if (target === 'pile') {
         addToPile(scoops); // dumped back onto the pile: nothing lost
@@ -5319,7 +5341,6 @@
       prompt: document.getElementById('prompt'),
       message: document.getElementById('message'),
       gfx: document.getElementById('gfx'),
-      cashCount: document.getElementById('cash-count'),
     };
     let messageTimeout;
     function showMessage(text) {
@@ -5390,7 +5411,6 @@
       if (state.pile <= 0 && !state.finished) html += '<div class="warn">The pile is gone! Wash the last of your dirt to finish</div>';
       html += '<div class="hint"><kbd>B</kbd> shop &nbsp; <kbd>M</kbd> sound &nbsp; <kbd>G</kbd> graphics</div>';
       setHtml(hud.status, forScreen(html));
-      setHtml(hud.cashCount, `Cash found: <b>${state.cashFound.length}/${CASH_BUNDLES.length}</b>`);
 
       if (state.inExcavator) {
         setHtml(hud.prompt, forScreen(excavatorHint()));
@@ -5462,6 +5482,46 @@
       if (dirtLeft <= 0) showEndScreen();
     }
 
+    // The stats table on the end screen, in groups with a heading each. "sub" rows are smaller and indented.
+    function endStatsRows() {
+      const money = (dollars) => `$${Math.round(dollars).toLocaleString('en-US')}`;
+      const count = (n) => Math.round(n).toLocaleString('en-US');
+      const upgradesBought = TOOL_ORDER.reduce((sum, id) => sum + state.levels[id], 0);
+      const upgradesTotal = TOOL_ORDER.reduce((sum, id) => sum + TOOLS[id].levels.length - 1, 0);
+      const maxed = TOOL_ORDER.filter((id) => !toolNext(id)).length;
+      const groups = [
+        ['Hidden nuggets', [
+          ['Hidden nuggets found', `${state.nuggetsFound.length} of ${HIDDEN_NUGGETS.length}`],
+        ]],
+        ['Money', [
+          ['Total gold earned', money(state.goldFound)],
+          ['Total money spent', money(state.moneySpent)],
+        ]],
+        ['Dirt processed', [
+          ['Dirt into the sluice', `${tons(state.scoopsByHand + state.scoopsByExcavator)} t`],
+          ['by hand', `${tons(state.scoopsByHand)} t`, 'sub'],
+          ['by excavator', `${tons(state.scoopsByExcavator)} t`, 'sub'],
+        ]],
+        ['Gold', [
+          ['Gold flakes found', count(state.flakes)],
+          ['Sluice nuggets found', count(state.nuggets)],
+          ['Biggest single nugget', state.biggestNugget > 0 ? money(state.biggestNugget) : 'none'],
+          ['Gold recovered from the tailing pond', money(state.pondGoldCollected)],
+        ]],
+        ['Tools', [
+          ['Tools and upgrades bought', `${upgradesBought} of ${upgradesTotal}`],
+          ['Fully maxed', `${maxed} of ${TOOL_ORDER.length}`],
+        ]],
+        ['Time', [
+          ['Total time played', formatTime(state.timePlayed)],
+          ['Excavator unlocked after', state.excavatorBoughtAt !== null ? formatTime(state.excavatorBoughtAt)
+            : ownsTool('excavator') ? 'not recorded' : 'not bought'], // "not recorded": bought before this was counted
+        ]],
+      ];
+      return groups.map(([heading, rows]) => `<tr><th colspan="2">${heading}</th></tr>`
+        + rows.map(([label, value, kind]) => `<tr class="${kind || ''}"><td>${label}</td><td>${value}</td></tr>`).join('')).join('');
+    }
+
     function showEndScreen() {
       state.finished = true;
       state.endScreenOpen = true;
@@ -5471,11 +5531,7 @@
         shopEl.hidden = true;
         document.body.classList.remove('shop-open');
       }
-      endStats.innerHTML = `
-        <tr><td>Total gold found</td><td>$${state.goldFound.toLocaleString('en-US')}</td></tr>
-        <tr><td>Big nuggets</td><td>${state.nuggets}</td></tr>
-        <tr><td>Hidden cash found</td><td>${state.cashFound.length} of ${CASH_BUNDLES.length}</td></tr>
-        <tr><td>Time played</td><td>${formatTime(state.timePlayed)}</td></tr>`;
+      endStats.innerHTML = endStatsRows();
       endScreen.hidden = false;
       setPlaying(false);
       if (document.pointerLockElement) document.exitPointerLock(); // give the mouse back for the buttons
@@ -5496,10 +5552,11 @@
         pond: 0, pondGold: 0, rocks: 0, digTimer: 0,
         pile: SETTINGS.pileTons / SETTINGS.tonsPerScoop,
         goldFound: 0, nuggets: 0, timePlayed: 0, finished: false,
+        ...STATS_START,      // every end-screen stat back to the start
       });
       state.exc = { ...EXCAVATOR_START };
       applyToolLevels({}); // no upgrades: small sluice, puddle pond, nothing else bought
-      applyCashFound([]);  // every cash bundle hidden around the camp again
+      applyNuggetsFound([]); // every hidden nugget back where it was
       updatePile();
       camera.position.set(0, 1.6, 2);
       yaw = 0;
@@ -5518,7 +5575,7 @@
     // =====================================================================
     // ---------- Saving and loading ----------
     // The game saves itself in this browser (localStorage) every 30 seconds, right after you buy something or
-    // find cash, and when you close or leave the page (or switch to another app on a phone).
+    // pick up a hidden nugget, and when you close or leave the page (or switch to another app on a phone).
     // When you come back it loads straight away, and the start screen says "Continue" (with a New Game button).
     // A save is one plain object (see makeSave()). The backup code in Settings is that same object, as text.
     //
@@ -5549,7 +5606,9 @@
         nuggets: state.nuggets,
         timePlayed: state.timePlayed,
         finished: state.finished,
-        cashFound: [...state.cashFound],
+        nuggetsFound: [...state.nuggetsFound],
+        // Numbers for the end screen (everything in STATS_START)
+        stats: Object.fromEntries(Object.keys(STATS_START).map((key) => [key, state[key]])),
         levels: { ...state.levels },
         // The swing is kept between -pi and pi (it can wind round and round)
         excavator: {
@@ -5630,8 +5689,23 @@
       state.pond = Math.min(state.pond, toolNow('pondSize').holds);
       state.exc.load = Math.min(state.exc.load, toolNow('digBucket').scoops);
       poseExcavator();
-      applyCashFound(save.cashFound);
+      applyNuggetsFound(save.nuggetsFound); // (old saves have cashFound instead: that cash is already in the wallet)
       updatePile();
+
+      // End-screen stats. A save from before they were counted starts them at 0, except money spent,
+      // which is worked out from the upgrades you own (and the excavator time, which stays unknown).
+      const stats = save.stats && typeof save.stats === 'object' ? save.stats : {};
+      const spentOnUpgrades = TOOL_ORDER.reduce((sum, id) =>
+        sum + TOOLS[id].levels.slice(1, state.levels[id] + 1).reduce((total, level) => total + level.price, 0), 0);
+      Object.assign(state, {
+        moneySpent: savedNumber(stats.moneySpent, spentOnUpgrades, 0),
+        flakes: Math.floor(savedNumber(stats.flakes, 0, 0)),
+        biggestNugget: savedNumber(stats.biggestNugget, 0, 0),
+        pondGoldCollected: savedNumber(stats.pondGoldCollected, 0, 0),
+        scoopsByHand: savedNumber(stats.scoopsByHand, 0, 0),
+        scoopsByExcavator: savedNumber(stats.scoopsByExcavator, 0, 0),
+        excavatorBoughtAt: ownsTool('excavator') ? savedNumber(stats.excavatorBoughtAt, null, 0) : null,
+      });
 
       // Where you were standing and looking (inside the fence, and out of anything solid)
       const player = save.player && typeof save.player === 'object' ? save.player : {};
