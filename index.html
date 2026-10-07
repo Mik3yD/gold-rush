@@ -76,6 +76,14 @@
     #flash { position: fixed; inset: 0; opacity: 0; pointer-events: none; z-index: 4; background: radial-gradient(ellipse at center, rgba(255, 220, 90, 0) 35%, rgba(255, 190, 40, 0.55) 100%); }
     #flash.go { animation: flash 1.4s ease-out; }
     @keyframes flash { 10% { opacity: 1; } 100% { opacity: 0; } }
+    #flash.jackpot { animation: flash-long 3.5s ease-out; }
+    @keyframes flash-long { 10% { opacity: 1; } 100% { opacity: 0; } }
+    /* The jackpot nugget's pop-up: a big brass-edged plaque that bounces in and glows */
+    #jackpot { position: fixed; top: 16%; left: 50%; padding: 14px 34px 16px; text-align: center; pointer-events: none; z-index: 11; opacity: 0; transform: translateX(-50%) scale(0.6); transition: opacity 0.5s, transform 0.5s; }
+    #jackpot.show { opacity: 1; transform: translateX(-50%) scale(1); animation: glow 1.2s ease-in-out infinite; }
+    #jackpot-title { font: 46px/1.1 Rye, Georgia, serif; letter-spacing: 1px; white-space: nowrap; }
+    #jackpot-weight { margin-top: 4px; font-size: 18px; color: #f1e4c4; }
+    #jackpot-value { margin-top: 2px; font: 38px/1.1 Rye, Georgia, serif; }
 
     /* ---- Top right: speaker button, excavator controls; bottom right: graphics quality ---- */
     #sound { position: fixed; top: 12px; right: 12px; width: 48px; height: 48px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 20; }
@@ -256,6 +264,10 @@
       #status .row { padding: 0; }
       #prompt { top: 60%; font-size: 14px; padding: 4px 12px; max-width: 60vw; white-space: normal; text-align: center; }
       #message { font-size: 26px; }
+      #jackpot { top: 10%; padding: 8px 20px 10px; }
+      #jackpot-title { font-size: 28px; }
+      #jackpot-weight { font-size: 13px; }
+      #jackpot-value { font-size: 24px; }
       /* Start and end screens: smaller, and they scroll if they still don't fit */
       .card { max-height: 94dvh; overflow-y: auto; padding: 12px 18px; touch-action: pan-y; }
       #start h1 { font-size: 44px; }
@@ -311,6 +323,13 @@
   <div id="prompt" class="plaque"></div>
   <div id="message" class="gold-text"></div>
   <div id="flash"></div>
+  <!-- The jackpot nugget's own pop-up (see showJackpot()) -->
+  <div id="jackpot" class="plaque">
+    <div class="label">Jackpot</div>
+    <div id="jackpot-title" class="gold-text"></div>
+    <div id="jackpot-weight"></div>
+    <div id="jackpot-value" class="gold-text"></div>
+  </div>
   <div id="toolbar" class="plaque"></div>
   <button id="sound" class="plaque" title="Sound on/off (M)"></button>
 
@@ -461,12 +480,10 @@
       touchSensitivity: 0.006, // looking around by dragging a finger (turns per pixel, like the mouse)
       reach: 1.5,              // how close (in meters) you must be to use something
       // Gold in the dirt. Every scoop holds about $2.00 of gold on average:
-      //   nuggets: 1% x $50 = $0.50 (heavy, so the sluice always catches them)
+      //   nuggets: 1% x about $50 = $0.50 (heavy, so the sluice always catches them; see NUGGETS below)
       //   flakes: 75% chance of 1 to 3 flakes x $1 = $1.50 (only if the sluice catches them all: see Mesh and Nozzles)
       flakeChance: 0.75,       // chance (0 to 1) that a washed scoop has gold flakes in it
       flakeValue: 1,           // dollars per flake
-      nuggetChance: 0.01,      // chance that a washed scoop has a big nugget
-      nuggetValue: 50,         // dollars per nugget
       tonsPerScoop: 0.1,       // how heavy one scoop of dirt is (so 10 scoops = 1 ton)
 
       sluiceBaseSpeed: 1.5,    // scoops a second the sluice washes before any upgrades
@@ -488,6 +505,44 @@
       armSwingSpeed: 0.9,
       bucketCurlSpeed: 1.1,
     };
+
+    // ===== BIG NUGGETS FROM THE SLUICE: how often they turn up and how big they are. Tweak them here. =====
+    // Balance: on average a nugget must be worth about $50 and turn up in 1 scoop in 100 (so $0.50 a scoop),
+    // or the dirt pile total (SETTINGS.pileTons) and the upgrade prices stop working out. Right now:
+    //   average weight = 62% x 4.5 g + 28% x 12 g + 9.5% x 33.5 g + 0.5% x 650 g = 12.58 g
+    //   (the middle of each size's range), x $4 a gram = $50.33. If you change the sizes, redo this sum
+    //   (the browser's console also prints the average when the game loads).
+    const NUGGETS = {
+      chance: 0.01,       // the normal chance that a washed scoop has a nugget (1 in 100)
+      dollarsPerGram: 4,  // what a gram of nugget gold is worth
+
+      // The dirt has rich and poor patches, so nuggets come in bunches with dry spells between them.
+      // Every patch lasts a random number of scoops (patchScoops), then a new random patch starts.
+      // "times" multiplies the chance above. To keep the balance, share x times must add up to 1:
+      //   50% x 0.25 + 35% x 1 + 15% x 3.5 = 0.125 + 0.35 + 0.525 = 1.0
+      patchScoops: [50, 500], // shortest and longest patch, in scoops
+      patches: [
+        { name: 'poor',   share: 0.50, times: 0.25 }, // half the dirt: a dry spell, 1 nugget in 400 scoops
+        { name: 'normal', share: 0.35, times: 1 },    // 1 nugget in 100 scoops
+        { name: 'rich',   share: 0.15, times: 3.5 },  // a pay streak: about 1 nugget in 29 scoops
+      ],
+
+      // Sizes: a nugget picks a size (by share), then a random weight in that size's range (grams)
+      sizes: [
+        { name: 'small',   share: 0.62,  grams: [2, 7],     title: 'Nugget!' },          //  $8 to  $28
+        { name: 'medium',  share: 0.28,  grams: [6, 18],    title: 'Nice nugget!' },     // $24 to  $72
+        { name: 'large',   share: 0.095, grams: [15, 52],   title: 'BIG NUGGET!' },      // $60 to $208
+        { name: 'jackpot', share: 0.005, grams: [400, 900], title: 'THE MOTHER LODE!' }, // $1,600 to $3,600, with its own pop-up and sound
+      ],
+    };
+
+    // A nugget's weight for the screen: grams for small ones ("12.4 g"), troy ounces from one ounce up ("1.6 oz")
+    const GRAMS_PER_OUNCE = 31.1;
+    const nuggetWeight = (grams) => (grams < GRAMS_PER_OUNCE ? `${grams.toFixed(1)} g` : `${(grams / GRAMS_PER_OUNCE).toFixed(1)} oz`);
+
+    // The average nugget's value, worked out from the sizes above (printed in the console to check the balance)
+    const averageNuggetValue = NUGGETS.sizes.reduce((sum, size) => sum + size.share * (size.grams[0] + size.grams[1]) / 2, 0) * NUGGETS.dollarsPerGram;
+    console.log(`Sluice nuggets: average $${averageNuggetValue.toFixed(2)}, so $${(averageNuggetValue * NUGGETS.chance).toFixed(2)} a scoop (aim for about $50 and $0.50)`);
 
     // Turn scoops into tons for showing on screen, like "4,012.5" (no ".0" on whole numbers)
     const tons = (scoops) => (Math.round(scoops * SETTINGS.tonsPerScoop * 10) / 10).toLocaleString('en-US');
@@ -884,7 +939,7 @@
     const STATS_START = {
       moneySpent: 0,          // dollars spent in the shop
       flakes: 0,              // gold flakes the sluice has caught
-      biggestNugget: 0,       // dollars: the most valuable single nugget (from the sluice or hidden)
+      biggestNugget: 0,       // dollars: the most valuable single nugget (from the sluice or hidden; its weight is this ÷ NUGGETS.dollarsPerGram)
       pondGoldCollected: 0,   // dollars of gold collected from the tailing pond's filters
       scoopsByHand: 0,        // dirt dumped into the sluice from your bucket or wheelbarrow
       scoopsByExcavator: 0,   // dirt dumped into the sluice by the excavator
@@ -3340,6 +3395,17 @@
         [1047, 1319, 1568, 2093].forEach((f) => tone(f, 1.2, { type: 'triangle', volume: 0.1, delay: 0.5 }));
         for (let i = 0; i < 12; i++) tone(2500 + Math.random() * 2500, 0.15, { volume: 0.05, delay: 0.5 + i * 0.07 });
       },
+      jackpot() {
+        // The Mother Lode: two deep booms, the nugget fanfare, a ringing bell, a slow rising victory chord
+        // and a long shower of sparkles
+        tone(73, 1.4, { type: 'triangle', volume: 0.4, slideTo: 36 });
+        tone(98, 1.0, { type: 'triangle', volume: 0.3, slideTo: 49, delay: 0.35 });
+        sfx.nugget();
+        [1568, 2093, 2637].forEach((f) => tone(f, 2.2, { type: 'sine', volume: 0.09, delay: 1.3 }));
+        [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.35, { type: 'square', volume: 0.06, delay: 1.7 + 0.14 * i }));
+        [262, 392, 523, 659, 784].forEach((f) => tone(f, 2.4, { type: 'triangle', volume: 0.08, delay: 2.3 }));
+        for (let i = 0; i < 30; i++) tone(2500 + Math.random() * 3000, 0.15, { volume: 0.05, delay: 1.3 + i * 0.08 });
+      },
       buy() { // cash register "ka-ching"
         noise(0.06, { volume: 0.2, filter: 'highpass', freq: 3000 });
         tone(1568, 0.5, { type: 'triangle', volume: 0.15, delay: 0.06 });
@@ -3607,11 +3673,13 @@
     nuggetModel.visible = shine.visible = false;
     scene.add(nuggetModel, shine, nuggetLight);
     let shineAge = -1; // seconds since the nugget appeared (-1 = no nugget showing)
+    let shineSize = 1; // how big the nugget is (1 = an average nugget)
     const shineSpot = new THREE.Vector3();
     const flashEl = document.getElementById('flash');
 
-    function nuggetShine(where) {
+    function nuggetShine(where, size = 1) {
       shineAge = 0;
+      shineSize = size;
       shineSpot.set(where.x + (Math.random() - 0.5) * where.spread * 0.5, where.y, where.z);
       nuggetModel.visible = shine.visible = true;
       for (let i = 0; i < 50; i++) {
@@ -3640,10 +3708,10 @@
       nuggetModel.position.set(shineSpot.x, shineSpot.y + rise * 0.8, shineSpot.z);
       nuggetModel.rotation.y += dt * 4;
       nuggetModel.rotation.x += dt * 1.3;
-      nuggetModel.scale.setScalar(0.14 * Math.min(1, t / 0.15) * fadeOut + 0.001);
+      nuggetModel.scale.setScalar(0.14 * shineSize * Math.min(1, t / 0.15) * fadeOut + 0.001);
       shine.position.copy(nuggetModel.position);
       shine.material.rotation += dt * 0.6;
-      shine.scale.setScalar((0.6 + 1.8 * rise) * pulse);
+      shine.scale.setScalar((0.6 + 1.8 * rise) * pulse * Math.sqrt(shineSize));
       shine.material.opacity = Math.min(1, t / 0.12) * fadeOut;
       nuggetLight.position.copy(nuggetModel.position);
       nuggetLight.intensity = 25 * fadeOut * pulse;
@@ -4069,19 +4137,60 @@
       state.goldFound += dollars;
     }
 
+    // Pick one thing from a list by its share (the shares add up to 1), like a patch or a nugget size in NUGGETS
+    function pickByShare(list) {
+      let roll = Math.random();
+      for (const item of list) {
+        roll -= item.share;
+        if (roll < 0) return item;
+      }
+      return list[list.length - 1];
+    }
+
+    // The patch of dirt the sluice is washing right now (poor, normal or rich) and how many scoops of it are left.
+    // It's never shown on screen, so players can't tell when a pay streak or a dry spell is coming.
+    let nuggetPatch = pickByShare(NUGGETS.patches);
+    let patchScoopsLeft = rand(...NUGGETS.patchScoops);
+
+    // The chance that this scoop has a nugget (one scoop of the patch gets used up each time)
+    function nuggetChanceNow() {
+      patchScoopsLeft -= 1;
+      if (patchScoopsLeft <= 0) { // on to a new random patch
+        nuggetPatch = pickByShare(NUGGETS.patches);
+        patchScoopsLeft = rand(...NUGGETS.patchScoops);
+      }
+      return NUGGETS.chance * nuggetPatch.times;
+    }
+
+    // The sluice found a nugget: give it a random size and weight, pay for it and show it off
+    // (the J test cheat passes the jackpot size instead of a random one)
+    function foundSluiceNugget(where, size = pickByShare(NUGGETS.sizes)) {
+      const grams = Math.round(rand(...size.grams) * 10) / 10;
+      const value = Math.max(1, Math.round(grams * NUGGETS.dollarsPerGram));
+      const jackpot = size.name === 'jackpot';
+      earn(value);
+      state.nuggets += 1;
+      state.biggestNugget = Math.max(state.biggestNugget, value);
+      // Bigger nuggets pop up bigger (a jackpot is about four times the size of an average one)
+      nuggetShine(where, clamp(Math.cbrt(grams / 12.5), 0.6, 2.8));
+      for (let i = 0; i < (jackpot ? 12 : 3); i++) sparkle(0.25, where);
+      if (jackpot) {
+        showJackpot(size.title, grams, value);
+        sfx.jackpot();
+        saveGame(); // a find like this shouldn't be lost if the page closes
+      } else {
+        showMessage(`${size.title} ${nuggetWeight(grams)}, +$${value.toLocaleString('en-US')}`);
+        sfx.nugget();
+      }
+    }
+
     // Look for gold in one washed scoop of dirt. "where" is the spot the sparkles float up from.
     // catches = the share of the flakes this washer catches. The flakes it misses wash into the tailing pond
     // (toPond), where the filters get some of them back.
     let lastFlakeSound = 0;
     function findGold(where, catches, toPond) {
-      if (Math.random() < SETTINGS.nuggetChance) { // nuggets are heavy: they never get missed
-        earn(SETTINGS.nuggetValue);
-        state.nuggets += 1;
-        state.biggestNugget = Math.max(state.biggestNugget, SETTINGS.nuggetValue);
-        showMessage(`BIG NUGGET! +$${SETTINGS.nuggetValue}`);
-        for (let i = 0; i < 3; i++) sparkle(0.25, where);
-        nuggetShine(where);
-        sfx.nugget();
+      if (Math.random() < nuggetChanceNow()) { // nuggets are heavy: they never get missed
+        foundSluiceNugget(where);
       } else if (Math.random() < SETTINGS.flakeChance) {
         const flakes = 1 + Math.floor(Math.random() * 3); // 1 to 3 flakes
         let caught = 0;
@@ -5350,6 +5459,21 @@
       messageTimeout = setTimeout(() => hud.message.classList.remove('show'), 2000);
     }
 
+    // The jackpot nugget's pop-up: its name, weight (ounces and grams) and value, for 5 seconds,
+    // with a long golden glow around the screen
+    let jackpotTimeout;
+    function showJackpot(title, grams, value) {
+      document.getElementById('jackpot-title').textContent = title;
+      document.getElementById('jackpot-weight').textContent = `A ${nuggetWeight(grams)} nugget (${Math.round(grams)} g)`;
+      document.getElementById('jackpot-value').textContent = `+$${value.toLocaleString('en-US')}`;
+      const banner = document.getElementById('jackpot');
+      banner.classList.add('show');
+      clearTimeout(jackpotTimeout);
+      jackpotTimeout = setTimeout(() => banner.classList.remove('show'), 5000);
+      flashEl.classList.add('jackpot');
+      setTimeout(() => flashEl.classList.remove('jackpot'), 3500);
+    }
+
     // Only change the page when the text really changed (changing it every frame would slow the game down)
     function setHtml(element, html) {
       if (element.dataset.shown === html) return;
@@ -5505,7 +5629,8 @@
         ['Gold', [
           ['Gold flakes found', count(state.flakes)],
           ['Sluice nuggets found', count(state.nuggets)],
-          ['Biggest single nugget', state.biggestNugget > 0 ? money(state.biggestNugget) : 'none'],
+          ['Biggest single nugget', state.biggestNugget > 0
+            ? `${money(state.biggestNugget)} (${nuggetWeight(state.biggestNugget / NUGGETS.dollarsPerGram)})` : 'none'],
           ['Gold recovered from the tailing pond', money(state.pondGoldCollected)],
         ]],
         ['Tools', [
@@ -5872,7 +5997,7 @@
     // =====================================================================
     // ---------- TEST CHEATS: for trying things out without grinding ----------
     // K = add money, R = reset everything back to the start, P = dig away most of the pile (to test the end screen),
-    // O = fill the tailing pond (to test the sluice slowing down).
+    // O = fill the tailing pond (to test the sluice slowing down), J = the sluice finds a jackpot nugget.
     // They're OFF unless you add ?cheats to the end of the game's address, for example
     // file:///C:/.../index.html?cheats  (so the shared version has none, and you can still test with them).
     // To have them always on while working on the game, change the line below to: const CHEATS_ON = true;
@@ -5902,10 +6027,14 @@
       showMessage('Pond filled up (test cheat)');
     }
 
+    function cheatJackpot() {
+      foundSluiceNugget(sluiceSpot, NUGGETS.sizes.find((size) => size.name === 'jackpot'));
+    }
+
     if (CHEATS_ON) {
       // So you can tell they're on: in the browser tab's title, and a message when the page loads
       document.title += ' (test cheats on)';
-      showMessage('Test cheats on: K money, R reset, P shrink pile, O fill pond');
+      showMessage('Test cheats on: K money, R reset, P shrink pile, O fill pond, J jackpot nugget');
       // Its own key listener, so the rest of the game doesn't need to know about cheats.
       // Works while playing and while the shop is open (but not on the end screen).
       addEventListener('keydown', (e) => {
@@ -5914,6 +6043,7 @@
         if (e.code === 'KeyR') cheatResetEverything();
         if (e.code === 'KeyP') cheatShrinkPile();
         if (e.code === 'KeyO') cheatFillPond();
+        if (e.code === 'KeyJ') cheatJackpot();
       });
     }
     // ---------- END OF TEST CHEATS ----------
