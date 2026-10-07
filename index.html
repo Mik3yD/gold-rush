@@ -158,6 +158,14 @@
     #start { cursor: pointer; z-index: 6; }
     #end { z-index: 15; }
     #end[hidden] { display: none; }
+
+    /* ---- The ending cutscene: a film that fills the screen, before the end screen ---- */
+    #cutscene { position: fixed; inset: 0; z-index: 20; background: #000; touch-action: none; }
+    #cutscene[hidden] { display: none; }
+    #cutscene video { width: 100%; height: 100%; object-fit: contain; display: block; } /* the whole picture, with black bars if the screen's shape is different */
+    #cutscene-skip { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); min-width: 96px; min-height: 48px; font-size: 18px; opacity: 0.85; }
+    #cutscene-sound { position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: max(18px, env(safe-area-inset-bottom)); min-height: 48px; font-size: 16px; opacity: 0.85; }
+    #cutscene-sound[hidden] { display: none; }
     .card { width: min(620px, 92vw); box-sizing: border-box; padding: 22px 28px; }
     #start h1 { margin: 0; font: 78px/1 Rye, Georgia, serif; }
     .tagline { margin: 8px 0 14px; letter-spacing: 3px; text-transform: uppercase; color: var(--tan); font-size: 14px; }
@@ -402,6 +410,13 @@
       <p>Old-timers say gold nuggets lie hidden around the camp. Watch for a glint!</p>
       <p>Your game saves by itself, so you can stop any time and carry on later.</p>
     </div>
+  </div>
+
+  <!-- The ending cutscene (see "The ending cutscene" in the script) -->
+  <div id="cutscene" hidden>
+    <video id="cutscene-video" playsinline preload="none"></video>
+    <button id="cutscene-sound" class="btn" type="button" hidden>&#128264; Tap for sound</button>
+    <button id="cutscene-skip" class="btn" type="button">Skip &#9654;&#9654;</button>
   </div>
 
   <div id="end" hidden>
@@ -3520,6 +3535,8 @@
     function toggleMute() {
       state.muted = !state.muted;
       if (master) master.gain.setTargetAtTime(state.muted ? 0 : 1, audio.currentTime, 0.02);
+      document.getElementById('cutscene-video').muted = state.muted; // the ending cutscene's sound too
+      document.getElementById('cutscene-sound').hidden = true;
       updateSoundIcon();
       saveGame(false); // remember it (quietly)
     }
@@ -5144,6 +5161,10 @@
         return;
       }
 
+      if (!cutsceneEl.hidden && ['Escape', 'Enter', 'Space'].includes(e.code)) {
+        endCutscene(); // skip the ending cutscene
+        return;
+      }
       if (state.endScreenOpen) return; // use the buttons on the end screen
 
       if (e.code === 'KeyB') {
@@ -5612,8 +5633,24 @@
     // The game is over once the pile is empty and there's no dirt left anywhere to wash
     function checkForEnd() {
       if (state.finished) return;
+      if (state.pile <= 0) prepareCutscene(); // start loading the ending film while the last dirt is washed
       const dirtLeft = state.pile + state.carrying + state.sluiceQueue + state.exc.load;
-      if (dirtLeft <= 0) showEndScreen();
+      if (dirtLeft <= 0) finishGame();
+    }
+
+    // The game is over: stop playing, play the ending cutscene, then show the end screen
+    function finishGame() {
+      state.finished = true;
+      state.endScreenOpen = true; // (the game's keys stay off from here: see the keydown handler)
+      if (state.inExcavator) exitExcavator();
+      if (state.shopOpen) {
+        state.shopOpen = false;
+        shopEl.hidden = true;
+        document.body.classList.remove('shop-open');
+      }
+      setPlaying(false);
+      if (document.pointerLockElement) document.exitPointerLock(); // give the mouse back for the buttons
+      playCutscene(showEndScreen);
     }
 
     // The stats table on the end screen, in groups with a heading each. "sub" rows are smaller and indented.
@@ -5658,20 +5695,74 @@
     }
 
     function showEndScreen() {
-      state.finished = true;
-      state.endScreenOpen = true;
-      if (state.inExcavator) exitExcavator();
-      if (state.shopOpen) {
-        state.shopOpen = false;
-        shopEl.hidden = true;
-        document.body.classList.remove('shop-open');
-      }
       endStats.innerHTML = endStatsRows();
       endScreen.hidden = false;
-      setPlaying(false);
-      if (document.pointerLockElement) document.exitPointerLock(); // give the mouse back for the buttons
       sfx.finish();
     }
+
+    // ---------- The ending cutscene: a film (ending.mp4) that plays when the game is completed ----------
+    // It fills the screen (with black bars if the screen is a different shape), has a Skip button
+    // (Esc, Enter and Space skip too), and follows the mute setting (M still works while it plays).
+    // It only starts downloading once the pile is empty, so nobody downloads it before they need it.
+    // If it can't play (no signal, say), the game goes straight on to the end screen.
+    const CUTSCENE_FILE = 'ending.mp4';
+    const CUTSCENE_WAIT = 10; // seconds to wait for it to start before giving up on it
+    const cutsceneEl = document.getElementById('cutscene');
+    const cutsceneVideo = document.getElementById('cutscene-video');
+    const cutsceneSound = document.getElementById('cutscene-sound');
+    let afterCutscene = null; // what happens when it's over (show the end screen)
+    let cutsceneTimeout;
+
+    function prepareCutscene() {
+      if (cutsceneVideo.getAttribute('src')) return;
+      cutsceneVideo.preload = 'auto';
+      cutsceneVideo.src = CUTSCENE_FILE;
+    }
+
+    function playCutscene(then) {
+      afterCutscene = then;
+      prepareCutscene();
+      cutsceneVideo.currentTime = 0;
+      cutsceneVideo.muted = state.muted;
+      cutsceneSound.hidden = true;
+      cutsceneEl.hidden = false;
+      clearTimeout(cutsceneTimeout);
+      cutsceneTimeout = setTimeout(endCutscene, CUTSCENE_WAIT * 1000); // cancelled once it's playing
+      cutsceneVideo.play().catch(() => {
+        // Some browsers (iPhones especially) only play sound after a tap: play it silently,
+        // with a button to turn the sound on
+        if (cutsceneVideo.muted) return endCutscene(); // it can't play at all
+        cutsceneVideo.muted = true;
+        cutsceneSound.hidden = false;
+        cutsceneVideo.play().catch(endCutscene);
+      });
+    }
+
+    function endCutscene() {
+      if (cutsceneEl.hidden) return;
+      clearTimeout(cutsceneTimeout);
+      cutsceneVideo.pause();
+      cutsceneEl.hidden = true;
+      const then = afterCutscene;
+      afterCutscene = null;
+      if (then) then();
+    }
+
+    cutsceneVideo.addEventListener('playing', () => clearTimeout(cutsceneTimeout));
+    cutsceneVideo.addEventListener('ended', endCutscene);
+    cutsceneVideo.addEventListener('error', endCutscene);
+    document.getElementById('cutscene-skip').addEventListener('click', endCutscene);
+    cutsceneSound.addEventListener('click', () => {
+      cutsceneVideo.muted = false;
+      cutsceneSound.hidden = true;
+    });
+    // Tapping the film starts it again if it stopped (for example after switching apps on a phone)
+    cutsceneVideo.addEventListener('click', () => {
+      if (cutsceneVideo.paused) cutsceneVideo.play().catch(() => {});
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && !cutsceneEl.hidden && cutsceneVideo.paused) cutsceneVideo.play().catch(() => {});
+    });
 
     function closeEndScreen() {
       state.endScreenOpen = false;
@@ -6008,7 +6099,8 @@
     // =====================================================================
     // ---------- TEST CHEATS: for trying things out without grinding ----------
     // K = add money, R = reset everything back to the start, P = dig away most of the pile (to test the end screen),
-    // O = fill the tailing pond (to test the sluice slowing down), J = the sluice finds a jackpot nugget.
+    // O = fill the tailing pond (to test the sluice slowing down), J = the sluice finds a jackpot nugget,
+    // L = finish the game right now (empties the pile and all the dirt: to test the ending cutscene and end screen).
     // They're OFF unless you add ?cheats to the end of the game's address, for example
     // file:///C:/.../index.html?cheats  (so the shared version has none, and you can still test with them).
     // To have them always on while working on the game, change the line below to: const CHEATS_ON = true;
@@ -6038,6 +6130,12 @@
       showMessage('Pond filled up (test cheat)');
     }
 
+    function cheatFinish() {
+      state.pile = state.carrying = state.sluiceQueue = state.exc.load = 0;
+      updatePile();
+      showMessage('Game finished (test cheat)');
+    }
+
     function cheatJackpot() {
       foundSluiceNugget(sluiceSpot, NUGGETS.sizes.find((size) => size.name === 'jackpot'));
     }
@@ -6045,7 +6143,7 @@
     if (CHEATS_ON) {
       // So you can tell they're on: in the browser tab's title, and a message when the page loads
       document.title += ' (test cheats on)';
-      showMessage('Test cheats on: K money, R reset, P shrink pile, O fill pond, J jackpot nugget');
+      showMessage('Test cheats on: K money, R reset, P shrink pile, O fill pond, J jackpot nugget, L finish the game');
       // Its own key listener, so the rest of the game doesn't need to know about cheats.
       // Works while playing and while the shop is open (but not on the end screen).
       addEventListener('keydown', (e) => {
@@ -6055,6 +6153,7 @@
         if (e.code === 'KeyP') cheatShrinkPile();
         if (e.code === 'KeyO') cheatFillPond();
         if (e.code === 'KeyJ') cheatJackpot();
+        if (e.code === 'KeyL') cheatFinish();
       });
     }
     // ---------- END OF TEST CHEATS ----------

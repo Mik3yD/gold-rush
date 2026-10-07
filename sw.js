@@ -5,6 +5,10 @@
 // - The game's own files: always try the internet first (so updates arrive), and use the copy when offline.
 // - Three.js and the fonts never change: use the copy, and only download them if there isn't one yet.
 //
+// - The ending cutscene (ending.mp4) is left alone: it always comes from the internet. Videos are sent in pieces
+//   (phones, iPhones especially, ask for them that way), which a saved copy can't do, and it's big.
+//   Offline, the game just goes straight to the end screen.
+//
 // If you ever change the list below, change the version in CACHE too, so phones pick up the new list.
 
 const CACHE = 'gold-rush-v1';
@@ -49,6 +53,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
+  if (request.headers.has('range') || request.url.endsWith('.mp4')) return; // videos: straight from the internet
   const ownFile = new URL(request.url).origin === self.location.origin;
   event.respondWith(ownFile ? internetFirst(request) : copyFirst(request));
 });
