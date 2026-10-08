@@ -14,7 +14,37 @@ Core loop:
 5. Spend money on better tools and equipment so you can dig and process more dirt, faster.
 6. There is one giant dirt pile for the whole game. When it's all dug up and washed, the game ends.
 
-## Current state (version 13: the ending cutscene)
+## Current state (version 14: the global Hall of Fame)
+
+- **Hall of Fame:** one shared online list of finished games, the same for everyone who plays from the shared link. It's stored in a free **Supabase** database (project `agesjrjqcdkbrirddojg`).
+  - **The database** is made by `supabase/hall-of-fame.sql`, pasted into Supabase's SQL Editor and run (it's safe to run again). Two tables with the same columns:
+    - `hall_of_fame`, the real list
+    - `hall_of_fame_test`, the practice list, used when the address has `?cheats` or the game used a test cheat (`state.usedCheats`)
+  - **Columns:** `game_id` (unique), `initials`, `created_at` (set by the server), `time_played` (seconds), `gold_earned`, `biggest_nugget` (dollars) and `nuggets_found`.
+  - **Rules in the database:**
+    - The browser key can only **read** and **add** entries (there are no update or delete policies, and only the game's own columns can be written). You can delete rows yourself in the dashboard's Table Editor.
+    - Initials must be 3 capital letters and not on the blocklist.
+    - The real list also needs believable numbers: at least 1 hour, $10,000 to $600,000, a biggest nugget of at most $3,600, and 0 to 14 hidden nuggets.
+    - At most 30 new entries a minute.
+  - **Keys:** `HOF_URL` and `HOF_KEY` (the **publishable** key, made for browsers) are the two marked lines in the `Hall of Fame` block of the script. Never put the secret / service_role key in the game. With them empty, the game says "The Hall of Fame isn't set up yet".
+  - **Entering:**
+    - After the ending cutscene, the end screen shows "Enter the Hall of Fame!" at the top (`showHofEntry()`): three letter boxes with ▲ ▼ buttons. On a keyboard, letters type and move along, the arrows pick and move, Backspace goes back and Enter submits (`initialsKey()`; it takes every key while it's showing, even M and G).
+    - Only letters are possible. Rude initials (`BLOCKED_INITIALS`, the same list as in the SQL) get "Please choose different initials".
+    - **No thanks** hides it. The game can still be entered later: the Hall of Fame screen then shows "Add your finished game".
+    - Your initials are remembered for next time (`goldRush.initials`).
+  - **One entry per finished game:** `state.gameId` is a random id (`newGameId()`), saved with the game and renewed by `resetGame()`. `state.hofEntered` is set when it's submitted. The database ignores a `game_id` it already has, so retries can't make doubles.
+  - **No internet:** `submitInitials()` stores the entry in `goldRush.hallOfFamePending` before sending. If it can't go (`sendEntry()` says 'offline' or 'busy'), it stays there with a friendly message, and `sendPendingEntries()` sends it on page load, on the `online` event and every minute.
+  - **The list** (`openHallOfFame()`, `loadHallOfFame()`, `showHofRows()`, `#hof`):
+    - It shows the top 50 (`HOF_SIZE`), with **Fastest** (by time played) and **Most gold** tabs. A new entry is highlighted. If it isn't in the top 50, it's shown at the bottom with its place.
+    - It opens after submitting, and from the start screen's **Hall of Fame** button (the practice list when the address has `?cheats`).
+    - Esc closes it (it counts as a menu: `menuOpen()`).
+    - The table is built with `textContent`, so nothing in the database can become page code.
+  - **The service worker** leaves `*.supabase.co` alone, so the list is never an old saved copy.
+  - **Not cheat-proof:** someone with the browser's developer tools can still send a made-up entry. The database's checks stop silly numbers, and you can delete bad rows in the dashboard.
+  - **Free plan:** Supabase pauses a free project after about a week with no visitors. Click **Restore** in the dashboard and it's back. While it's paused, the list says it can't be reached, and entries wait on the device.
+  - **Save:** `makeSave()` has `hallOfFame: { gameId, usedCheats, entered }`. Old saves get a new id.
+
+### Version 13: the ending cutscene
 
 - **Ending cutscene:** when the game is completed (`finishGame()`, from `checkForEnd()`), the film `ending.mp4` plays full-screen before the end screen (`playCutscene(then)`, `endCutscene()`, `#cutscene`).
   - **Skip** button (bottom right; Esc, Enter and Space skip too). The film fits the whole screen with black bars if the shape differs (`object-fit: contain`), `playsinline` so iPhones keep it in the page, and buttons keep clear of notches.
@@ -152,7 +182,7 @@ Core loop:
   - `manifest.json` gives the name, colours, full-screen landscape and icons. The icons in `icons/` (a gold nugget and a pickaxe on a wooden badge) are drawn by `icons/make-icons.ps1` (run it again to change them). `apple-touch-icon.png` is the iPhone's, and `icon-maskable-512.png` has its picture in the middle for phones that cut icons into circles.
   - `sw.js` is the service worker (it doesn't touch `.mp4` files or requests for part of a file: the ending film always comes from the internet, because phones ask for videos in pieces, which a saved copy can't answer). When installing it saves the game's files, Three.js and the Google Fonts (`GAME_FILES`). After that the game's own files come from the internet when possible (so updates arrive) and from the saved copy when offline; Three.js and the fonts always come from the saved copy. **If you add a file the game needs (or change the Three.js version), add it to `GAME_FILES` and change the version in `CACHE`.**
   - Service workers only run on https (or `localhost`), so none of this works when `index.html` is opened straight from disk; the game still plays normally then. The game is published on GitHub Pages at https://mik3yd.github.io/gold-rush/ (from the `main` branch).
-- **Test cheats (off by default):** add `?cheats` to the end of the game's address (for example `.../index.html?cheats`) to turn them on; the browser tab's title then says "(test cheats on)" and a message lists the keys. **K** adds $25,000, **R** resets everything to the start (same as "Play Again"), **P** digs away most of the pile, leaving 5 t (`CHEAT_PILE_LEFT`), to test the end screen, **O** fills the tailing pond to test the slowdown, **J** makes the sluice find a jackpot nugget, **L** finishes the game (to test the ending cutscene and end screen). All cheat code is in one block marked `TEST CHEATS` near the end of the script; `CHEATS_ON` reads the address. To have them always on while working, set `CHEATS_ON = true`, but put it back before sharing the game.
+- **Test cheats (off by default):** add `?cheats` to the end of the game's address (for example `.../index.html?cheats`) to turn them on; the browser tab's title then says "(test cheats on)" and a message lists the keys. **K** adds $25,000, **R** resets everything to the start (same as "Play Again"), **P** digs away most of the pile, leaving 5 t (`CHEAT_PILE_LEFT`), to test the end screen, **O** fills the tailing pond to test the slowdown, **J** makes the sluice find a jackpot nugget, **L** finishes the game (to test the ending cutscene and end screen). Using any cheat sets `state.usedCheats`, so that game can only go on the Hall of Fame's practice list. All cheat code is in one block marked `TEST CHEATS` near the end of the script; `CHEATS_ON` reads the address. To have them always on while working, set `CHEATS_ON = true`, but put it back before sharing the game.
 - **Cutscene pictures (photo mode):** `node tools/capture-cutscene.mjs` takes 10 pictures for the end-game cutscene (1920 × 1080 PNGs, no on-screen display) and saves them in `cutscene-shots/`. It needs Node.js 22+ and Google Chrome, and nothing to install: it starts its own little web server, opens the game in a hidden Chrome with its own empty profile (so saves are never touched), with `?photo` on the address. Add words to only take some shots (`node tools/capture-cutscene.mjs sluice pond`), and `--info` prints where things are, for aiming the camera. The shots (upgrades, pile left, camera, timing) are the `SHOTS` list at the top of the script.
   - **Photo mode** (`PHOTO_MODE`, the `PHOTO MODE` block after the test cheats) only switches on with `?photo`: the game loop doesn't run (the script moves time forward with `step()`), nothing is saved (`saveGame()` returns), random nuggets are off, and hidden nuggets aren't shown. `window.goldRushPhoto` has `setup()`, `camera()`, `step()`, `excavator()`, `minerDigging()` (a miner figure with a shovel that only exists in photo mode), `bucketDirt()`, `nugget()`, `sunset()` (uses the sky shader's `dusk` uniform, 0 in the game, and `skyLight`), `spots()` and `capture()` (draws at 2× and shrinks it, for smooth edges).
 
@@ -201,7 +231,7 @@ Removed features: the Gold Pan and pan tub (version 3), the Metal Detector with 
   9. signs, shop, camp props, hiding spots (boulders, camp trees, bush), solids
   10. excavator, sounds, effects, hidden nuggets
   11. game logic, shop (with `TOUCH_WORDS`), tool bar, controls, touch controls, HUD
-  12. quality setting, end of game, saving and loading (with Settings and New Game), cheats and the game loop
+  12. quality setting, end of game (with the ending cutscene), saving and loading (with Settings and New Game), cheats, the Hall of Fame, photo mode and the game loop
 - The camp props (tent, crates, barrels) are solid: their boxes are added to `solids`. `crowded()` keeps rocks and grass off the pile, sluice, pad, pond, shop and excavator.
 - Three.js is loaded through an import map from jsDelivr (version pinned to 0.170.0).
 - The `SETTINGS` object at the top of the script holds the general tuning numbers: gold chances and values, `sluiceBaseSpeed`, `pondFullSpeed`, `digPause`, walking, tons per scoop, **the total dirt in the game (`pileTons`)**, excavator arm speeds.

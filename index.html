@@ -180,6 +180,39 @@
     #end-stats th { padding-top: 10px; text-align: left; font: 15px Rye, Georgia, serif; letter-spacing: 1px; color: var(--gold); border-bottom: 1px solid rgba(201, 161, 59, 0.45); }
     #end-stats td:first-child { text-align: left; color: var(--tan); }
     #end-stats td:last-child { text-align: right; font-weight: 700; color: var(--gold); }
+
+    /* ---- Hall of Fame: entering your initials (on the end screen) ---- */
+    #hof-entry { margin: 10px auto 14px; padding: 10px 12px 12px; border: 1px solid rgba(201, 161, 59, 0.5); border-radius: 10px; background: rgba(0, 0, 0, 0.25); }
+    #hof-entry[hidden] { display: none; }
+    #hof-entry h3 { margin: 0 0 6px; font: 22px Rye, Georgia, serif; }
+    .letters { display: flex; justify-content: center; gap: 14px; margin: 6px 0 10px; }
+    .letter { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .letter .btn { width: 56px; padding: 4px 0; font-size: 16px; line-height: 1.2; }
+    .letter-box { width: 56px; height: 64px; display: flex; align-items: center; justify-content: center; border: 2px solid var(--brass); border-radius: 8px; background: #2a1808; font: 44px/1 Rye, Georgia, serif; color: var(--gold); cursor: pointer; }
+    .letter-box.active { border-color: #ffe27a; box-shadow: 0 0 12px rgba(255, 213, 74, 0.8); }
+    .hof-message { min-height: 1.3em; margin: 6px 0; font-size: 14px; color: #ffd76a; }
+    .hof-message.bad { color: #ff9a8a; }
+
+    /* ---- Hall of Fame: the list ---- */
+    #hof { position: fixed; inset: 0; z-index: 17; display: flex; align-items: center; justify-content: center; background: rgba(20, 12, 4, 0.75); }
+    #hof[hidden] { display: none; }
+    #hof .card { width: min(820px, 96vw); max-height: 94dvh; overflow-y: auto; text-align: center; touch-action: pan-y; }
+    #hof h2 { margin: 0; font: 38px Rye, Georgia, serif; }
+    #hof-practice { margin: 2px 0 0; color: #ffb36b; font-size: 13px; }
+    #hof-practice[hidden] { display: none; }
+    #hof-tabs { display: flex; justify-content: center; gap: 8px; margin: 10px 0 6px; }
+    .hof-tab { min-width: 130px; min-height: 40px; }
+    .hof-tab.on { background: radial-gradient(circle at 50% 35%, #ffe680, #b07d12); color: var(--ink); }
+    #hof-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    #hof-table th { padding: 6px 6px 4px; font: 13px Rye, Georgia, serif; letter-spacing: 1px; color: var(--gold); border-bottom: 1px solid rgba(201, 161, 59, 0.45); }
+    #hof-table td { padding: 5px 6px; border-bottom: 1px solid rgba(255, 255, 255, 0.07); }
+    #hof-table td.initials { font: 20px Rye, Georgia, serif; color: var(--gold); letter-spacing: 2px; }
+    #hof-table tr.mine td { background: rgba(255, 213, 74, 0.25); color: #fff6c0; }
+    #hof-table tr.mine td:first-child { box-shadow: inset 4px 0 0 #ffd54a; }
+    #hof-table tr.gap td { padding: 2px; color: var(--tan); border: none; }
+    #hof-buttons { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+    #hof-buttons [hidden] { display: none; }
+    @media (max-width: 640px) { #hof-table .date { display: none; } } /* narrow screens: no room for the date */
     #end-stats .sub td { font-size: 14px; font-weight: 400; }
     #end-stats .sub td:first-child { padding-left: 16px; }
     #end .btn { margin: 6px; }
@@ -286,6 +319,14 @@
       #end h2 { font-size: 28px; }
       #end-stats { font-size: 14px; margin: 4px auto; border-spacing: 12px 2px; }
       #end-stats th { font-size: 13px; padding-top: 6px; }
+      #hof-entry h3 { font-size: 17px; }
+      .letter-box { height: 48px; font-size: 32px; }
+      .letters { margin: 2px 0 6px; }
+      #hof h2 { font-size: 26px; }
+      #hof .card { padding: 10px 14px; }
+      #hof-table { font-size: 13px; }
+      #hof-table td { padding: 3px 5px; }
+      .hof-tab { min-height: 36px; }
       /* The shop fills the whole screen */
       #shop-panel { width: 100vw; max-height: none; height: 100dvh; border-radius: 0; border-width: 0; padding: 0 max(10px, env(safe-area-inset-right)) 10px max(10px, env(safe-area-inset-left)); }
       #shop h2 { font-size: 22px; }
@@ -385,6 +426,7 @@
       <div class="play" id="play"><span class="only-desktop">Click to play</span><span class="only-touch">Tap to play</span></div>
       <div id="start-buttons">
         <button id="new-game" class="btn" type="button" hidden>New Game</button>
+        <button id="open-hof" class="btn" type="button">Hall of Fame</button>
         <button id="open-settings" class="btn" type="button">Settings</button>
       </div>
       <div class="controls only-touch">
@@ -423,9 +465,41 @@
     <div class="card plaque">
       <h2 class="gold-text">The pile is all dug up!</h2>
       <p>Every last ton of dirt has been washed.</p>
+      <!-- Hall of Fame: enter your initials (see "Hall of Fame" in the script) -->
+      <div id="hof-entry" hidden>
+        <h3 class="gold-text">Enter the Hall of Fame!</h3>
+        <p><span class="only-desktop">Type your initials (or use the arrows), then press Enter</span><span class="only-touch">Tap the arrows to pick your initials</span></p>
+        <div class="letters">
+          <div class="letter"><button class="btn" type="button" data-slot="0" data-step="-1">&#9650;</button><div class="letter-box" data-slot="0">A</div><button class="btn" type="button" data-slot="0" data-step="1">&#9660;</button></div>
+          <div class="letter"><button class="btn" type="button" data-slot="1" data-step="-1">&#9650;</button><div class="letter-box" data-slot="1">A</div><button class="btn" type="button" data-slot="1" data-step="1">&#9660;</button></div>
+          <div class="letter"><button class="btn" type="button" data-slot="2" data-step="-1">&#9650;</button><div class="letter-box" data-slot="2">A</div><button class="btn" type="button" data-slot="2" data-step="1">&#9660;</button></div>
+        </div>
+        <div id="hof-entry-message" class="hof-message"></div>
+        <button id="hof-submit" class="btn" type="button">Submit</button>
+        <button id="hof-skip" class="btn" type="button">No thanks</button>
+      </div>
       <table id="end-stats"></table>
       <button id="end-again" class="btn">Play Again</button>
       <button id="end-walk" class="btn">Keep walking around</button>
+    </div>
+  </div>
+
+  <!-- Hall of Fame: the list everyone sees (see "Hall of Fame" in the script) -->
+  <div id="hof" hidden>
+    <div class="card plaque">
+      <h2 class="gold-text">Hall of Fame</h2>
+      <p id="hof-practice" hidden>Practice list (test cheats are on): the real list isn't affected</p>
+      <div id="hof-tabs">
+        <button class="btn hof-tab on" type="button" data-sort="fastest">Fastest</button>
+        <button class="btn hof-tab" type="button" data-sort="gold">Most gold</button>
+      </div>
+      <div id="hof-message" class="hof-message"></div>
+      <table id="hof-table"></table>
+      <div id="hof-buttons">
+        <button id="hof-enter" class="btn" type="button" hidden>Add your finished game</button>
+        <button id="hof-retry" class="btn" type="button" hidden>Try again</button>
+        <button id="hof-close" class="btn" type="button">Close</button>
+      </div>
     </div>
   </div>
 
@@ -965,6 +1039,16 @@
     // The game doesn't run by itself and never saves; see "PHOTO MODE" near the end of the script.
     const PHOTO_MODE = new URLSearchParams(location.search).has('photo');
 
+    // A random id like "3f1c...-..." (crypto.randomUUID only works on https and localhost, so there's a fallback)
+    function newGameId() {
+      if (crypto.randomUUID) return crypto.randomUUID();
+      const b = crypto.getRandomValues(new Uint8Array(16));
+      b[6] = (b[6] & 15) | 64; // the marks that make it a proper "version 4" random id
+      b[8] = (b[8] & 63) | 128;
+      const h = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+      return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+    }
+
     // ---------- Game state: everything that changes while you play ----------
     const state = {
       money: 0,
@@ -983,6 +1067,10 @@
       ...STATS_START,
       finished: false,    // true once the end screen has been shown
       nuggetsFound: [],   // ids of the hidden gold nuggets you've picked up (see HIDDEN_NUGGETS)
+      // The Hall of Fame (see "Hall of Fame" near the end of the script)
+      gameId: newGameId(), // a random id for this game, so it can only be entered in the Hall of Fame once
+      usedCheats: false,   // true once a test cheat has been used: then it can only go on the practice list
+      hofEntered: false,   // true once this game has been entered (or the player said "No thanks")
       endScreenOpen: false,
       levels: Object.fromEntries(TOOL_ORDER.map((id) => [id, 0])), // { shovel: 0, carrier: 0, ... }
       shopOpen: false,
@@ -5144,8 +5232,12 @@
     document.addEventListener('contextmenu', (e) => e.preventDefault()); // no right-click menu
 
     addEventListener('keydown', (e) => {
-      if (menuOpen()) { // Settings or "Are you sure?" is open: Esc closes it, other keys are for typing a backup code
+      if (menuOpen()) { // Settings, "Are you sure?" or the Hall of Fame is open: Esc closes it, other keys are for typing a backup code
         if (e.code === 'Escape') closeMenus();
+        return;
+      }
+      if (typingInitials()) { // the Hall of Fame initials on the end screen take the letters (even M and G)
+        initialsKey(e);
         return;
       }
       keys[e.code] = true;
@@ -5696,6 +5788,7 @@
 
     function showEndScreen() {
       endStats.innerHTML = endStatsRows();
+      showHofEntry(); // enter your initials in the Hall of Fame
       endScreen.hidden = false;
       sfx.finish();
     }
@@ -5783,6 +5876,7 @@
       state.exc = { ...EXCAVATOR_START };
       applyToolLevels({}); // no upgrades: small sluice, puddle pond, nothing else bought
       applyNuggetsFound([]); // every hidden nugget back where it was
+      Object.assign(state, { gameId: newGameId(), usedCheats: false, hofEntered: false }); // a new game for the Hall of Fame
       updatePile();
       camera.position.set(0, 1.6, 2);
       yaw = 0;
@@ -5844,6 +5938,7 @@
         player: { x: camera.position.x, z: camera.position.z, yaw, pitch },
         settings: { muted: state.muted, quality, controlsGuide: helpOpen },
         shopTab,
+        hallOfFame: { gameId: state.gameId, usedCheats: state.usedCheats, entered: state.hofEntered },
       };
     }
 
@@ -5917,6 +6012,11 @@
       state.exc.load = Math.min(state.exc.load, toolNow('digBucket').scoops);
       poseExcavator();
       applyNuggetsFound(save.nuggetsFound); // (old saves have cashFound instead: that cash is already in the wallet)
+      // Hall of Fame: this game's id, whether cheats were used, whether it's been entered (old saves get a new id)
+      const hof = save.hallOfFame && typeof save.hallOfFame === 'object' ? save.hallOfFame : {};
+      state.gameId = /^[0-9a-f-]{36}$/i.test(hof.gameId) ? hof.gameId : newGameId();
+      state.usedCheats = hof.usedCheats === true;
+      state.hofEntered = hof.entered === true;
       updatePile();
 
       // End-screen stats. A save from before they were counted starts them at 0, except money spent,
@@ -6015,10 +6115,11 @@
     const BACKUP_PREFIX = 'GOLDRUSH-'; // so a backup code is easy to recognise
 
     // Is Settings or the "Are you sure?" box open? (Then the game's keys are switched off.)
-    function menuOpen() { return !settingsEl.hidden || !confirmEl.hidden; }
+    function menuOpen() { return !settingsEl.hidden || !confirmEl.hidden || !hofEl.hidden; }
     function closeMenus() {
       settingsEl.hidden = true;
       confirmEl.hidden = true;
+      closeHallOfFame();
     }
 
     // The save as a backup code: the save's text turned into letters and numbers (base64), so it copies safely
@@ -6148,6 +6249,7 @@
       // Works while playing and while the shop is open (but not on the end screen).
       addEventListener('keydown', (e) => {
         if (e.repeat || state.endScreenOpen || menuOpen()) return;
+        if (['KeyK', 'KeyR', 'KeyP', 'KeyO', 'KeyJ', 'KeyL'].includes(e.code)) state.usedCheats = true; // practice list only (R starts a clean game)
         if (e.code === 'KeyK') cheatAddMoney();
         if (e.code === 'KeyR') cheatResetEverything();
         if (e.code === 'KeyP') cheatShrinkPile();
@@ -6157,6 +6259,354 @@
       });
     }
     // ---------- END OF TEST CHEATS ----------
+
+    // =====================================================================
+    // ---------- Hall of Fame: finished games from everyone who plays, in one shared online list ----------
+    // The list lives in a free Supabase database (supabase/hall-of-fame.sql makes its tables and rules).
+    // The game talks to it with plain fetch() calls to Supabase's REST address: no library needed.
+    //   - After the ending cutscene, the end screen asks for your initials (3 letters, arcade style).
+    //   - Submitting adds your game (initials, time played, gold earned, biggest nugget, hidden nuggets found;
+    //     the database adds the date) and shows the list with your entry highlighted.
+    //   - Only a game that really finished can be entered, once (its random state.gameId). Games where a test cheat
+    //     was used (or with ?cheats in the address) go on a separate practice list, hall_of_fame_test.
+    //   - The database refuses rude initials (BLOCKED_INITIALS, the same list as in the SQL), anything but
+    //     3 capital letters, and numbers that don't look like a finished game. It also refuses edits and deletes.
+    //   - No internet? The entry waits on this device (HOF_PENDING_KEY) and is sent when the page loads,
+    //     when the internet comes back, and every minute until it goes.
+    // =====================================================================
+    const HOF_URL = 'https://agesjrjqcdkbrirddojg.supabase.co';         // <-- your Supabase Project URL
+    const HOF_KEY = 'sb_publishable_4l7NHHpyWnCKKV-FpRhqsw_IH-N2-wf'; // <-- your Supabase PUBLISHABLE key (made for browsers; never the secret key)
+    const HOF_SIZE = 50; // how many entries the list shows
+    const HOF_PENDING_KEY = 'goldRush.hallOfFamePending'; // entries waiting to be sent
+    const HOF_INITIALS_KEY = 'goldRush.initials';         // the initials you used last time
+    // Rude or offensive initials (keep this the same as the list in supabase/hall-of-fame.sql)
+    const BLOCKED_INITIALS = [
+      'ASS', 'AZZ', 'CUM', 'CUN', 'CNT', 'COC', 'COK', 'DIC', 'DIK', 'DCK',
+      'FAG', 'FCK', 'FKN', 'FKU', 'FUC', 'FUK', 'FUQ', 'FUX', 'HOE', 'JIZ',
+      'KKK', 'KUM', 'NGA', 'NGG', 'NGR', 'NIG', 'PIS', 'SEX', 'SHT', 'SLT',
+      'TIT', 'TWT', 'VAG', 'WTF', 'XXX',
+    ];
+    const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const hofReady = Boolean(HOF_URL && HOF_KEY); // false until the two lines above are filled in
+
+    // Which list: the practice list when cheats are on or were used in this game, otherwise the real one
+    const practiceList = () => CHEATS_ON || state.usedCheats;
+    const tableFor = (practice) => (practice ? 'hall_of_fame_test' : 'hall_of_fame');
+
+    // Talk to the database. "path" is the table plus what to ask for, like "hall_of_fame?select=*"
+    function hofFetch(path, options = {}) {
+      return fetch(`${HOF_URL}/rest/v1/${path}`, {
+        ...options,
+        headers: { apikey: HOF_KEY, 'Content-Type': 'application/json', ...options.headers },
+      });
+    }
+
+    // ---------- Sending entries (and keeping them when there's no internet) ----------
+    function readPending() {
+      try {
+        const list = JSON.parse(localStorage.getItem(HOF_PENDING_KEY) || '[]');
+        return Array.isArray(list) ? list : [];
+      } catch (e) { return []; }
+    }
+    function writePending(list) {
+      try {
+        if (list.length) localStorage.setItem(HOF_PENDING_KEY, JSON.stringify(list));
+        else localStorage.removeItem(HOF_PENDING_KEY);
+      } catch (e) { /* storage blocked: it can only be sent while the page is open */ }
+    }
+
+    // Send one entry. The answer is 'sent', 'offline' (no internet), 'busy' (try again later),
+    // 'initials' (rude initials: pick others) or 'refused' (the database won't take this game).
+    // Sending the same game twice is harmless: the database ignores a game_id it already has.
+    async function sendEntry(item) {
+      let response;
+      try {
+        response = await hofFetch(`${item.table}?on_conflict=game_id`, {
+          method: 'POST',
+          headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' },
+          body: JSON.stringify(item.entry),
+        });
+      } catch (e) {
+        return 'offline';
+      }
+      if (response.ok) return 'sent';
+      const problem = await response.json().catch(() => ({}));
+      if (problem.code === '23514') return String(problem.message).includes('initials') ? 'initials' : 'refused'; // a broken rule
+      if (response.status >= 500 || problem.code === 'P0001') return 'busy'; // the server is struggling, or the spam guard
+      return 'refused'; // something else is wrong (like the keys): don't keep trying
+    }
+
+    // Send everything that's waiting. Entries that went (or never will) are taken off the list.
+    let sendingPending = false;
+    async function sendPendingEntries() {
+      if (!hofReady || sendingPending) return;
+      const waiting = readPending();
+      if (!waiting.length) return;
+      sendingPending = true;
+      const stillWaiting = [];
+      for (const item of waiting) {
+        const result = await sendEntry(item);
+        if (result === 'offline' || result === 'busy') stillWaiting.push(item);
+        else if (result === 'sent') {
+          showMessage('Your Hall of Fame entry has been sent!');
+          if (item.entry.game_id === state.gameId && !hofEntry.hidden) setEntryMessage('Back online: your entry has been sent. You\'re in the Hall of Fame!');
+        }
+      }
+      writePending(stillWaiting);
+      sendingPending = false;
+    }
+    if (hofReady && !PHOTO_MODE) {
+      setTimeout(sendPendingEntries, 2000); // anything left from last time
+      addEventListener('online', sendPendingEntries);
+      setInterval(sendPendingEntries, 60 * 1000);
+    }
+
+    // ---------- Entering your initials (on the end screen) ----------
+    const hofEntry = document.getElementById('hof-entry');
+    const hofEntryMessage = document.getElementById('hof-entry-message');
+    const letterBoxes = [...hofEntry.querySelectorAll('.letter-box')];
+    const hofEntryParts = [...hofEntry.querySelectorAll('p, .letters, #hof-submit, #hof-skip')]; // hidden once it's sent
+    let initials = ['A', 'A', 'A'];
+    let activeSlot = 0;
+    let submitting = false;
+
+    // A finished game that hasn't been entered yet
+    const canEnter = () => hofReady && state.finished && !state.hofEntered;
+
+    function setEntryMessage(text, bad = false) {
+      hofEntryMessage.textContent = text;
+      hofEntryMessage.classList.toggle('bad', bad);
+    }
+
+    function showLetters() {
+      letterBoxes.forEach((box, i) => {
+        box.textContent = initials[i];
+        box.classList.toggle('active', i === activeSlot);
+      });
+    }
+
+    // Show the initials form on the end screen (if this game can still be entered)
+    function showHofEntry() {
+      hofEntry.hidden = !canEnter();
+      if (hofEntry.hidden) return;
+      let last = '';
+      try { last = localStorage.getItem(HOF_INITIALS_KEY) || ''; } catch (e) { /* storage blocked */ }
+      initials = /^[A-Z]{3}$/.test(last) ? last.split('') : ['A', 'A', 'A'];
+      activeSlot = 0;
+      for (const part of hofEntryParts) part.hidden = false;
+      setEntryMessage(practiceList() ? 'Test cheats were used, so this goes on the practice list.' : '');
+      showLetters();
+    }
+
+    // Is the initials form taking the keyboard right now?
+    const typingInitials = () => !hofEntry.hidden && !endScreen.hidden && hofEl.hidden && !submitting && !hofEntryParts[0].hidden;
+
+    // Move one letter up or down the alphabet (round and round: Z goes back to A)
+    function stepLetter(slot, step) {
+      const i = ALPHABET.indexOf(initials[slot]);
+      initials[slot] = ALPHABET[(i + step + ALPHABET.length) % ALPHABET.length];
+      activeSlot = slot;
+      setEntryMessage('');
+      showLetters();
+    }
+
+    // Keys while the form is showing: letters type (and move along), arrows pick and move, Backspace goes back,
+    // Enter submits. Only letters can be typed: numbers and other keys do nothing.
+    function initialsKey(e) {
+      if (/^Key[A-Z]$/.test(e.code)) {
+        initials[activeSlot] = e.code.slice(3);
+        activeSlot = Math.min(2, activeSlot + 1);
+        setEntryMessage('');
+        showLetters();
+      } else if (e.code === 'ArrowUp') stepLetter(activeSlot, -1);
+      else if (e.code === 'ArrowDown') stepLetter(activeSlot, 1);
+      else if (e.code === 'ArrowLeft' || e.code === 'Backspace') { activeSlot = Math.max(0, activeSlot - 1); showLetters(); }
+      else if (e.code === 'ArrowRight') { activeSlot = Math.min(2, activeSlot + 1); showLetters(); }
+      else if (e.code === 'Enter' || e.code === 'NumpadEnter') submitInitials();
+      else return;
+      e.preventDefault();
+    }
+
+    for (const button of hofEntry.querySelectorAll('[data-step]')) {
+      button.addEventListener('click', () => stepLetter(Number(button.dataset.slot), Number(button.dataset.step)));
+    }
+    letterBoxes.forEach((box, i) => box.addEventListener('click', () => { activeSlot = i; showLetters(); }));
+
+    async function submitInitials() {
+      if (submitting || !canEnter()) return;
+      const name = initials.join('');
+      if (!/^[A-Z]{3}$/.test(name)) return;
+      if (BLOCKED_INITIALS.includes(name)) {
+        setEntryMessage('Please choose different initials.', true);
+        return;
+      }
+      try { localStorage.setItem(HOF_INITIALS_KEY, name); } catch (e) { /* storage blocked */ }
+      const practice = practiceList();
+      const item = {
+        table: tableFor(practice),
+        entry: {
+          game_id: state.gameId,
+          initials: name,
+          time_played: Math.round(state.timePlayed),
+          gold_earned: Math.round(state.goldFound),
+          biggest_nugget: Math.round(state.biggestNugget),
+          nuggets_found: state.nuggetsFound.length,
+        },
+      };
+      // Keep it on the device first, so it isn't lost if the internet or the page goes away
+      const othersWaiting = () => readPending().filter((other) => other.entry.game_id !== item.entry.game_id);
+      writePending([...othersWaiting(), item]);
+      state.hofEntered = true;
+      saveGame(false);
+      submitting = true;
+      setEntryMessage('Sending...');
+      const result = await sendEntry(item);
+      submitting = false;
+      if (result !== 'offline' && result !== 'busy') writePending(othersWaiting()); // sent, or never will be
+
+      if (result === 'initials') { // the database's own list caught them
+        state.hofEntered = false;
+        saveGame(false);
+        setEntryMessage('Please choose different initials.', true);
+        return;
+      }
+      for (const part of hofEntryParts) part.hidden = true;
+      if (result === 'sent') {
+        setEntryMessage('You\'re in the Hall of Fame!');
+        openHallOfFame({ practice, highlight: item.entry.game_id });
+      } else if (result === 'offline') {
+        setEntryMessage('No internet right now. Don\'t worry: your entry is saved on this device and will be sent as soon as you\'re back online.');
+      } else if (result === 'busy') {
+        setEntryMessage('The Hall of Fame is busy right now. Your entry is saved on this device and will be sent in a minute or two.');
+      } else {
+        setEntryMessage('Sorry, this game can\'t go in the Hall of Fame.', true);
+      }
+    }
+    document.getElementById('hof-submit').addEventListener('click', submitInitials);
+    // "No thanks": hide the form. The game can still be entered later, from the Hall of Fame button.
+    document.getElementById('hof-skip').addEventListener('click', () => { hofEntry.hidden = true; });
+
+    // ---------- The list ----------
+    const hofEl = document.getElementById('hof');
+    const hofTable = document.getElementById('hof-table');
+    const hofMessage = document.getElementById('hof-message');
+    const hofRetry = document.getElementById('hof-retry');
+    const hofEnterButton = document.getElementById('hof-enter');
+    const SORTS = {
+      fastest: { order: 'time_played.asc,created_at.asc', ahead: (row) => `time_played=lt.${row.time_played}` },
+      gold: { order: 'gold_earned.desc,created_at.asc', ahead: (row) => `gold_earned=gt.${row.gold_earned}` },
+    };
+    const HOF_COLUMNS = 'game_id,initials,created_at,time_played,gold_earned,biggest_nugget,nuggets_found';
+    let hofSort = 'fastest';
+    let hofShowing = { practice: false, highlight: null }; // which list, and whose entry to highlight
+    let hofLoads = 0; // counts loads, so an old, slow answer can't overwrite a newer one
+
+    // Show the Hall of Fame. practice = the practice list; highlight = a game_id to light up.
+    function openHallOfFame({ practice = CHEATS_ON, highlight = null } = {}) {
+      hofShowing = { practice, highlight };
+      hofEl.hidden = false;
+      document.getElementById('hof-practice').hidden = !practice;
+      hofEnterButton.hidden = !(canEnter() && endScreen.hidden); // a finished game not entered yet (seen from the start screen)
+      loadHallOfFame();
+    }
+    function closeHallOfFame() { hofEl.hidden = true; }
+
+    async function loadHallOfFame() {
+      const load = ++hofLoads;
+      hofRetry.hidden = true;
+      hofTable.replaceChildren();
+      if (!hofReady) {
+        hofMessage.textContent = 'The Hall of Fame isn\'t set up yet.';
+        return;
+      }
+      hofMessage.textContent = 'Loading...';
+      const sort = SORTS[hofSort];
+      const table = tableFor(hofShowing.practice);
+      try {
+        const response = await hofFetch(`${table}?select=${HOF_COLUMNS}&order=${sort.order}&limit=${HOF_SIZE}`);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const rows = await response.json();
+        // The highlighted entry isn't in the list? Fetch it and work out its place, to show it at the bottom.
+        let extra = null;
+        const id = hofShowing.highlight;
+        if (id && !rows.some((row) => row.game_id === id)) {
+          const mine = await (await hofFetch(`${table}?select=${HOF_COLUMNS}&game_id=eq.${id}`)).json();
+          if (mine[0]) {
+            const ahead = await hofFetch(`${table}?select=game_id&${sort.ahead(mine[0])}&limit=1`, { headers: { Prefer: 'count=exact' } });
+            const count = Number((ahead.headers.get('content-range') || '').split('/')[1]);
+            extra = { row: mine[0], rank: Number.isFinite(count) ? count + 1 : null };
+          }
+        }
+        if (load !== hofLoads) return;
+        showHofRows(rows, extra);
+        hofMessage.textContent = rows.length ? '' : 'Nobody is in the Hall of Fame yet. Finish the game to be the first!';
+      } catch (e) {
+        if (load !== hofLoads) return;
+        hofMessage.textContent = navigator.onLine === false
+          ? 'No internet right now, so the Hall of Fame can\'t load. Try again when you\'re back online.'
+          : 'The Hall of Fame can\'t be reached right now. Please try again in a little while.';
+        hofRetry.hidden = false;
+      }
+    }
+
+    // Build the table (with textContent, so nothing in the database can turn into page code)
+    function showHofRows(rows, extra) {
+      const cell = (tr, text, className, tag = 'td') => {
+        const td = document.createElement(tag);
+        td.textContent = text;
+        if (className) td.className = className;
+        tr.append(td);
+      };
+      const head = document.createElement('tr');
+      ['#', 'Initials', 'Time', 'Gold', 'Biggest nugget', 'Hidden nuggets'].forEach((title) => cell(head, title, '', 'th'));
+      cell(head, 'Date', 'date', 'th');
+      const row = (entry, rank) => {
+        const tr = document.createElement('tr');
+        if (entry.game_id === hofShowing.highlight) tr.className = 'mine';
+        cell(tr, rank === null ? '' : `${rank}`);
+        cell(tr, entry.initials, 'initials');
+        cell(tr, formatTime(entry.time_played));
+        cell(tr, `$${Number(entry.gold_earned).toLocaleString('en-US')}`);
+        cell(tr, entry.biggest_nugget > 0 ? `$${Number(entry.biggest_nugget).toLocaleString('en-US')}` : 'none');
+        cell(tr, `${entry.nuggets_found} / ${HIDDEN_NUGGETS.length}`);
+        cell(tr, new Date(entry.created_at).toLocaleDateString(), 'date');
+        return tr;
+      };
+      const lines = [head, ...rows.map((entry, i) => row(entry, i + 1))];
+      if (extra) { // "...", then your entry with its place
+        const gap = document.createElement('tr');
+        gap.className = 'gap';
+        cell(gap, '...');
+        gap.firstChild.colSpan = 7;
+        lines.push(gap, row(extra.row, extra.rank));
+      }
+      hofTable.replaceChildren(...lines);
+      const mine = hofTable.querySelector('tr.mine');
+      if (mine) mine.scrollIntoView({ block: 'nearest' });
+    }
+
+    for (const tab of document.querySelectorAll('.hof-tab')) {
+      tab.addEventListener('click', () => {
+        hofSort = tab.dataset.sort;
+        for (const other of document.querySelectorAll('.hof-tab')) other.classList.toggle('on', other === tab);
+        loadHallOfFame();
+      });
+    }
+    hofRetry.addEventListener('click', loadHallOfFame);
+    document.getElementById('hof-close').addEventListener('click', closeHallOfFame);
+    // The start screen's Hall of Fame button (a click on it isn't a click on the start screen, which would start playing)
+    document.getElementById('open-hof').addEventListener('click', (e) => {
+      e.stopPropagation();
+      openHallOfFame();
+    });
+    // A finished game that wasn't entered yet: back to its end screen, to type the initials
+    hofEnterButton.addEventListener('click', () => {
+      closeHallOfFame();
+      state.endScreenOpen = true;
+      setPlaying(false);
+      showEndScreen();
+    });
+    // ---------- END OF HALL OF FAME ----------
 
     // =====================================================================
     // ---------- PHOTO MODE: staging scenes for cutscene pictures (only with ?photo in the address) ----------

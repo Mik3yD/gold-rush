@@ -54,6 +54,7 @@ self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
   if (request.headers.has('range') || request.url.endsWith('.mp4')) return; // videos: straight from the internet
+  if (new URL(request.url).hostname.endsWith('.supabase.co')) return; // the Hall of Fame: always fresh, never a saved copy
   const ownFile = new URL(request.url).origin === self.location.origin;
   event.respondWith(ownFile ? internetFirst(request) : copyFirst(request));
 });
