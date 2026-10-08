@@ -5667,13 +5667,16 @@
       html += row('Filters', state.pondGold >= 1
         ? `$${num(state.pondGold)} · ${touchMode ? '<span class="roomy">collect </span>at pond' : '<span class="roomy">press </span>E at pond'}`
         : 'no gold yet');
+      // The excavator: nothing until it's bought (an empty row keeps its space, so nothing jumps when it appears),
+      // then its upgrade levels, and the dirt in its bucket while you're in the cab
       if (!ownsTool('excavator')) {
-        html += row('Excavator', `Shop · $${num(TOOLS.excavator.levels[1].price)}`) + bar();
+        html += '<div class="row"></div>' + bar();
       } else if (state.inExcavator) {
         const bucketScoops = toolNow('digBucket').scoops;
         html += row('Bucket', `${oneDecimal(state.exc.load)} / ${tons(bucketScoops)} t`) + bar(state.exc.load / bucketScoops);
       } else {
-        html += row('Excavator', touchMode ? 'parked · walk up' : 'parked · press E') + bar();
+        const lv = '<span class="roomy">Lv </span>'; // "Bucket 3 · Speed 2" on short screens
+        html += row('Excavator', `Bucket ${lv}${state.levels.digBucket} · Speed ${lv}${state.levels.speed}`) + bar();
       }
       // One warning line (empty when all is well)
       let warning = '';
