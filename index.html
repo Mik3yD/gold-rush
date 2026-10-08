@@ -309,6 +309,8 @@
     /* No "+$12" pop-up next to the wallet: on small screens it ran into the tool bar.
        It floats on top of the page (position: absolute), so hiding it doesn't move anything else. */
     body.touch #gain { display: none; }
+    /* The hint box sits lower and smaller, so it doesn't cover the bucket and the dirt (narrow, so it stays between the thumb buttons) */
+    body.touch #prompt { top: 72%; font-size: 13px; padding: 3px 10px; max-width: 46vw; white-space: normal; text-align: center; opacity: 0.9; }
 
     /* Short screens (phones in landscape): a smaller display */
     @media (max-height: 540px) {
@@ -543,6 +545,7 @@
       <h2 class="gold-text">Settings</h2>
       <div class="set-row"><span>Sound</span><button id="set-sound" class="btn" type="button"></button></div>
       <div class="set-row"><span>Graphics</span><button id="set-gfx" class="btn" type="button"></button></div>
+      <div class="set-row"><span>Show hints</span><button id="set-hints" class="btn" type="button"></button></div>
       <div class="set-row"><span>Excavator controls guide</span><button id="set-help" class="btn" type="button"></button></div>
       <h3>Backup</h3>
       <p>The game saves by itself in this browser. To move your game to another device or browser, copy this code and keep it somewhere safe:</p>
@@ -4700,6 +4703,24 @@
       helpToggle.blur(); // so a later Space or Enter doesn't press it again
     });
 
+    // The "Show hints" setting: the hint box in the middle of the screen ("Press E to dig", "Swing over the DIRT pile...").
+    // Off means no hint box at all; the HUD's warning line (like "Pond FULL!"), messages and buttons still work.
+    // Stored like the controls guide: under its own key (so it sticks before there's a save) and in the save's settings.
+    const HINTS_KEY = 'goldRush.hints'; // 'on' or 'off'
+    let hintsOn = true; // new players see hints
+    try {
+      hintsOn = localStorage.getItem(HINTS_KEY) !== 'off';
+    } catch (e) { /* storage blocked: just start on */ }
+
+    // Change the setting. remember: also save the game (not while a save is being loaded).
+    function setHints(on, remember = true) {
+      hintsOn = on;
+      try {
+        localStorage.setItem(HINTS_KEY, on ? 'on' : 'off');
+      } catch (e) { /* storage blocked: it still works until the page closes */ }
+      if (remember) saveGame(false); // quietly
+    }
+
     function enterExcavator() {
       state.inExcavator = true;
       cabYaw = 0;
@@ -6048,7 +6069,10 @@
       html += '<div class="hint"><kbd>B</kbd> shop &nbsp; <kbd>M</kbd> sound &nbsp; <kbd>G</kbd> graphics</div>';
       setHtml(hud.status, html);
 
-      if (state.inExcavator) {
+      // The hint box in the middle of the screen (empty, so hidden, when hints are switched off in Settings)
+      if (!hintsOn) {
+        setHtml(hud.prompt, '');
+      } else if (state.inExcavator) {
         setHtml(hud.prompt, forScreen(excavatorHint()));
       } else {
         const thing = nearbyThing();
@@ -6401,7 +6425,7 @@
           inCab: state.inExcavator, lookYaw: cabYaw, lookPitch: cabPitch,
         },
         player: { x: camera.position.x, z: camera.position.z, yaw, pitch },
-        settings: { muted: state.muted, quality, controlsGuide: helpOpen },
+        settings: { muted: state.muted, quality, controlsGuide: helpOpen, hints: hintsOn },
         shopTab,
         hallOfFame: { gameId: state.gameId, usedCheats: state.usedCheats, entered: state.hofEntered },
       };
@@ -6522,6 +6546,7 @@
       }
       if (settings.quality === 'High' || settings.quality === 'Low') setQuality(settings.quality);
       if (typeof settings.controlsGuide === 'boolean') setExcavatorHelp(settings.controlsGuide, false);
+      if (typeof settings.hints === 'boolean') setHints(settings.hints, false);
       if (TABS.some((tab) => tab.id === save.shopTab)) shopTab = save.shopTab;
       // The wallet shows the loaded money straight away (no counting up, no "+$" popup)
       shownMoney = lastMoney = state.money;
@@ -6604,6 +6629,7 @@
       document.getElementById('set-sound').textContent = state.muted ? 'Off' : 'On';
       document.getElementById('set-gfx').textContent = quality;
       document.getElementById('set-help').textContent = helpOpen ? 'Shown' : 'Hidden';
+      document.getElementById('set-hints').textContent = hintsOn ? 'On' : 'Off';
       exportCode.value = makeBackupCode();
     }
 
@@ -6618,6 +6644,7 @@
     document.getElementById('set-sound').addEventListener('click', () => { toggleMute(); updateSettings(); });
     document.getElementById('set-gfx').addEventListener('click', () => { switchQuality(); updateSettings(); });
     document.getElementById('set-help').addEventListener('click', () => { toggleExcavatorHelp(); updateSettings(); });
+    document.getElementById('set-hints').addEventListener('click', () => { setHints(!hintsOn); updateSettings(); });
 
     document.getElementById('copy-code').addEventListener('click', () => {
       exportCode.value = makeBackupCode();
