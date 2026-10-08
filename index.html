@@ -445,7 +445,7 @@
     <table>
       <tr><td><kbd>A</kbd> <kbd>D</kbd></td><td>swing the arm left / right</td></tr>
       <tr><td><kbd>Q</kbd> or left click</td><td>curl the bucket in: scoop (hold, above the dirt pile)</td></tr>
-      <tr><td><kbd>F</kbd> or right click</td><td>tip the bucket out: dump (hold, over the sluice)</td></tr>
+      <tr><td><kbd>F</kbd> or right click</td><td>tip the bucket out: dump (hold, over the hopper)</td></tr>
       <tr><td>Mouse</td><td>look around</td></tr>
       <tr><td><kbd>E</kbd></td><td>get out</td></tr>
       <tr><td><kbd>H</kbd></td><td>hide this guide (H again, or Settings, brings it back)</td></tr>
@@ -2175,6 +2175,8 @@
     const HOPPER = { back: SLUICE_TOP - 0.5, front: SLUICE_TOP + 0.8, rim: 1.82, bottom: 1.3 };
     const hopperMouth = new THREE.Vector3(); // the middle of the hopper's opening, in the world (where dirt is aimed)
     let hopperFloor = 1.4;                   // world height where dirt lands inside the hopper
+    const hopperRect = { x1: 0, x2: 0, z1: 0, z2: 0 }; // the hopper's opening seen from above, in the world (set by buildSluice())
+    let hopperGlow = null;                   // a glowing frame round the rim: lit up when you're lined up to dump (see updateHopperGlow())
     const sluice = new THREE.Group();
     const sluiceDirt = new THREE.Mesh(smallHeap, heapMaterial); // shows when dirt is waiting to be washed (in the hopper)
     sluiceDirt.position.set((HOPPER.back + HOPPER.front) / 2, HOPPER.bottom, 0);
@@ -2313,6 +2315,9 @@
       const hopperMiddle = (HOPPER.back + HOPPER.front) / 2;
       sluice.localToWorld(hopperMouth.set(hopperMiddle, HOPPER.rim, 0));
       hopperFloor = sluice.localToWorld(new THREE.Vector3(hopperMiddle, HOPPER.bottom + 0.05, 0)).y;
+      const back = sluice.localToWorld(new THREE.Vector3(HOPPER.back, HOPPER.rim, 0));
+      const front = sluice.localToWorld(new THREE.Vector3(HOPPER.front, HOPPER.rim, 0));
+      Object.assign(hopperRect, { x1: back.x, x2: front.x, z1: sluice.position.z - (width + 0.3) / 2, z2: sluice.position.z + (width + 0.3) / 2 });
 
       // Spray bars (Nozzles): one bar at levels 1-5, two from level 6. Brass nozzles, chrome from 7, gold tips at 12.
       sprayBars = [];
@@ -2407,6 +2412,19 @@
       for (const x of [HOPPER.back + post / 2, HOPPER.front - post / 2]) {
         for (const z of [-1, 1]) sluice.add(box(post, HOPPER.rim + 0.55, post, frame, x, (HOPPER.rim - 0.55) / 2, z * (sizeZ / 2 - post / 2)));
       }
+      // The glow: a bright gold frame just above the rim, hidden until you're lined up to dump
+      hopperGlow = new THREE.Group();
+      for (const z of [-sizeZ / 2, sizeZ / 2]) hopperGlow.add(new THREE.Mesh(new THREE.BoxGeometry(sizeX + 0.16, 0.05, 0.08), hopperGlowMaterial).translateX(middle).translateZ(z));
+      for (const x of [HOPPER.back, HOPPER.front]) hopperGlow.add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, sizeZ + 0.16), hopperGlowMaterial).translateX(x));
+      hopperGlow.position.y = HOPPER.rim + 0.07;
+      hopperGlow.visible = false;
+      sluice.add(hopperGlow);
+    }
+    const hopperGlowMaterial = new THREE.MeshBasicMaterial({ color: 0xffd34d, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending, depthWrite: false });
+
+    // Is (x, z) over the hopper's opening, give or take "margin" meters?
+    function overHopper(x, z, margin = 0) {
+      return x > hopperRect.x1 - margin && x < hopperRect.x2 + margin && z > hopperRect.z1 - margin && z < hopperRect.z2 + margin;
     }
 
     // A hose: a bendy tube through some points. radius and colour come from the Hoses upgrade.
@@ -3182,6 +3200,10 @@
     // Its colours (EXC_YELLOW and friends) are at the top, with the materials: worn yellow paint, grimy steel, chrome.
     const STICK_ANGLE = -2.0; // the second part of the arm hangs down from the first at this angle
     const DUMP_PITCH = -1.1;  // tip the bucket further down than this and the dirt falls out
+    // How far down the bucket can tip. Just past DUMP_PITCH its lip hangs right under its hinge, so the dirt falls
+    // where the hinge is (that's what dumpTarget() checks). Tipping further would swing the lip back towards the cab
+    // (0.4 to 0.6 m at -1.6), away from the hopper.
+    const TIP_LIMIT = -1.25;
     const BOOM_LENGTH = 3.3, STICK_LENGTH = 2.1; // the two parts of the arm, in meters (reaches both the pile and the sluice)
     const TRACK = 0x2b2926;
     SURFACES[TRACK] = { color: 0xffffff, map: TEX.grime, roughness: 0.95 };
@@ -3388,6 +3410,7 @@
       ex.tip = new THREE.Vector3(D + 0.15 * size, -H + 0.08 * size, 0);
       ex.heel = new THREE.Vector3(0.08 * size, -H, 0);
       ex.belly = new THREE.Vector3(D / 2, -H / 2, 0);
+      ex.width = W; // (bigger buckets are wider: the dirt pours out in a wider stream)
 
       Object.assign(ex, { upper, boom, stick, bucket });
 
@@ -4254,7 +4277,19 @@
       generatorSmoke(dt);
       updateShine(dt);
       updatePours(dt);
+      updateHopperGlow();
       for (const system of particleSystems) system.update(dt);
+    }
+
+    // The hopper's rim glows gold when you're lined up to dump into it: in the excavator with dirt in the bucket
+    // and the bucket over the hopper, or on foot up on the bench with dirt, close enough to tip it in
+    function updateHopperGlow() {
+      if (!hopperGlow) return;
+      const lined = state.inExcavator
+        ? state.exc.load > 0 && dumpTarget() === 'sluice'
+        : state.carrying > 0 && onBench() && nearbyThing()?.bounds === sluiceBounds;
+      hopperGlow.visible = lined;
+      if (lined) hopperGlowMaterial.opacity = 0.55 + 0.35 * Math.sin(performance.now() / 160); // a gentle pulse
     }
 
     // ---------- Pouring dirt: a smooth stream of falling dirt (into the hopper, onto the pile or the ground) ----------
@@ -4263,13 +4298,14 @@
     function newStream() {
       return { carry: 0, age: 0, puff: 0 };
     }
-    function pourStream(stream, from, to, rate, dt, spread = 0.25, size = 0.07) {
+    // width = how wide the stream is where it leaves (meters each way)
+    function pourStream(stream, from, to, rate, dt, spread = 0.25, size = 0.07, width = 0.12) {
       const fall = Math.sqrt(2 * Math.max(0.2, from.y - to.y) / 9.8); // seconds to fall that far
       stream.age += dt;
       stream.carry += rate * particleAmount * dt;
       for (; stream.carry >= 1; stream.carry--) {
         const time = fall * rand(0.9, 1.1);
-        const x = from.x + rand(-0.12, 0.12), y = from.y + rand(-0.05, 0.05), z = from.z + rand(-0.12, 0.12);
+        const x = from.x + rand(-width, width), y = from.y + rand(-0.05, 0.05), z = from.z + rand(-width, width);
         const tx = to.x + rand(-spread, spread), tz = to.z + rand(-spread, spread);
         clods.add({
           x, y, z, vx: (tx - x) / time, vz: (tz - z) / time, vy: (to.y - y) / time + 4.9 * time, // lands at (tx, tz)
@@ -4704,12 +4740,15 @@
       return distanceFromPile(spot) < pileSize().radius + 0.3;
     }
 
-    // Where the bucket would drop its dirt: 'pile', 'sluice' or 'ground'
-    // (It measures from the bucket's hinge, which doesn't move while you tip the bucket.)
+    // Where the bucket would drop its dirt: 'pile', 'sluice' (into the hopper) or 'ground'
+    // It measures from the bucket's hinge: that doesn't move while you tip the bucket, and when it's tipped out
+    // the bucket's lip hangs right under it (see TIP_LIMIT). The hopper counts when the hinge is roughly over its
+    // opening (up to HOPPER_MARGIN outside it), and the stream of dirt is aimed into the opening anyway.
+    const HOPPER_MARGIN = 0.45;
     function dumpTarget() {
       const spot = ex.bucket.getWorldPosition(new THREE.Vector3());
       if (distanceFromPile(spot) < pileSize().radius + 0.3) return 'pile';
-      if (distanceFromPoint(sluiceBounds, spot.x, spot.z) === 0) return 'sluice'; // right over the hopper or the trough
+      if (overHopper(spot.x, spot.z, HOPPER_MARGIN)) return 'sluice';
       return 'ground';
     }
 
@@ -4730,12 +4769,11 @@
       const lip = bucketWorld(ex.tip);
       let to = { x: lip.x, y: groundHeight(lip.x, lip.z), z: lip.z }, spread = 0.3;
       if (target === 'sluice') {
-        // It falls straight down into the hopper (or the trough, if the bucket is out past the hopper)
-        const b = sluiceBounds;
-        to.x = clamp(lip.x, b.min.x + 0.25, b.max.x - 0.25);
-        to.z = clamp(lip.z, b.min.z + 0.25, b.max.z - 0.25);
-        to.y = Math.hypot(to.x - hopperMouth.x, to.z - hopperMouth.z) < 0.7 ? hopperFloor : 1.35;
-        spread = 0.15;
+        // It falls into the hopper's opening (sliding in off its sides if the bucket isn't quite over the middle)
+        to.x = hopperMouth.x + clamp(lip.x - hopperMouth.x, -0.15, 0.15); // (inside the funnel's narrow bottom)
+        to.z = hopperMouth.z + clamp(lip.z - hopperMouth.z, -0.15, 0.15);
+        to.y = hopperFloor;
+        spread = 0.12;
         // The sluice takes whole scoops: part-scoops wait in "carry" (the last bit is rounded when the bucket's empty)
         pour.carry += amount;
         const whole = exc.load > 0 ? Math.floor(pour.carry) : Math.round(pour.carry);
@@ -4751,9 +4789,9 @@
         to.y = BENCH.height + size.height * Math.max(0, 1 - distanceFromPile(lip) / size.radius); // (about where its surface is)
       } else if (!pour.spilled) {
         pour.spilled = true;
-        showMessage('Spilled! Dump it over the sluice');
+        showMessage('Spilled! Dump it over the hopper');
       }
-      pourStream(pour.stream, lip, to, 170, dt, spread, 0.14); // a thick stream: it's a big bucket
+      pourStream(pour.stream, lip, to, 170, dt, spread, 0.14, ex.width * 0.35); // a thick stream, as wide as the bucket's lip
       if (exc.load === 0) { // all poured out
         pour.pouring = false;
         if (pour.intoSluice > 0) showMessage(`+${tons(pour.intoSluice)} t in the sluice`);
@@ -4783,7 +4821,7 @@
       const curl = held('KeyQ', 'MouseLeft') - held('KeyF', 'MouseRight');
       exc.swing += swing * SETTINGS.armSwingSpeed * speed * dt;
       exc.boom = EXCAVATOR_START.boom;
-      exc.bucketPitch = clamp(exc.bucketPitch + curl * SETTINGS.bucketCurlSpeed * speed * dt, -1.6, 1.0);
+      exc.bucketPitch = clamp(exc.bucketPitch + curl * SETTINGS.bucketCurlSpeed * speed * dt, TIP_LIMIT, 1.0);
       poseExcavator();
       if (clearBefore && !bucketClearsSluice()) { // that would bring the bucket down onto the sluice: don't make this move
         exc.swing = before.swing;
@@ -4830,13 +4868,15 @@
         if (state.pile <= 0) return 'The pile is all dug up!';
         return bucketOverPile() ? 'Over the dirt: hold Q to scoop' : 'Swing (A / D) over the DIRT pile, then hold Q to scoop';
       }
-      if (dumpTarget() === 'sluice') return 'Over the hopper: hold F to dump';
-      if (exc.load >= toolNow('digBucket').scoops) return 'Bucket full! Swing (A / D) to the sluice, then hold F';
-      if (state.pile <= 0) return 'The pile is empty. Take what you have to the sluice and hold F';
+      if (dumpTarget() === 'sluice') return 'Lined up over the hopper: hold F to dump';
+      const hinge = ex.bucket.getWorldPosition(new THREE.Vector3());
+      if (overHopper(hinge.x, hinge.z, HOPPER_MARGIN + 1.2)) return 'Nearly there: swing (A / D) a little more, over the hopper';
+      if (exc.load >= toolNow('digBucket').scoops) return 'Bucket full! Swing (A / D) to the hopper, then hold F';
+      if (state.pile <= 0) return 'The pile is empty. Take what you have to the hopper and hold F';
       if (bucketOverPile()) {
         return exc.bucketPitch >= 1 ? 'Bucket curled all the way: tip it back a little (F), then hold Q again' : 'Over the dirt: hold Q to scoop more';
       }
-      return 'Swing (A / D) back over the DIRT pile to fill up, or to the sluice and hold F';
+      return 'Swing (A / D) back over the DIRT pile to fill up, or to the hopper and hold F';
     }
 
     // ---------- Shop menu: four tabs (Tools, Sluice, Tailing Pond, Excavator) ----------
@@ -6426,7 +6466,7 @@
       state.exc = {
         ...EXCAVATOR_START,
         swing: savedNumber(exc.swing, EXCAVATOR_START.swing, -Math.PI, Math.PI),
-        bucketPitch: savedNumber(exc.bucketPitch, EXCAVATOR_START.bucketPitch, -1.6, 1.0),
+        bucketPitch: savedNumber(exc.bucketPitch, EXCAVATOR_START.bucketPitch, TIP_LIMIT, 1.0),
         load: savedNumber(exc.load, 0, 0),
       };
       // Tools and upgrades (this also rebuilds the sluice area, the excavator and the tool bar)
@@ -7157,10 +7197,11 @@
         excavator({ swing = 0, bucketPitch = -0.3, load = 0, hold = [] } = {}) {
           state.inExcavator = true; // so its exhaust smokes
           state.exc = { ...EXCAVATOR_START, swing, bucketPitch, load: load * toolNow('digBucket').scoops };
-          for (const code in keys) keys[code] = hold.includes(code);
+          for (const code in keys) keys[code] = false;
+          for (const code of hold) keys[code] = true; // (also keys that haven't been pressed yet)
           poseExcavator();
         },
-        swingRange: { pile: [-2.46, -1.42], sluice: [0.55, 1.15] },
+        swingRange: { pile: [-2.46, -1.42], sluice: [0.52, 1.15], hopperMiddle: 0.83 },
 
         // Where things are right now, for pointing the camera at them
         spots() {
