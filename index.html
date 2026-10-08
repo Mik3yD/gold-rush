@@ -110,7 +110,6 @@
     #excavator-help.collapsed { padding: 4px 10px; }
     #excavator-help.collapsed table { display: none; }
     #excavator-help.collapsed #help-toggle { margin: 0; font: 12px Bitter, Georgia, serif; color: #e6d3a8; }
-    #gfx { position: fixed; right: 12px; bottom: 12px; padding: 4px 10px; font-size: 12px; color: #e6d3a8; pointer-events: none; }
 
     /* ---- Tool bar along the bottom: one icon for every tool you own ---- */
     #toolbar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 9px 10px 7px; pointer-events: none; }
@@ -289,9 +288,7 @@
     /* Where the usual display goes on a touch screen */
     body.touch #sound { top: max(12px, env(safe-area-inset-top)); right: max(12px, env(safe-area-inset-right)); }
     body.touch #sound .k { display: none; }
-    body.touch #gfx { right: calc(max(12px, env(safe-area-inset-right)) + 116px); top: max(12px, env(safe-area-inset-top)); bottom: auto; padding: 0 12px; height: 48px; box-sizing: border-box; display: flex; align-items: center; pointer-events: auto; z-index: 20; }
-    body.touch #gfx kbd { display: none; }
-    body.touch.shop-open #gfx, body.touch.shop-open #sound { display: none; } /* out of the way of the shop's close button */
+    body.touch.shop-open #sound { display: none; } /* out of the way of the shop's close button */
     body.touch #saved { left: 50%; bottom: calc(max(8px, env(safe-area-inset-bottom)) + 32px); transform: translateX(-50%); }
     body.touch #hud { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); }
     body.touch #status .hint { display: none; }
@@ -416,7 +413,6 @@
     <h2 class="gold-text">Please rotate your phone</h2>
     <p>Gold Rush plays sideways (landscape).</p>
   </div>
-  <div id="gfx" class="plaque"></div>
   <div id="saved" class="plaque">Saved</div>
 
   <div id="excavator-help" class="plaque" hidden>
@@ -449,7 +445,7 @@
         <span>Interact</span><span>use things (dump, collect, climb in)</span>
         <span>Dig</span><span>dig at the pile (hold it once you have a pickaxe)</span>
         <span>Shop</span><span>buy tools and upgrades</span>
-        <span>Top right</span><span>graphics high/low &middot; pause &middot; sound</span>
+        <span>Top right</span><span>pause &middot; sound (graphics are in Settings)</span>
       </div>
       <div class="controls only-desktop">
         <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>walk</span>
@@ -4579,7 +4575,6 @@
       [/hold F/g, 'hold Dump'],
       [/ \(F\)/g, ' (Dump)'],
       [/\(A \/ D\)/g, '(the Swing buttons)'],
-      [/Press G/g, 'Tap Graphics (top right)'],
     ];
     function touchWords(text) {
       for (const [find, replace] of TOUCH_WORDS) text = text.replace(find, replace);
@@ -5596,7 +5591,6 @@
       status: document.getElementById('status'),
       prompt: document.getElementById('prompt'),
       message: document.getElementById('message'),
-      gfx: document.getElementById('gfx'),
     };
     let messageTimeout;
     function showMessage(text) {
@@ -5730,28 +5724,11 @@
       updateParticleScale();
     }
     setQuality(TOUCH_DEVICE ? 'Low' : 'High');
-    // G, the Graphics label (tap it, top right on a touch screen) or Settings switch it, and the choice is saved
+    // G or Settings switch it, and the choice is saved. Nothing about graphics is shown on the play screen.
     function switchQuality() {
       setQuality(quality === 'High' ? 'Low' : 'High');
-      showMessage(`Graphics: ${quality}`);
+      showMessage(`Graphics: ${quality}`); // only when the player switches it themselves
       saveGame(false);
-    }
-    hud.gfx.addEventListener('click', switchQuality);
-
-    // Count frames per second, show them in the corner, and suggest Low graphics if the game is struggling
-    let fpsFrames = 0, fpsTime = 0, slowSeconds = 0, warnedSlow = false;
-    function countFps(seconds) {
-      fpsFrames++;
-      fpsTime += seconds;
-      if (fpsTime < 1) return;
-      const fps = Math.round(fpsFrames / fpsTime);
-      fpsFrames = fpsTime = 0;
-      setHtml(hud.gfx, `Graphics: ${quality} <kbd>G</kbd> &middot; ${fps} fps`);
-      slowSeconds = playing && quality === 'High' && fps < 30 ? slowSeconds + 1 : 0;
-      if (slowSeconds >= 4 && !warnedSlow) {
-        warnedSlow = true;
-        showMessage('Running slowly? Press G for Low graphics');
-      }
     }
 
     // ---------- The end of the game: when the whole pile has been dug up and washed ----------
@@ -6873,8 +6850,7 @@
     // ---------- Game loop: runs about 60 times per second ----------
     const clock = new THREE.Clock();
     function gameLoop() {
-      const frameTime = clock.getDelta();
-      const dt = Math.min(frameTime, 0.1); // seconds since last frame
+      const dt = Math.min(clock.getDelta(), 0.1); // seconds since last frame
 
       armMoving = false;
       if (playing && state.inExcavator) operateExcavator(dt);
@@ -6900,7 +6876,6 @@
       sky.position.copy(camera.position); // the sky moves with you, so it always looks endlessly far away
       skyMaterial.uniforms.time.value += dt;
       renderer.render(scene, camera);
-      countFps(frameTime);
       requestAnimationFrame(gameLoop);
     }
     if (!PHOTO_MODE) gameLoop(); // (in photo mode the capture script moves time forward itself)
