@@ -73,6 +73,7 @@
     #status .mini.off { visibility: hidden; } /* keeps its space when there's nothing to show */
     #status .mini i { display: block; height: 100%; background: linear-gradient(90deg, #8a5a2c, #d09a5a); }
     #status .warn { color: #ffd76a; font-weight: 700; text-overflow: ellipsis; }
+    #status .warn.red { color: #ff6b5a; } /* the pond is full */
     #status .hint { height: var(--hint); padding-top: 4px; box-sizing: border-box; color: #e6d3a8; font-size: 13px; }
     body.touch #status { --hint: 0px; }
 
@@ -1121,7 +1122,17 @@
     }
     // The share of the flakes the sluice catches: fine gold (mesh) x gold that isn't stuck in clay (nozzles)
     function sluiceRecovery() { return toolNow('mesh').catches * toolNow('nozzles').clay; }
-    function pondFull() { return state.pond >= toolNow('pondSize').holds; }
+    // Is the tailing pond full? It becomes full when the mud reaches the top, and only counts as not full again
+    // once it's below 90% (it settled, or Pond Size was upgraded). Without that gap it flickered every frame:
+    // the mud settles a tiny bit each frame, and the sluice tops it up one scoop at a time.
+    const POND_NOT_FULL_BELOW = 0.9;
+    let pondIsFull = false;
+    function pondFull() {
+      const holds = toolNow('pondSize').holds;
+      if (state.pond >= holds) pondIsFull = true;
+      else if (state.pond < holds * POND_NOT_FULL_BELOW) pondIsFull = false;
+      return pondIsFull;
+    }
 
     // ---------- Scene, camera and renderer ----------
     const scene = new THREE.Scene();
@@ -4380,7 +4391,7 @@
         pondWarned = true;
         showMessage('The pond is full! The sluice has slowed down');
         sfx.pondFull();
-      } else if (fill < 0.9) {
+      } else if (!pondFull()) {
         pondWarned = false;
       }
       pondTwinkle -= dt;
@@ -5679,10 +5690,14 @@
         html += row('Excavator', `Bucket ${lv}${state.levels.digBucket} · Speed ${lv}${state.levels.speed}`) + bar();
       }
       // One warning line (empty when all is well)
-      let warning = '';
-      if (pondFull()) warning = 'Pond FULL! Sluice at 30%';
-      else if (state.pile <= 0 && !state.finished) warning = 'Pile gone! Wash the rest';
-      html += `<div class="warn">${warning}</div>`;
+      let warning = '', warnClass = 'warn';
+      if (pondFull()) {
+        warning = 'Pond FULL! Sluice at 30%';
+        warnClass = 'warn red';
+      } else if (state.pile <= 0 && !state.finished) {
+        warning = 'Pile gone! Wash the rest';
+      }
+      html += `<div class="${warnClass}">${warning}</div>`;
       html += '<div class="hint"><kbd>B</kbd> shop &nbsp; <kbd>M</kbd> sound &nbsp; <kbd>G</kbd> graphics</div>';
       setHtml(hud.status, html);
 
@@ -6036,6 +6051,7 @@
       // Nothing more than the (saved) tools can hold
       state.carrying = Math.min(state.carrying, toolNow('carrier').capacity);
       state.pond = Math.min(state.pond, toolNow('pondSize').holds);
+      pondIsFull = false; // worked out again from the loaded pond
       state.exc.load = Math.min(state.exc.load, toolNow('digBucket').scoops);
       poseExcavator();
       applyNuggetsFound(save.nuggetsFound); // (old saves have cashFound instead: that cash is already in the wallet)
