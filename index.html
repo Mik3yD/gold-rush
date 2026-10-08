@@ -44,26 +44,37 @@
     @media (hover: hover) { .btn:hover { background: linear-gradient(180deg, #82552a, #4d2e14); } }
 
     /* ---- HUD in the top left: wallet, dirt pile and what you're doing ---- */
-    #hud { position: fixed; top: 12px; left: 12px; width: 290px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
-    #wallet-box { position: relative; display: flex; align-items: center; gap: 12px; padding: 8px 14px; }
+    /* Every part of the HUD has a fixed size, so it stays perfectly still as the numbers change:
+       same-width digits (tabular-nums), no wrapping, and every row is always there at a fixed height
+       (a row with nothing to say is just empty). --row and --bar are the heights of a line and a mini bar. */
+    #hud { --row: 20px; --bar: 10px; position: fixed; top: 12px; left: 12px; width: 290px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; font-variant-numeric: tabular-nums; white-space: nowrap; }
+    #hud > .plaque { box-sizing: border-box; flex: none; }
+    #pile-box, #status { overflow: hidden; }
+    #wallet-box { position: relative; display: flex; align-items: center; gap: 12px; padding: 8px 14px; height: 70px; }
     #wallet { font: 34px/1.05 Rye, Georgia, serif; }
+    /* The Rye font has no same-width digits, so each digit gets its own box of the same width */
+    #wallet i { display: inline-block; width: 0.72em; text-align: center; font-style: normal; }
     #wallet.bump { animation: bump 0.35s; }
     @keyframes bump { 40% { transform: scale(1.12); } }
     #gain { position: absolute; right: 12px; top: 10px; font-weight: 700; font-size: 18px; color: #ffe27a; text-shadow: 0 1px 2px #000; opacity: 0; transform: translateY(6px); transition: opacity 0.3s, transform 0.3s; }
     #gain.show { opacity: 1; transform: none; }
-    #pile-box { padding: 8px 14px 10px; }
-    #pile-text { font-size: 22px; font-weight: 700; }
+    #pile-box { padding: 8px 14px 10px; height: 82px; }
+    #pile-text { height: 28px; line-height: 28px; font-size: 22px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; }
     #pile-text small { font-size: 13px; font-weight: 400; color: #e6d3a8; }
     #pile-bar { height: 12px; margin-top: 5px; background: rgba(0, 0, 0, 0.5); border: 1px solid var(--brass); border-radius: 6px; overflow: hidden; }
     #pile-fill { height: 100%; background: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0 6px, transparent 6px 12px), linear-gradient(180deg, #c08a55, #7a4d26); transition: width 0.3s; }
-    #status { padding: 8px 14px; font-size: 14px; }
-    #status .row { display: flex; justify-content: space-between; gap: 10px; padding: 2px 0; }
-    #status .k { color: var(--tan); }
-    #status .v { font-weight: 600; text-align: right; }
-    #status .mini { height: 5px; margin: 1px 0 4px; background: rgba(0, 0, 0, 0.5); border-radius: 3px; overflow: hidden; }
+    /* the borders, 7 lines (carrying, shovel, sluice, pond, filters, excavator, warning), 3 bars and the key hint */
+    #status { --pad: 8px; --hint: 26px; padding: var(--pad) 14px; font-size: 14px; height: calc(4px + 2 * var(--pad) + 7 * var(--row) + 3 * var(--bar) + var(--hint)); }
+    #status .row, #status .warn { height: var(--row); line-height: var(--row); overflow: hidden; }
+    #status .row { display: flex; justify-content: space-between; gap: 10px; }
+    #status .k { flex: none; color: var(--tan); }
+    #status .v { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-weight: 600; text-align: right; }
+    #status .mini { height: 5px; margin: 2px 0 3px; background: rgba(0, 0, 0, 0.5); border-radius: 3px; overflow: hidden; }
+    #status .mini.off { visibility: hidden; } /* keeps its space when there's nothing to show */
     #status .mini i { display: block; height: 100%; background: linear-gradient(90deg, #8a5a2c, #d09a5a); }
-    #status .warn { padding-top: 4px; color: #ffd76a; font-weight: 700; }
-    #status .hint { margin-top: 6px; color: #e6d3a8; font-size: 13px; }
+    #status .warn { color: #ffd76a; font-weight: 700; text-overflow: ellipsis; }
+    #status .hint { height: var(--hint); padding-top: 4px; box-sizing: border-box; color: #e6d3a8; font-size: 13px; }
+    body.touch #status { --hint: 0px; }
 
     /* ---- Middle of the screen ---- */
     #crosshair { position: fixed; top: 50%; left: 50%; width: 10px; height: 10px; margin: -7px 0 0 -7px; border: 2px solid rgba(255, 255, 255, 0.85); border-radius: 50%; box-shadow: 0 0 3px rgba(0, 0, 0, 0.7); pointer-events: none; }
@@ -291,18 +302,20 @@
 
     /* Short screens (phones in landscape): a smaller display */
     @media (max-height: 540px) {
-      #hud { width: 190px; gap: 5px; }
-      #wallet-box { padding: 4px 10px; gap: 8px; }
+      #hud { --row: 15px; --bar: 7px; width: 190px; gap: 5px; }
+      #wallet-box { padding: 4px 10px; gap: 8px; height: 46px; }
       #wallet-box .coin { width: 28px; height: 28px; font-size: 16px; }
       #wallet { font-size: 22px; }
       #gain { font-size: 15px; top: 10px; right: auto; left: calc(100% + 8px); white-space: nowrap; } /* next to the wallet, not over it */
       .label { font-size: 9px; letter-spacing: 1px; }
-      #pile-box { padding: 4px 10px 6px; }
-      #pile-text { font-size: 15px; }
+      #pile-box { padding: 4px 10px 6px; height: 55px; }
+      #pile-text { height: 19px; line-height: 19px; font-size: 15px; }
       #pile-text small { font-size: 11px; }
       #pile-bar { height: 7px; margin-top: 3px; }
-      #status { padding: 4px 10px; font-size: 11px; }
-      #status .row { padding: 0; }
+      #status { --pad: 4px; --hint: 20px; padding: var(--pad) 10px; font-size: 11px; }
+      #status .mini { height: 4px; margin: 1px 0 2px; }
+      #status .hint { padding-top: 3px; font-size: 11px; }
+      #status .roomy { display: none; } /* words left out when there's no room */
       #prompt { top: 60%; font-size: 14px; padding: 4px 12px; max-width: 60vw; white-space: normal; text-align: center; }
       #message { font-size: 26px; }
       #jackpot { top: 10%; padding: 8px 20px 10px; }
@@ -5610,7 +5623,7 @@
     function updateHud(dt) {
       shownMoney += (state.money - shownMoney) * Math.min(1, dt * 8);
       if (Math.abs(state.money - shownMoney) < 0.5) shownMoney = state.money;
-      setHtml(hud.wallet, `$${Math.round(shownMoney).toLocaleString('en-US')}`);
+      setHtml(hud.wallet, `$${Math.round(shownMoney).toLocaleString('en-US')}`.replace(/\d/g, '<i>$&</i>')); // see #wallet i
       if (state.money > lastMoney) {
         gainTotal += state.money - lastMoney;
         gainTimer = 1.5;
@@ -5626,38 +5639,49 @@
 
       // The dirt pile: tons left, and a bar that shows how much of the game is left
       const pileLeft = state.pile / (SETTINGS.pileTons / SETTINGS.tonsPerScoop); // 1 = full, 0 = empty
+      // Always one decimal ("18,999.0 t"), so the number doesn't change length when it lands on a whole ton
+      const oneDecimal = (scoops) => (scoops * SETTINGS.tonsPerScoop).toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
       setHtml(hud.pileText, state.pile > 0
-        ? `${tons(state.pile)} t <small>left of ${SETTINGS.pileTons.toLocaleString('en-US')} t</small>`
+        ? `${oneDecimal(state.pile)} t <small>of ${SETTINGS.pileTons.toLocaleString('en-US')} t</small>`
         : 'All dug up!');
       hud.pileFill.style.width = `${pileLeft * 100}%`;
 
-      // What you're carrying, your shovel, the sluice and the excavator
+      // What you're carrying, your shovel, the sluice, the pond and the excavator.
+      // Every row is always there and the texts are kept short, so the panel never changes size
+      // (the CSS gives each row a fixed height and stops text wrapping onto a second line).
       const carrier = toolNow('carrier');
       const shovel = toolNow('shovel');
+      const num = (n) => Math.floor(n).toLocaleString('en-US');
       const row = (name, value) => `<div class="row"><span class="k">${name}</span><span class="v">${value}</span></div>`;
-      const bar = (fraction) => `<div class="mini"><i style="width: ${Math.round(fraction * 100)}%"></i></div>`;
-      let html = row(carrier.name, `${state.carrying} / ${carrier.capacity} scoops`) + bar(state.carrying / carrier.capacity);
-      html += row('Shovel', `${shovel.name} (${shovel.scoops} per dig)`);
-      const slowed = pondFull() ? SETTINGS.pondFullSpeed : 1;
-      html += row('Sluice', state.sluiceQueue > 0
-        ? `${Math.ceil(state.sluiceQueue).toLocaleString('en-US')} to wash (${(sluiceSpeed() * slowed).toFixed(1)}/s)`
-        : `waiting for dirt (${sluiceSpeed().toFixed(1)}/s)`);
+      // A mini bar; with no fraction it's an empty space of the same height
+      const bar = (fraction) => fraction === undefined
+        ? '<div class="mini off"></div>'
+        : `<div class="mini"><i style="width: ${Math.round(Math.min(1, fraction) * 100)}%"></i></div>`;
+      let html = row('Carrying', `${state.carrying} / ${carrier.capacity} scoops`) + bar(state.carrying / carrier.capacity);
+      html += row('Shovel', `${shovel.name.replace(/ Shovel$/, '')} (${shovel.scoops}/dig)`);
+      const speed = sluiceSpeed() * (pondFull() ? SETTINGS.pondFullSpeed : 1);
+      html += row('Sluice', `${state.sluiceQueue > 0 ? num(Math.ceil(state.sluiceQueue)) : 'empty'} · ${speed.toFixed(1)}/s`);
       // The tailing pond: how full it is, and the gold waiting on its filters
       const pondSize = toolNow('pondSize');
-      html += row('Tailing pond', `${Math.floor(state.pond).toLocaleString('en-US')} / ${pondSize.holds.toLocaleString('en-US')} t`) + bar(state.pond / pondSize.holds);
-      if (state.pondGold >= 1) html += row('Gold on the filters', `$${Math.floor(state.pondGold).toLocaleString('en-US')} (press E at the pond)`);
-      if (pondFull()) html += '<div class="warn">Pond FULL: sluice at 30%. Upgrade Pond Size!</div>';
+      html += row('Tailing pond', `${num(state.pond)} / ${num(pondSize.holds)} t`) + bar(state.pond / pondSize.holds);
+      html += row('Filters', state.pondGold >= 1
+        ? `$${num(state.pondGold)} · ${touchMode ? '<span class="roomy">collect </span>at pond' : '<span class="roomy">press </span>E at pond'}`
+        : 'no gold yet');
       if (!ownsTool('excavator')) {
-        html += row('Excavator', `for sale in the shop ($${TOOLS.excavator.levels[1].price.toLocaleString('en-US')})`);
+        html += row('Excavator', `Shop · $${num(TOOLS.excavator.levels[1].price)}`) + bar();
       } else if (state.inExcavator) {
         const bucketScoops = toolNow('digBucket').scoops;
-        html += row('Excavator bucket', `${tons(state.exc.load)} / ${tons(bucketScoops)} t`) + bar(state.exc.load / bucketScoops);
+        html += row('Bucket', `${oneDecimal(state.exc.load)} / ${tons(bucketScoops)} t`) + bar(state.exc.load / bucketScoops);
       } else {
-        html += row('Excavator', 'parked (walk up, press E)');
+        html += row('Excavator', touchMode ? 'parked · walk up' : 'parked · press E') + bar();
       }
-      if (state.pile <= 0 && !state.finished) html += '<div class="warn">The pile is gone! Wash the last of your dirt to finish</div>';
+      // One warning line (empty when all is well)
+      let warning = '';
+      if (pondFull()) warning = 'Pond FULL! Sluice at 30%';
+      else if (state.pile <= 0 && !state.finished) warning = 'Pile gone! Wash the rest';
+      html += `<div class="warn">${warning}</div>`;
       html += '<div class="hint"><kbd>B</kbd> shop &nbsp; <kbd>M</kbd> sound &nbsp; <kbd>G</kbd> graphics</div>';
-      setHtml(hud.status, forScreen(html));
+      setHtml(hud.status, html);
 
       if (state.inExcavator) {
         setHtml(hud.prompt, forScreen(excavatorHint()));
