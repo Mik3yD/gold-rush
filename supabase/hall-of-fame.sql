@@ -5,7 +5,7 @@
 --
 -- Two tables with the same columns:
 --   hall_of_fame       the real list everyone sees
---   hall_of_fame_test  a practice list, used when the game is opened with ?cheats
+--   hall_of_fame_test  a practice list, used when the game is opened locally with ?cheats=1
 --                      (same rules, but without the minimum time and gold, so you can test with the L cheat)
 --
 -- What players can do with the public (publishable) browser key: ADD entries and READ them.
@@ -62,7 +62,7 @@ create index if not exists hall_of_fame_fastest on public.hall_of_fame (time_pla
 create index if not exists hall_of_fame_richest on public.hall_of_fame (gold_earned desc);
 
 
--- ---------- The practice list (for testing with ?cheats) ----------
+-- ---------- The practice list (for testing with ?cheats=1) ----------
 -- A copy of the table above with all its rules, then the minimum time and gold are relaxed.
 create table if not exists public.hall_of_fame_test (like public.hall_of_fame including all);
 alter table public.hall_of_fame_test drop constraint if exists hof_time_check;

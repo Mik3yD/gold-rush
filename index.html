@@ -6692,11 +6692,14 @@
     // K = add money, R = reset everything back to the start, P = dig away most of the pile (to test the end screen),
     // O = fill the tailing pond (to test the sluice slowing down), J = the sluice finds a jackpot nugget,
     // L = finish the game right now (empties the pile and all the dirt: to test the ending cutscene and end screen).
-    // They're OFF unless you add ?cheats to the end of the game's address, for example
-    // file:///C:/.../index.html?cheats  (so the shared version has none, and you can still test with them).
+    // They're OFF unless you open the game on your own computer with ?cheats=1 at the end of the address,
+    // for example http://localhost:8000/?cheats=1 (or file:///C:/.../index.html?cheats=1).
+    // They never work on the public link (GitHub Pages), even with ?cheats=1 added.
     // To have them always on while working on the game, change the line below to: const CHEATS_ON = true;
     // =====================================================================
-    const CHEATS_ON = new URLSearchParams(location.search).has('cheats');
+    const RUNNING_LOCALLY = location.protocol === 'file:' ||
+      ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
+    const CHEATS_ON = RUNNING_LOCALLY && new URLSearchParams(location.search).get('cheats') === '1';
     const CHEAT_MONEY = 25000;
     const CHEAT_PILE_LEFT = 5; // tons the P cheat leaves in the pile
 
@@ -6758,7 +6761,7 @@
     //   - Submitting adds your game (initials, time played, gold earned, biggest nugget, hidden nuggets found;
     //     the database adds the date) and shows the list with your entry highlighted.
     //   - Only a game that really finished can be entered, once (its random state.gameId). Games where a test cheat
-    //     was used (or with ?cheats in the address) go on a separate practice list, hall_of_fame_test.
+    //     was used (or with ?cheats=1 in the address, locally) go on a separate practice list, hall_of_fame_test.
     //   - The database refuses rude initials (BLOCKED_INITIALS, the same list as in the SQL), anything but
     //     3 capital letters, and numbers that don't look like a finished game. It also refuses edits and deletes.
     //   - No internet? The entry waits on this device (HOF_PENDING_KEY) and is sent when the page loads,
