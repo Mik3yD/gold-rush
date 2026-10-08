@@ -7203,14 +7203,19 @@
         },
         swingRange: { pile: [-2.46, -1.42], sluice: [0.52, 1.15], hopperMiddle: 0.83 },
 
-        // Where things are right now, for pointing the camera at them
+        // Where things are right now, for pointing the camera at them (heights are real heights: the pile and the
+        // excavator are up on the dig bench, BENCH.height above the ground)
         spots() {
           const at = (object) => object.getWorldPosition(new THREE.Vector3()).toArray();
           return {
-            pile: [pileCircle.x, pileSize().height * 0.4, pileCircle.z], pileHeight: pileSize().height, pileRadius: pileSize().radius,
-            bucket: at(ex.bucket), cab: at(ex.seat), sluiceTop: [sluiceSpot.x, sluiceSpot.y, sluiceSpot.z],
-            sluiceEnd: sluiceEnd.toArray(), nugget: at(nuggetModel), pond: [POND_SPOT.x, 0, POND_SPOT.z],
+            pile: [pileCircle.x, BENCH.height + pileSize().height * 0.4, pileCircle.z], pileHeight: pileSize().height, pileRadius: pileSize().radius,
+            bench: BENCH.height, bucket: at(ex.bucket), cab: at(ex.seat), hopper: hopperMouth.toArray(),
+            sluiceTop: [sluiceSpot.x, sluiceSpot.y, sluiceSpot.z], sluiceEnd: sluiceEnd.toArray(), nugget: at(nuggetModel), pond: [POND_SPOT.x, 0, POND_SPOT.z],
           };
+        },
+        // How high the ground is at (x, z): for keeping cameras at a height above the ground, up on the bench or below it
+        ground(x, z) {
+          return groundHeight(x, z);
         },
 
         // Show the miner digging at the edge of the pile, at "angle" round from the camp side, with dirt flying
@@ -7218,22 +7223,23 @@
           const towardsCamp = Math.atan2(-pileCircle.z, -pileCircle.x) + angle;
           const far = { x: pileCircle.x + Math.cos(towardsCamp) * 40, z: pileCircle.z + Math.sin(towardsCamp) * 40 };
           const edge = nearestPoint(pileCircle, far.x, far.z);
-          miner.position.set(edge.x + Math.cos(towardsCamp) * 1.2, 0, edge.z + Math.sin(towardsCamp) * 1.2);
+          const x = edge.x + Math.cos(towardsCamp) * 1.2, z = edge.z + Math.sin(towardsCamp) * 1.2, ground = groundHeight(x, z); // (up on the bench)
+          miner.position.set(x, ground, z);
           miner.rotation.y = Math.atan2(-Math.cos(towardsCamp), -Math.sin(towardsCamp)); // face the pile (+z towards it)
           miner.visible = true;
           miner.updateMatrixWorld();
           const blade = miner.localToWorld(miner.userData.blade.clone());
-          dirtBurst({ x: blade.x, y: 0.35, z: blade.z }, 40, { spread: 0.45, up: 1.3 });
-          return { x: miner.position.x, z: miner.position.z, facing: towardsCamp };
+          dirtBurst({ x: blade.x, y: blade.y + 0.05, z: blade.z }, 40, { spread: 0.45, up: 1.3, floor: ground + 0.04 });
+          return { x, z, y: ground, facing: towardsCamp };
         },
 
         // Extra flying dirt at the excavator bucket's teeth ('tip') or its middle ('belly'), for a livelier picture.
-        // lift = meters higher up (so it isn't hidden inside the pile or the hopper); falling = pouring into the sluice
+        // lift = meters higher up (so it isn't hidden inside the pile or the hopper); falling = pouring into the hopper
         bucketDirt(part = 'tip', amount = 20, { falling = false, lift = 0 } = {}) {
           const where = bucketWorld(ex[part]);
           where.y += lift;
-          if (falling) dirtFalls(where, amount, 1.15);
-          else dirtBurst(where, amount, { spread: 0.6, up: 1.4 });
+          if (falling) dirtFalls(where, amount, hopperFloor);
+          else dirtBurst(where, amount, { spread: 0.6, up: 1.4, floor: BENCH.height }); // (lands on the bench)
         },
 
         // The sluice finds a nugget of this size ('small', 'medium', 'large' or 'jackpot')

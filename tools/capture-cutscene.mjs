@@ -29,12 +29,14 @@ const CHROME_PATHS = [
 
 // ---------- The shots ----------
 // Each one runs inside the game page. P is window.goldRushPhoto: setup(), camera(from, to, fov), step(seconds),
-// excavator(), minerDigging(), nugget(), sunset(), spots(). Positions are [x, height, z] in meters.
+// excavator(), minerDigging(), nugget(), sunset(), spots(), ground(x, z). Positions are [x, height, z] in meters.
+// The pile and the excavator are up on the dig bench (spots().bench meters above the ground), so heights near them
+// are measured from the bench top, and ground(x, z) gives the ground's height anywhere.
 const SHOTS = [
   ['01-huge-pile-at-start', (P) => {
     P.setup({ levels: 'none' });
     const s = P.spots();
-    P.camera([-1.5, 0.25, -1.5], [s.pile[0], 5.5, s.pile[2]], 62);
+    P.camera([-1.2, P.ground(-1.2, -3.6) + 0.25, -3.6], [s.pile[0], s.bench + 5.5, s.pile[2]], 62); // low down on the bench, looking up
     P.step(0.5);
   }],
   ['02-digging-with-shovel', (P) => {
@@ -42,8 +44,8 @@ const SHOTS = [
     const m = P.minerDigging(0.15);
     P.step(0.15); // the dirt has just flown up off the shovel
     const side = m.facing - Math.PI / 2;
-    const from = [m.x + Math.cos(side) * 3.2 + Math.cos(m.facing) * 0.9, 1.25, m.z + Math.sin(side) * 3.2 + Math.sin(m.facing) * 0.9];
-    P.camera(from, [m.x - Math.cos(m.facing) * 0.6, 0.85, m.z - Math.sin(m.facing) * 0.6], 50);
+    const from = [m.x + Math.cos(side) * 3.2 + Math.cos(m.facing) * 0.9, m.y + 1.25, m.z + Math.sin(side) * 3.2 + Math.sin(m.facing) * 0.9];
+    P.camera(from, [m.x - Math.cos(m.facing) * 0.6, m.y + 0.85, m.z - Math.sin(m.facing) * 0.6], 50);
   }],
   ['03-sluice-fully-upgraded', (P) => {
     P.setup({ levels: 'max', pileLeft: 0.6, sluiceQueue: 3000, rocks: 6000 });
@@ -60,17 +62,17 @@ const SHOTS = [
     // From the side of the arm, so the bucket digging into the pile is in full view
     const mid = [(s.cab[0] + s.bucket[0]) / 2, (s.cab[2] + s.bucket[2]) / 2];
     const across = Math.atan2(s.bucket[2] - s.cab[2], s.bucket[0] - s.cab[0]) - Math.PI / 2 + 0.2;
-    P.camera([mid[0] + Math.cos(across) * 6.2, 2.6, mid[1] + Math.sin(across) * 6.2], [mid[0] - 0.8, 1.7, mid[1] - 0.6], 60);
+    P.camera([mid[0] + Math.cos(across) * 6.2, s.bench + 2.6, mid[1] + Math.sin(across) * 6.2], [mid[0] - 0.8, s.bench + 1.7, mid[1] - 0.6], 60);
   }],
   ['05-excavator-dumping-into-sluice', (P) => {
     P.setup({ levels: 'max', pileLeft: 0.75, sluiceQueue: 400 });
     P.step(1.5);
-    // Tipped nearly far enough to empty (DUMP_PITCH is -1.1), so the load still shows while dirt pours out
-    P.excavator({ swing: 0.85, bucketPitch: -1.05, load: 0.7 });
-    P.bucketDirt('belly', 45, { falling: true, lift: 0.3 });
-    P.step(0.12);
+    // Over the hopper (swing range: P.swingRange), holding F: it tips out and pours a stream of dirt into the hopper
+    P.excavator({ swing: P.swingRange.hopperMiddle, bucketPitch: -0.9, load: 0.8, hold: ['KeyF'] });
+    P.step(0.7);
     const s = P.spots();
-    P.camera([s.bucket[0] + 4.5, 4.6, s.bucket[2] - 6], [s.bucket[0] - 0.3, 1.2, s.bucket[2]], 55);
+    // From down by the sluice, looking up at the bucket pouring into the hopper below the bench's edge
+    P.camera([s.hopper[0] + 4.2, 3.4, s.hopper[2] - 5.4], [s.hopper[0] - 0.6, 2.7, s.hopper[2] - 0.2], 55);
   }],
   ['06-big-nugget-found', (P) => {
     P.setup({ levels: 'max', pileLeft: 0.6, sluiceQueue: 3000 });
@@ -97,7 +99,7 @@ const SHOTS = [
     P.excavator({ swing: -1.6, bucketPitch: -0.3 });
     P.step(0.5);
     const s = P.spots();
-    P.camera([s.pile[0] + 9, 3.2, s.pile[2] - 4.5], [s.pile[0] - 2, 0.6, s.pile[2] - 0.5], 60); // with the sun behind, over the bare ground where the pile was
+    P.camera([s.pile[0] + 9, s.bench + 3.2, s.pile[2] - 4.5], [s.pile[0] - 2, s.bench + 0.6, s.pile[2] - 0.5], 60); // with the sun behind, over the bare bench where the pile was
   }],
   ['10-empty-site-at-sunset', (P) => {
     P.setup({ levels: 'max', pileLeft: 0, rocks: 12000 });
@@ -173,7 +175,11 @@ async function startChrome() {
   function close() {
     socket.close();
     chrome.kill();
-    setTimeout(() => fs.rmSync(profile, { recursive: true, force: true }), 1000);
+    setTimeout(() => {
+      try {
+        fs.rmSync(profile, { recursive: true, force: true });
+      } catch (e) { /* Windows may still have Chrome's files open: it's only a temporary folder, so leave it */ }
+    }, 1000);
   }
   return { send, run, close };
 }

@@ -37,7 +37,10 @@ Core loop:
     - **Never touching the sluice:** the arm is at a fixed height, so the bucket is always well above the sluice and hopper (see above). `bucketClearsSluice()` is a safety net in `operateExcavator()`: a swing or tilt that would bring any part of the bucket within `SLUICE_CLEARANCE` (0.5 m) above the sluice is undone.
     - **Checked** in a headless Chrome, from the cab and from the side, at Bucket Size 1 and 12: the bucket sits right over the hopper, clearly above it, and the stream falls into the opening, also at the window's edges (swings 0.55 and 1.12). Photo mode's `swingRange` gives the window and `hopperMiddle`, and its `excavator({ hold })` now also holds keys that haven't been pressed yet.
   - Moved for the bench: the hidden nugget `path` is now on the ramp (-5, 1.2). The DIRT and SLUICE signs stand on the bench (`makeSign()` uses the ground height). Fence posts and rails follow the ground, and rails slant over the slopes.
-  - Photo mode still works, but its camera spots (`tools/capture-cutscene.mjs`) were set before the bench: re-aim them before taking new cutscene pictures.
+  - **Photo mode and the cutscene shots** are updated for the bench:
+    - **Helpers:** `spots()` gives real heights (the pile's includes the bench) plus `bench` and `hopper`, `ground(x, z)` gives the ground's height, the miner stands on the bench (`minerDigging()` returns his `y`), and `bucketDirt()` lands its dirt on the bench or in the hopper.
+    - **Shots:** in `tools/capture-cutscene.mjs`, 01, 02, 04 and 09 measure their camera heights from the bench or the ground. 05 holds F over the hopper (`swingRange.hopperMiddle`) and shows the real stream pouring into it, with the rim glowing. 03 and 06 to 10 didn't need changing.
+    - **Fix:** the tool no longer crashes at the end when Windows still has Chrome's temporary folder open.
 
 ### Version 14: the global Hall of Fame
 
