@@ -297,6 +297,9 @@
     body.touch #toolbar { top: max(8px, env(safe-area-inset-top)); bottom: auto; gap: 6px; padding: 5px 6px 4px; }
     body.touch .tool-slot, body.touch .tool-slot canvas { width: 40px; height: 40px; }
     body.touch .tool-slot .badge { top: auto; bottom: -7px; right: -5px; font-size: 9px; padding: 0 4px; }
+    /* No "+$12" pop-up next to the wallet: on small screens it ran into the tool bar.
+       It floats on top of the page (position: absolute), so hiding it doesn't move anything else. */
+    body.touch #gain { display: none; }
 
     /* Short screens (phones in landscape): a smaller display */
     @media (max-height: 540px) {
