@@ -100,16 +100,12 @@
     /* ---- Top right: speaker button, excavator controls; bottom right: graphics quality ---- */
     #sound { position: fixed; top: 12px; right: 12px; width: 48px; height: 48px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 20; }
     #sound .k { position: absolute; bottom: 1px; right: 4px; font-size: 10px; color: var(--tan); }
-    /* z-index 7 keeps it above the pause screen, so you can click its tab while the mouse is free */
+    /* z-index 7 keeps it above the pause screen, so you can click its title while the mouse is free */
     #excavator-help { position: fixed; top: 72px; right: 12px; padding: 10px 14px; font-size: 14px; line-height: 1.6; pointer-events: none; z-index: 7; }
     #excavator-help[hidden] { display: none; }
     #help-toggle { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 4px; padding: 0; background: none; border: none; color: var(--gold); font: 17px Rye, Georgia, serif; text-align: left; cursor: pointer; pointer-events: auto; }
     #help-toggle .arrow { margin-left: auto; font: 13px Bitter, Georgia, serif; color: var(--tan); }
     #excavator-help td:first-child { padding-right: 12px; white-space: nowrap; }
-    /* Folded away: just a tiny "H: show controls" tab in the corner */
-    #excavator-help.collapsed { padding: 4px 10px; }
-    #excavator-help.collapsed table { display: none; }
-    #excavator-help.collapsed #help-toggle { margin: 0; font: 12px Bitter, Georgia, serif; color: #e6d3a8; }
 
     /* ---- Tool bar along the bottom: one icon for every tool you own ---- */
     #toolbar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 9px 10px 7px; pointer-events: none; }
@@ -419,15 +415,15 @@
   <div id="saved" class="plaque">Saved</div>
 
   <div id="excavator-help" class="plaque" hidden>
-    <!-- The title doubles as a button that folds the guide away (its text is set by updateExcavatorHelp()) -->
-    <button id="help-toggle" type="button"></button>
+    <!-- The title doubles as a button that hides the guide (the same as H, or "Hidden" in Settings) -->
+    <button id="help-toggle" type="button">Using the excavator <span class="arrow">&#9650; hide (H)</span></button>
     <table>
       <tr><td><kbd>A</kbd> <kbd>D</kbd></td><td>swing the arm left / right</td></tr>
       <tr><td><kbd>Q</kbd> or left click</td><td>curl the bucket in: scoop (hold, above the dirt pile)</td></tr>
       <tr><td><kbd>F</kbd> or right click</td><td>tip the bucket out: dump (hold, over the sluice)</td></tr>
       <tr><td>Mouse</td><td>look around</td></tr>
       <tr><td><kbd>E</kbd></td><td>get out</td></tr>
-      <tr><td><kbd>H</kbd></td><td>hide this guide</td></tr>
+      <tr><td><kbd>H</kbd></td><td>hide this guide (H again, or Settings, brings it back)</td></tr>
     </table>
   </div>
 
@@ -4408,27 +4404,33 @@
     const helpToggle = document.getElementById('help-toggle');
     const crosshair = document.getElementById('crosshair');
 
-    // The controls guide can be folded away with H (or by clicking its title while the mouse is free, or in Settings).
-    // It's saved with the game's settings (see "Saving and loading"). The very first time, it starts open.
-    // (Older versions kept it under its own key: that's still read, for players who had already closed it.)
-    const OLD_HELP_KEY = 'goldRush.excavatorHelp';
+    // The controls guide: one setting, helpOpen, shown as "Shown" / "Hidden" in Settings.
+    // H (in the cab), clicking the guide's title (while the mouse is free) and the Settings button all flip the same value.
+    // Hidden means it never shows in the cab at all. (Phones never show it: their buttons are labelled instead.)
+    // It's kept under its own key, written every time it changes, so it sticks even before there's a saved game,
+    // and it's also in the save's settings (so backup codes carry it). With nothing stored yet, it starts shown.
+    const HELP_KEY = 'goldRush.excavatorHelp'; // 'open' or 'closed'
     let helpOpen = true;
     try {
-      helpOpen = localStorage.getItem(OLD_HELP_KEY) !== 'closed';
-    } catch (e) { /* storage blocked (like in a private window): just start open */ }
+      helpOpen = localStorage.getItem(HELP_KEY) !== 'closed';
+    } catch (e) { /* storage blocked (like in a private window): just start shown */ }
 
+    // Show the guide only while you're in the cab, and only if the setting says Shown
     function updateExcavatorHelp() {
-      excavatorHelp.classList.toggle('collapsed', !helpOpen);
-      helpToggle.innerHTML = helpOpen
-        ? 'Using the excavator <span class="arrow">&#9650; hide (H)</span>'
-        : '<kbd>H</kbd> show controls <span class="arrow">&#9660;</span>';
+      excavatorHelp.hidden = !(state.inExcavator && helpOpen);
     }
-    updateExcavatorHelp();
 
-    function toggleExcavatorHelp() {
-      helpOpen = !helpOpen;
+    // Change the setting. remember: also write it to storage and the save (not while a save is being loaded).
+    function setExcavatorHelp(open, remember = true) {
+      helpOpen = open;
       updateExcavatorHelp();
-      saveGame(false); // remember it (quietly)
+      try {
+        localStorage.setItem(HELP_KEY, open ? 'open' : 'closed');
+      } catch (e) { /* storage blocked: it still works until the page closes */ }
+      if (remember) saveGame(false); // quietly
+    }
+    function toggleExcavatorHelp() {
+      setExcavatorHelp(!helpOpen);
     }
     helpToggle.addEventListener('click', () => {
       toggleExcavatorHelp();
@@ -4440,7 +4442,7 @@
       cabYaw = 0;
       cabPitch = -0.3; // look a bit down, at the bucket
       for (const code in keys) keys[code] = false;
-      excavatorHelp.hidden = false;
+      updateExcavatorHelp(); // shows the guide only if the setting says Shown
       crosshair.style.display = 'none';
       sfx.engineStart();
     }
@@ -4448,7 +4450,7 @@
     function exitExcavator() {
       state.inExcavator = false;
       for (const code in keys) keys[code] = false;
-      excavatorHelp.hidden = true;
+      updateExcavatorHelp();
       crosshair.style.display = '';
       sfx.engineStop();
       // Climb out next to the cab door (left side). If something is in the way, try the right side, then the back.
@@ -6078,10 +6080,7 @@
         updateSoundIcon();
       }
       if (settings.quality === 'High' || settings.quality === 'Low') setQuality(settings.quality);
-      if (typeof settings.controlsGuide === 'boolean') {
-        helpOpen = settings.controlsGuide;
-        updateExcavatorHelp();
-      }
+      if (typeof settings.controlsGuide === 'boolean') setExcavatorHelp(settings.controlsGuide, false);
       if (TABS.some((tab) => tab.id === save.shopTab)) shopTab = save.shopTab;
       // The wallet shows the loaded money straight away (no counting up, no "+$" popup)
       shownMoney = lastMoney = state.money;
