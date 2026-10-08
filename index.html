@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <!-- viewport-fit=cover: use the whole screen on phones with a notch (see the safe-area padding below) -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <!-- viewport-fit=cover: use the whole screen on phones with a notch (see the safe-area padding below).
+       The scale is fixed at 1 (no zooming in or out); fitScreen() puts it back if a browser zoomed anyway. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Gold Rush</title>
   <!-- Installable app (PWA): the manifest gives the name, icon and full-screen landscape; sw.js makes it work offline -->
   <link rel="manifest" href="manifest.json">
@@ -26,9 +27,18 @@
       --tan: #e6c98a;
       --brass: #c89a3a;
       --panel: linear-gradient(180deg, rgba(62, 38, 18, 0.9), rgba(30, 18, 8, 0.9));
+      /* The gap around full-screen panels: 8px, or more where a notch or rounded corner is */
+      --edge: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
     }
-    html, body { margin: 0; height: 100%; overflow: hidden; background: #b9d3e6; font-family: Bitter, Georgia, serif; color: #fff; }
-    /* Phones: no pinch-zooming, page dragging, text selecting or grey flashes when you tap (the shop can still scroll) */
+    /* The page is exactly the visible screen and never scrolls or zooms. --app-w and --app-h are the visible
+       screen's size, set by fitScreen() (100dvh until then: the screen's height with the address bar showing).
+       text-size-adjust: phones mustn't make the writing bigger by themselves. */
+    html, body { margin: 0; width: 100%; height: 100%; height: 100dvh; overflow: hidden; overscroll-behavior: none; background: #b9d3e6; font-family: Bitter, Georgia, serif; color: #fff; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+    html { touch-action: none; }
+    body { position: fixed; inset: 0; }
+    /* The 3D view sits on the screen, not in the page, so it can never make the page wider than the screen */
+    body > canvas { position: fixed; top: 0; left: 0; z-index: -1; display: block; } /* z-index -1: under all the panels */
+    /* Phones: no pinch-zooming, page dragging, text selecting or grey flashes when you tap (panels can still scroll) */
     body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
     button { font-family: inherit; }
     /* Shiny gold writing */
@@ -49,6 +59,8 @@
        (a row with nothing to say is just empty). --row and --bar are the heights of a line and a mini bar. */
     #hud { --row: 20px; --bar: 10px; position: fixed; top: 12px; left: 12px; width: 290px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; font-variant-numeric: tabular-nums; white-space: nowrap; }
     #hud > .plaque { box-sizing: border-box; flex: none; }
+    /* Shrunk to fit small screens by fitPanels() (--hud-scale, 1 = full size) */
+    #hud { transform: scale(var(--hud-scale, 1)); transform-origin: top left; }
     #pile-box, #status { overflow: hidden; }
     #wallet-box { position: relative; display: flex; align-items: center; gap: 12px; padding: 8px 14px; height: 70px; }
     #wallet { font: 34px/1.05 Rye, Georgia, serif; }
@@ -101,14 +113,15 @@
     #sound { position: fixed; top: 12px; right: 12px; width: 48px; height: 48px; padding: 0; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 20; }
     #sound .k { position: absolute; bottom: 1px; right: 4px; font-size: 10px; color: var(--tan); }
     /* z-index 7 keeps it above the pause screen, so you can click its title while the mouse is free */
-    #excavator-help { position: fixed; top: 72px; right: 12px; padding: 10px 14px; font-size: 14px; line-height: 1.6; pointer-events: none; z-index: 7; }
+    #excavator-help { position: fixed; top: 72px; right: 12px; transform: scale(var(--help-scale, 1)); transform-origin: top right; padding: 10px 14px; font-size: 14px; line-height: 1.6; pointer-events: none; z-index: 7; }
     #excavator-help[hidden] { display: none; }
     #help-toggle { display: flex; align-items: center; gap: 10px; width: 100%; margin: 0 0 4px; padding: 0; background: none; border: none; color: var(--gold); font: 17px Rye, Georgia, serif; text-align: left; cursor: pointer; pointer-events: auto; }
     #help-toggle .arrow { margin-left: auto; font: 13px Bitter, Georgia, serif; color: var(--tan); }
     #excavator-help td:first-child { padding-right: 12px; white-space: nowrap; }
 
     /* ---- Tool bar along the bottom: one icon for every tool you own ---- */
-    #toolbar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; padding: 9px 10px 7px; pointer-events: none; }
+    /* --bar-scale: shrunk to fit between the other panels by fitPanels() */
+    #toolbar { position: fixed; bottom: 12px; left: 50%; transform: translateX(-50%) scale(var(--bar-scale, 1)); transform-origin: bottom center; display: flex; gap: 10px; padding: 9px 10px 7px; pointer-events: none; }
     .tool-slot { position: relative; width: 60px; height: 60px; border-radius: 8px; background: radial-gradient(circle at 50% 35%, #5a3b1d, #24160a); border: 2px solid #7d5a26; box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6); }
     .tool-slot.max { border-color: #ffd54a; animation: glow 2s ease-in-out infinite; } /* fully upgraded */
     @keyframes glow { 0%, 100% { box-shadow: 0 0 8px rgba(255, 213, 74, 0.6); } 50% { box-shadow: 0 0 18px rgba(255, 213, 74, 1); } }
@@ -119,9 +132,9 @@
     @keyframes pop { 50% { transform: scale(1.35); } }
 
     /* ---- Shop menu: parchment cards on a wooden board ---- */
-    #shop { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.8)); z-index: 5; }
+    #shop { position: fixed; inset: 0; height: var(--app-h, 100dvh); box-sizing: border-box; padding: var(--edge); display: flex; align-items: center; justify-content: center; background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0.8)); z-index: 5; }
     #shop[hidden] { display: none; }
-    #shop-panel { width: min(1060px, 96vw); max-height: 94vh; overflow-y: auto; box-sizing: border-box; padding: 14px 20px 16px; border: 3px solid var(--brass); border-radius: 14px; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 2px, transparent 2px 40px), linear-gradient(180deg, #4a2d14, #2c1a0a); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), inset 0 0 0 2px rgba(255, 220, 140, 0.15); }
+    #shop-panel { width: min(1060px, 100%); max-height: 100%; overflow-y: auto; box-sizing: border-box; padding: 14px 20px 16px; border: 3px solid var(--brass); border-radius: 14px; background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.14) 0 2px, transparent 2px 40px), linear-gradient(180deg, #4a2d14, #2c1a0a); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), inset 0 0 0 2px rgba(255, 220, 140, 0.15); }
     #shop-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-bottom: 8px; margin-bottom: 4px; border-bottom: 2px solid rgba(200, 154, 58, 0.5); }
     #shop h2 { margin: 0; font: 34px Rye, Georgia, serif; }
     #shop-money { display: flex; align-items: center; gap: 8px; font: 26px Rye, Georgia, serif; color: var(--gold); }
@@ -161,19 +174,20 @@
     #shop-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; font-size: 13px; color: #e6d3a8; }
 
     /* ---- Start (pause) screen and end screen ---- */
-    #start, #end { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; background: radial-gradient(ellipse at center, rgba(20, 12, 4, 0.35), rgba(20, 12, 4, 0.85)); }
+    #start, #end { position: fixed; inset: 0; height: var(--app-h, 100dvh); box-sizing: border-box; padding: var(--edge); display: flex; align-items: center; justify-content: center; text-align: center; background: radial-gradient(ellipse at center, rgba(20, 12, 4, 0.35), rgba(20, 12, 4, 0.85)); }
     #start { cursor: pointer; z-index: 6; }
     #end { z-index: 15; }
     #end[hidden] { display: none; }
 
     /* ---- The ending cutscene: a film that fills the screen, before the end screen ---- */
-    #cutscene { position: fixed; inset: 0; z-index: 20; background: #000; touch-action: none; }
+    #cutscene { position: fixed; inset: 0; height: var(--app-h, 100dvh); z-index: 20; background: #000; touch-action: none; }
     #cutscene[hidden] { display: none; }
     #cutscene video { width: 100%; height: 100%; object-fit: contain; display: block; } /* the whole picture, with black bars if the screen's shape is different */
     #cutscene-skip { position: absolute; right: max(18px, env(safe-area-inset-right)); bottom: max(18px, env(safe-area-inset-bottom)); min-width: 96px; min-height: 48px; font-size: 18px; opacity: 0.85; }
     #cutscene-sound { position: absolute; left: max(18px, env(safe-area-inset-left)); bottom: max(18px, env(safe-area-inset-bottom)); min-height: 48px; font-size: 16px; opacity: 0.85; }
     #cutscene-sound[hidden] { display: none; }
-    .card { width: min(620px, 92vw); box-sizing: border-box; padding: 22px 28px; }
+    /* The start screen, end screen and pop-ups: always inside the screen, scrolling inside if they're too tall */
+    .card { width: min(620px, 100%); max-height: 100%; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; box-sizing: border-box; padding: 22px 28px; }
     #start h1 { margin: 0; font: 78px/1 Rye, Georgia, serif; }
     .tagline { margin: 8px 0 14px; letter-spacing: 3px; text-transform: uppercase; color: var(--tan); font-size: 14px; }
     .play { display: inline-block; margin: 2px 0 16px; padding: 10px 28px; font-size: 20px; font-weight: 700; color: var(--ink); background: linear-gradient(180deg, #ffe680, #d49a1c); border: 2px solid #7a5208; border-radius: 10px; animation: pulse 1.6s ease-in-out infinite; }
@@ -182,7 +196,6 @@
     .controls span:nth-child(odd) { text-align: right; }
     #start p, #end p { margin: 5px 0; font-size: 15px; color: #f1e4c4; }
     #end h2 { margin: 0 0 6px; font: 38px Rye, Georgia, serif; }
-    #end .card { max-height: 94dvh; overflow-y: auto; }
     #end-stats { margin: 10px auto; font-size: 17px; border-spacing: 18px 3px; }
     #end-stats th { padding-top: 10px; text-align: left; font: 15px Rye, Georgia, serif; letter-spacing: 1px; color: var(--gold); border-bottom: 1px solid rgba(201, 161, 59, 0.45); }
     #end-stats td:first-child { text-align: left; color: var(--tan); }
@@ -201,9 +214,9 @@
     .hof-message.bad { color: #ff9a8a; }
 
     /* ---- Hall of Fame: the list ---- */
-    #hof { position: fixed; inset: 0; z-index: 17; display: flex; align-items: center; justify-content: center; background: rgba(20, 12, 4, 0.75); }
+    #hof { position: fixed; inset: 0; height: var(--app-h, 100dvh); box-sizing: border-box; padding: var(--edge); z-index: 17; display: flex; align-items: center; justify-content: center; background: rgba(20, 12, 4, 0.75); }
     #hof[hidden] { display: none; }
-    #hof .card { width: min(820px, 96vw); max-height: 94dvh; overflow-y: auto; text-align: center; touch-action: pan-y; }
+    #hof .card { width: min(820px, 100%); text-align: center; }
     #hof h2 { margin: 0; font: 38px Rye, Georgia, serif; }
     #hof-practice { margin: 2px 0 0; color: #ffb36b; font-size: 13px; }
     #hof-practice[hidden] { display: none; }
@@ -228,15 +241,15 @@
     #start-buttons .btn { font-size: 14px; padding: 6px 14px; }
 
     /* ---- Settings panel and the "Are you sure?" box (both sit above the pause and end screens) ---- */
-    #settings, #confirm { position: fixed; inset: 0; z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.55); }
+    #settings, #confirm { position: fixed; inset: 0; height: var(--app-h, 100dvh); box-sizing: border-box; padding: var(--edge); z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.55); }
     #settings[hidden], #confirm[hidden] { display: none; }
-    #settings .card, #confirm .card { width: min(520px, 92vw); max-height: 94dvh; overflow-y: auto; touch-action: pan-y; text-align: left; }
+    #settings .card, #confirm .card { width: min(520px, 100%); text-align: left; }
     #settings h2, #confirm h2 { margin: 0 0 10px; font: 30px Rye, Georgia, serif; text-align: center; }
     #settings .set-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid rgba(200, 154, 58, 0.3); }
     #settings .set-row .btn { min-width: 110px; }
     #settings h3 { margin: 14px 0 4px; font: 18px Rye, Georgia, serif; color: var(--gold); }
     #settings p, #confirm p { margin: 4px 0; font-size: 14px; color: #f1e4c4; }
-    #settings textarea { width: 100%; height: 70px; box-sizing: border-box; margin: 6px 0; padding: 6px; resize: vertical; font: 12px monospace; color: #3b2410; background: #f4e6c4; border: 1px solid var(--brass); border-radius: 6px; -webkit-user-select: text; user-select: text; touch-action: auto; }
+    #settings textarea { width: 100%; height: 70px; box-sizing: border-box; margin: 6px 0; padding: 6px; resize: vertical; font: 16px monospace; color: #3b2410; background: #f4e6c4; border: 1px solid var(--brass); border-radius: 6px; -webkit-user-select: text; user-select: text; touch-action: pan-y; }
     #settings .buttons, #confirm .buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
     #backup-note { min-height: 1.3em; font-weight: 700; color: var(--gold) !important; }
     #confirm .card { text-align: center; }
@@ -290,7 +303,7 @@
     body.touch #status .hint { display: none; }
     body.touch #excavator-help { display: none !important; } /* the touch buttons are labelled instead */
     /* The tool bar moves to the top middle, out of the way of your thumbs */
-    body.touch #toolbar { top: max(8px, env(safe-area-inset-top)); bottom: auto; gap: 6px; padding: 5px 6px 4px; }
+    body.touch #toolbar { top: max(8px, env(safe-area-inset-top)); bottom: auto; transform-origin: top center; gap: 6px; padding: 5px 6px 4px; }
     body.touch .tool-slot, body.touch .tool-slot canvas { width: 40px; height: 40px; }
     body.touch .tool-slot .badge { top: auto; bottom: -7px; right: -5px; font-size: 9px; padding: 0 4px; }
     /* No "+$12" pop-up next to the wallet: on small screens it ran into the tool bar.
@@ -320,7 +333,7 @@
       #jackpot-weight { font-size: 13px; }
       #jackpot-value { font-size: 24px; }
       /* Start and end screens: smaller, and they scroll if they still don't fit */
-      .card { max-height: 94dvh; overflow-y: auto; padding: 12px 18px; touch-action: pan-y; }
+      .card { padding: 12px 18px; }
       #start h1 { font-size: 44px; }
       .tagline { margin: 4px 0 8px; font-size: 12px; }
       .play { margin-bottom: 8px; padding: 8px 24px; }
@@ -338,11 +351,23 @@
       #hof-table td { padding: 3px 5px; }
       .hof-tab { min-height: 36px; }
       /* The shop fills the whole screen */
-      #shop-panel { width: 100vw; max-height: none; height: 100dvh; border-radius: 0; border-width: 0; padding: 0 max(10px, env(safe-area-inset-right)) 10px max(10px, env(safe-area-inset-left)); }
+      #shop { padding: 0; }
+      #shop-panel { width: 100%; max-height: none; height: 100%; border-radius: 0; border-width: 0; padding: 0 max(10px, env(safe-area-inset-right)) 10px max(10px, env(safe-area-inset-left)); }
       #shop h2 { font-size: 22px; }
       #shop-money { font-size: 20px; }
       .shop-tab { font-size: 15px; padding: 6px 4px; }
       #shop-summary { font-size: 12px; padding: 4px 8px; }
+    }
+    /* Very short screens (say a phone with big text): smaller thumb buttons, so they don't run into each other */
+    @media (max-height: 300px) {
+      .tbtn { font-size: 11px; }
+      .tbtn .ico { font-size: 20px; }
+      #t-use, #t-scoop { width: 70px; height: 70px; }
+      #t-dig { right: calc(max(18px, env(safe-area-inset-right)) + 80px); width: 60px; height: 60px; }
+      #t-dump { right: calc(max(18px, env(safe-area-inset-right)) + 80px); width: 70px; height: 70px; }
+      #t-shop, #t-exit { right: calc(max(18px, env(safe-area-inset-right)) + 11px); bottom: calc(max(18px, env(safe-area-inset-bottom)) + 80px); width: 48px; height: 48px; }
+      #t-left, #t-right { width: 66px; height: 66px; }
+      #t-right { left: calc(max(18px, env(safe-area-inset-left)) + 76px); }
     }
     /* The shop on a touch screen: scrolls with your finger, big rows and tabs, a close button that stays in view */
     body.touch #shop-panel { touch-action: pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
@@ -355,7 +380,7 @@
     body.touch #shop-money { margin-left: auto; }
 
     /* Phones held upright: ask to turn them sideways */
-    #rotate { position: fixed; inset: 0; z-index: 50; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; background: radial-gradient(ellipse at center, #4a2d14, #1a0f05); }
+    #rotate { position: fixed; inset: 0; height: var(--app-h, 100dvh); box-sizing: border-box; z-index: 50; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; text-align: center; background: radial-gradient(ellipse at center, #4a2d14, #1a0f05); }
     #rotate h2 { margin: 0; font: 30px Rye, Georgia, serif; }
     #rotate p { margin: 0; color: #f1e4c4; font-size: 16px; }
     #rotate .phone { width: 54px; height: 92px; border: 4px solid var(--gold); border-radius: 10px; animation: turn 2.2s ease-in-out infinite; }
@@ -1134,27 +1159,22 @@
     const HAZE = 0xc9dbe8; // pale blue-grey: faraway hills and trees fade into it, like on a hazy day
     scene.fog = new THREE.Fog(HAZE, 45, 230);
 
-    const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.1, 1000);
+    // The visible screen's size in CSS pixels. fitScreen() keeps it up to date (see "Fitting the screen").
+    let screenW = innerWidth, screenH = innerHeight;
+    const camera = new THREE.PerspectiveCamera(75, screenW / screenH, 0.1, 1000);
     camera.position.set(0, 1.6, 2); // 1.6 m is roughly eye height
 
     // Phones and tablets: their main "pointer" is a finger ("coarse"). They get touch controls and lighter graphics.
     const TOUCH_DEVICE = matchMedia('(pointer: coarse)').matches;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setSize(innerWidth, innerHeight);
+    renderer.setSize(screenW, screenH);
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping; // softer, more film-like colours and light
     renderer.toneMappingExposure = 1.05;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;   // shadows with soft edges
     document.body.appendChild(renderer.domElement);
-
-    addEventListener('resize', () => {
-      camera.aspect = innerWidth / innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(innerWidth, innerHeight);
-      updateParticleScale();
-    });
 
     // ---------- Small maths helpers ----------
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -4418,6 +4438,7 @@
     // Show the guide only while you're in the cab, and only if the setting says Shown
     function updateExcavatorHelp() {
       excavatorHelp.hidden = !(state.inExcavator && helpOpen);
+      requestAnimationFrame(fitPanels); // shrink it to fit the screen, now it can be measured
     }
 
     // Change the setting. remember: also write it to storage and the save (not while a save is being loaded).
@@ -5176,6 +5197,7 @@
         }
         toolbarEl.appendChild(slot);
       }
+      requestAnimationFrame(fitPanels); // a new tool makes the bar wider: shrink it if it no longer fits
     }
     updateToolbar();
 
@@ -5324,6 +5346,7 @@
       if (on === touchMode) return;
       touchMode = on;
       document.body.classList.toggle('touch', on);
+      requestAnimationFrame(fitPanels); // the panels move and change size in touch mode
       // Switched to the mouse in the middle of a game: pause, so a click can capture the mouse
       if (!on && playing && !document.pointerLockElement) setPlaying(false);
     }
@@ -5709,6 +5732,97 @@
       updateTouchButtons();
     }
 
+    // ---------- Fitting the screen ----------
+    // Phones change the visible screen a lot: turning the phone, the address bar sliding in and out, going
+    // full-screen and back, coming back from another app or tab. Each time, fitScreen() measures the part of the
+    // screen you can actually see (visualViewport) and resizes the 3D view, the full-screen panels (--app-h)
+    // and the on-screen panels to match. Phones often report the new size a little late, so fitSoon() checks
+    // again a few times over the next second.
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; // a reload never brings back an old scroll
+
+    // The visible screen's size at normal zoom, in CSS pixels
+    function visibleSize() {
+      const vv = window.visualViewport;
+      const w = vv ? vv.width * vv.scale : innerWidth;
+      const h = vv ? vv.height * vv.scale : innerHeight;
+      return [Math.max(1, Math.round(w)), Math.max(1, Math.round(h))];
+    }
+
+    // The page should never be zoomed, but some browsers zoom anyway (an accessibility setting can allow it,
+    // and Chrome can bring back an old zoom when the page reloads). Writing the viewport setting again resets it.
+    function resetZoom() {
+      const content = viewportMeta.content;
+      viewportMeta.content = content.replace('maximum-scale=1.0', 'maximum-scale=1.01');
+      requestAnimationFrame(() => { viewportMeta.content = content; });
+    }
+
+    function fitScreen() {
+      if (PHOTO_MODE) return; // photo mode sets its own picture size
+      const vv = window.visualViewport;
+      if (vv && Math.abs(vv.scale - 1) > 0.01) resetZoom();
+      if (scrollX || scrollY) scrollTo(0, 0); // never scrolled sideways (or down)
+      const [w, h] = visibleSize();
+      document.documentElement.style.setProperty('--app-h', `${h}px`);
+      const canvasSize = renderer.getSize(new THREE.Vector2());
+      if (w !== screenW || h !== screenH || canvasSize.x !== w || canvasSize.y !== h) {
+        screenW = w;
+        screenH = h;
+        camera.aspect = w / h;
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h);
+        updateParticleScale();
+      }
+      fitPanels();
+    }
+
+    let fitTimers = [];
+    function fitSoon() {
+      requestAnimationFrame(fitScreen);
+      for (const timer of fitTimers) clearTimeout(timer);
+      fitTimers = [150, 500, 1000].map((ms) => setTimeout(fitScreen, ms));
+    }
+    addEventListener('resize', fitSoon);
+    addEventListener('orientationchange', fitSoon);
+    if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', fitSoon);
+    if (window.visualViewport) {
+      visualViewport.addEventListener('resize', fitSoon); // the address bar showing or hiding, the keyboard
+      visualViewport.addEventListener('scroll', fitSoon); // the page was zoomed or moved
+    }
+    addEventListener('pageshow', fitSoon); // the page comes back (also from the browser's back/forward memory)
+    addEventListener('focus', fitSoon);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) fitSoon(); }); // back from another app or tab
+    document.addEventListener('fullscreenchange', fitSoon);
+
+    // The HUD, tool bar and excavator guide shrink (never grow) to fit small screens, like phones held sideways.
+    // offsetWidth / offsetHeight are their full sizes (the shrinking doesn't change them).
+    function fitPanels() {
+      const root = document.documentElement.style;
+      const fit = (room, size) => (size > 0 ? clamp(room / size, 0.5, 1) : 1);
+      const thumbRoom = touchMode ? 100 : 0; // on a touch screen, keep the bottom corners clear for thumb buttons
+
+      // HUD (top left): at most the screen's height (minus thumb room) and 40% of its width
+      const hudEl = document.getElementById('hud');
+      const hudTop = hudEl.getBoundingClientRect().top;
+      const hudScale = Math.min(fit(screenH - hudTop - 8 - thumbRoom, hudEl.offsetHeight), fit(screenW * 0.4, hudEl.offsetWidth));
+      root.setProperty('--hud-scale', hudScale);
+
+      // Tool bar: in the middle, between the HUD and the buttons in the top right (touch) or across the bottom
+      const bar = document.getElementById('toolbar');
+      let barRoom = screenW - 24;
+      if (touchMode) {
+        const hudRight = hudEl.getBoundingClientRect().left + hudEl.offsetWidth * hudScale;
+        const buttonsLeft = document.getElementById('sound').getBoundingClientRect().left - 58; // the pause button sits left of the sound button
+        barRoom = 2 * (Math.min(screenW / 2 - hudRight, buttonsLeft - screenW / 2) - 8);
+      }
+      root.setProperty('--bar-scale', fit(barRoom, bar.offsetWidth));
+
+      // The excavator controls guide (computers only), under the sound button
+      const help = document.getElementById('excavator-help');
+      if (!help.hidden) root.setProperty('--help-scale', Math.min(fit(screenH - 84, help.offsetHeight), fit(screenW * 0.45, help.offsetWidth)));
+    }
+    document.fonts.ready.then(fitPanels); // the western font changes the panels' sizes once it has loaded
+
     // ---------- Graphics quality: G switches between High and Low. Low runs faster on slower computers. ----------
     // High: sharp on high-resolution screens, shadows, lots of grass and particles.
     // Low: fewer pixels, no shadows, a third of the grass, half the particles.
@@ -5722,13 +5836,14 @@
       quality = name;
       const q = QUALITY[name];
       renderer.setPixelRatio(q.pixelRatio);
-      renderer.setSize(innerWidth, innerHeight);
+      renderer.setSize(screenW, screenH);
       sun.castShadow = q.shadows;
       grass.count = Math.floor(GRASS_COUNT * q.grass);
       particleAmount = q.particles;
       updateParticleScale();
     }
     setQuality(TOUCH_DEVICE ? 'Low' : 'High');
+    requestAnimationFrame(fitScreen); // fit the screen once everything has been set up
     // G or Settings switch it, and the choice is saved. Nothing about graphics is shown on the play screen.
     function switchQuality() {
       setQuality(quality === 'High' ? 'Low' : 'High');
