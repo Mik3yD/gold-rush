@@ -1050,7 +1050,7 @@
     const POND_PARTS = TABS[2].items;
     const EXCAVATOR_PARTS = ['digBucket', 'speed'];
 
-    // The excavator never moves: it sits here, between the dirt pile and the sluice.
+    // The excavator never moves: it sits here, up on the dig bench between the dirt pile and the sluice's hopper.
     // heading = which way its tracks face (this way they point towards the middle of the dig site).
     const EXCAVATOR_SPOT = { x: 0, z: -10, heading: -Math.PI / 2 };
     // How the arm is posed at the start. swing = the top part turned left/right, boom = arm raised up (radians),
@@ -1162,7 +1162,7 @@
     // The visible screen's size in CSS pixels. fitScreen() keeps it up to date (see "Fitting the screen").
     let screenW = innerWidth, screenH = innerHeight;
     const camera = new THREE.PerspectiveCamera(75, screenW / screenH, 0.1, 1000);
-    camera.position.set(0, 1.6, 2); // 1.6 m is roughly eye height
+    camera.position.set(0, 1.6, 2); // 1.6 m is roughly eye height (standOnGround() keeps you that far above the ground)
 
     // Phones and tablets: their main "pointer" is a finger ("coarse"). They get touch controls and lighter graphics.
     const TOUCH_DEVICE = matchMedia('(pointer: coarse)').matches;
@@ -1734,7 +1734,8 @@
     const PILE_FULL = { x: PILE_FACE.x + PILE_DIRECTION.x * PILE_RADIUS, z: PILE_FACE.z + PILE_DIRECTION.z * PILE_RADIUS }; // its middle when full
 
     // ---------- Where the other big things sit ----------
-    // The sluice's high end (where dirt goes in) is always at x = 2.2; it grows downhill (+x) up to 10 m long.
+    // The sluice's high end (where dirt goes in) is always at x = 2.45, its hopper against the dig bench's crib wall;
+    // it grows downhill (+x) up to 10 m long.
     const POND_SPOT = { x: 18.2, z: -7 };        // middle of the tailing pond, past the sluice's low end (radius 2.5 to 5.5 m)
     const PAD = { x1: 4, x2: 13, z1: -5.6, z2: -2.9 }; // the gravel equipment pad for pumps, generators and tanks
 
@@ -1743,19 +1744,63 @@
     const CAMP_TREES = [{ x: -21, z: 19, kind: 'leafy' }, { x: 22, z: 20, kind: 'pine' }, { x: -24, z: 4, kind: 'pine' }];
     const CAMP_BUSH = { x: 26, z: -26 };
 
+    // ---------- The raised dig bench: the dirt pile and the excavator sit up on a flat-topped dirt platform ----------
+    // Like a real placer mine: you dig up on the bench and drop the dirt down into the sluice's hopper, just below its edge.
+    // The bench covers everything west of lipX and north (-z) of lipZ, and runs out past the fence into the hills.
+    // Its sides are natural dirt slopes, too steep to walk. Where it faces the sluice, a timber crib wall holds it up
+    // instead (CRIB_WALL), so the hopper can sit right against the edge. A wide ramp leads down towards the camp.
+    //
+    //   2.3 m  ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█┐                 <- bench top (pile, excavator)
+    //   2.0 m                  █ \▓▓/             <- the sluice's hopper rim
+    //   1.3 m       crib wall  █  \/═══════╗      <- the sluice, sloping down to the pond
+    //   0 m    ────────────────█───╨───╨───╨──    <- ground
+    const BENCH = { height: 2.3, lipX: 1.75, lipZ: -1.5, slope: 2.7 }; // slope = how far out the sides run (meters, give or take 0.5)
+    const CRIB_WALL = { x: 1.75, z1: -12, z2: -2 };                    // the timber wall on the sluice side (front face at x + 0.2)
+    const RAMP = { x1: -8.5, x2: -3, top: -3, bottom: 4.5 };            // the ramp down to the camp: 5.5 m wide, about 17°
+    const EYE_HEIGHT = 1.6;       // how high your eyes are above the ground
+    const MAX_WALK_SLOPE = 0.5;   // the steepest ground you can walk up or down (meters up per meter along; the ramp is 0.38)
+
+    // How high the bench is at (x, z): its full height on top, 0 out past its sides
+    function benchHeight(x, z) {
+      // How far inside the edge you are: positive on top, negative out past the edge
+      let inside = x < BENCH.lipX && z < BENCH.lipZ
+        ? Math.min(BENCH.lipX - x, BENCH.lipZ - z)
+        : -Math.hypot(Math.max(x - BENCH.lipX, 0), Math.max(z - BENCH.lipZ, 0));
+      // Along the crib wall the edge is straight and upright (the ground drops just behind the timbers);
+      // everywhere else it wanders in and out, and the slope is wider in some places than others
+      const wall = x > BENCH.lipX - 3 ? smoothstep(CRIB_WALL.z1 - 1, CRIB_WALL.z1, z) * (1 - smoothstep(CRIB_WALL.z2 - 0.4, CRIB_WALL.z2 + 0.4, z)) : 0;
+      const natural = 1 - wall;
+      inside += (fbm(x * 0.1 + 3, z * 0.1 - 8, 3) - 0.5) * 1.6 * natural - 0.3 * wall;
+      const slope = 0.3 * wall + (BENCH.slope + (fbm(x * 0.08 - 2, z * 0.08 + 5, 2) - 0.5) * 1) * natural;
+      const bench = BENCH.height * smoothstep(-slope, 0, inside);
+      // The ramp: a straight slope cut into the bench's edge and running down to the camp, with steep sides of its own
+      const along = clamp((RAMP.bottom - z) / (RAMP.bottom - RAMP.top), 0, 1);
+      const fromSide = Math.min(x - RAMP.x1, RAMP.x2 - x); // how far inside the ramp's width you are
+      const ramp = BENCH.height * along * smoothstep(-2.5, 0, fromSide);
+      const cut = smoothstep(-0.5, 0.5, fromSide);           // on the ramp, the bench's own slope is dug away
+      return Math.max(bench * (1 - cut), ramp);
+    }
+
     // ---------- The ground: dusty dirt in the middle, grass around it, hills further out ----------
-    // How high the ground is at (x, z). The dig site only has tiny bumps (so walking stays flat); hills rise far away.
+    // How high the ground is at (x, z). The dig site only has tiny bumps, plus the dig bench; hills rise far away.
     function groundHeight(x, z) {
       const bumps = 0.04 * fbm(x * 0.5, z * 0.5, 3);
       const hills = smoothstep(34, 120, Math.hypot(x, z)) * (5 + 30 * fbm(x * 0.012 + 7, z * 0.012 - 3, 4));
-      return bumps + hills;
+      return bumps + Math.max(benchHeight(x, z), hills);
+    }
+    // Is the ground at (x, z) steeper than you can walk? (Checked 0.15 m to each side.)
+    function steepAt(x, z, limit = MAX_WALK_SLOPE) {
+      const d = 0.15;
+      const sx = (groundHeight(x + d, z) - groundHeight(x - d, z)) / (2 * d);
+      const sz = (groundHeight(x, z + d) - groundHeight(x, z - d)) / (2 * d);
+      return Math.hypot(sx, sz) > limit;
     }
     // How grassy the ground is: 0 = bare dirt (the dig site in the middle), 1 = grass. The edge is ragged.
     function grassiness(x, z) {
       return smoothstep(19, 29, Math.hypot(x, z) + (fbm(x * 0.08, z * 0.08, 3) - 0.5) * 14);
     }
     const GROUND_COLORS = {
-      dirt: new THREE.Color(0xb88c5e), dirtDark: new THREE.Color(0x8a6844), underPile: new THREE.Color(0x6e4c30),
+      dirt: new THREE.Color(0xb88c5e), dirtDark: new THREE.Color(0x8a6844), underPile: new THREE.Color(0x6e4c30), track: new THREE.Color(0x6a4d33),
       grass: new THREE.Color(0x7f9f45), grassDark: new THREE.Color(0x5a7a30), grassDry: new THREE.Color(0xb3a868),
     };
     const grassColor = new THREE.Color();
@@ -1768,6 +1813,9 @@
         grassColor.lerp(GROUND_COLORS.grassDry, smoothstep(0.5, 0.75, fbm(x * 0.03 - 9, z * 0.03, 3)) * 0.8);
         color.lerp(grassColor, g);
       }
+      // The ramp up to the dig bench: a track of darker, packed-down dirt, so it's easy to spot
+      const onRamp = smoothstep(-0.3, 0.6, Math.min(x - RAMP.x1, RAMP.x2 - x)) * smoothstep(RAMP.bottom + 1.5, RAMP.bottom - 0.5, z) * smoothstep(RAMP.top - 2.5, RAMP.top - 0.5, z);
+      color.lerp(GROUND_COLORS.track, onRamp * (0.6 + n * 0.3));
       // A patch of darker dug-up dirt the size of the full pile, so you can see how much has been dug away
       const fromPile = Math.hypot(x - PILE_FULL.x, z - PILE_FULL.z);
       color.lerp(GROUND_COLORS.underPile, 1 - smoothstep(PILE_RADIUS - 0.5, PILE_RADIUS + 1.5 + n * 2, fromPile));
@@ -1804,6 +1852,8 @@
       if (x > PAD.x1 - margin && x < PAD.x2 + margin && z > PAD.z1 - margin && z < PAD.z2 + margin) return true; // equipment pad
       if (Math.hypot(x - POND_SPOT.x, z - POND_SPOT.z) < 6.8 + margin) return true;               // the tailing pond
       if (Math.abs(x) < 4.5 + margin && z > 5 - margin && z < 10 + margin) return true;          // the shop
+      if (x > RAMP.x1 - margin && x < RAMP.x2 + margin && z > RAMP.top - margin && z < RAMP.bottom + 0.5 + margin) return true; // the ramp
+      if (x > CRIB_WALL.x - 1 - margin && x < CRIB_WALL.x + 0.8 + margin && z > CRIB_WALL.z1 - margin && z < CRIB_WALL.z2 + margin) return true; // the crib wall
       for (const spot of [...CAMP_BOULDERS, ...CAMP_TREES]) {                                     // boulders and trees in the camp
         if (Math.hypot(x - spot.x, z - spot.z) < 1.5 + margin) return true;
       }
@@ -1934,19 +1984,23 @@
       const place = new THREE.Object3D();
       let railCount = 0;
       free.forEach(([x, z, along], i) => {
+        const ground = groundHeight(x, z); // (higher where the fence runs over the dig bench)
         place.rotation.set(0, rand(-0.1, 0.1), rand(-0.04, 0.04));
-        place.position.set(x, 0.6, z);
+        place.position.set(x, ground + 0.6, z);
         place.updateMatrix();
         posts.setMatrixAt(i, place.matrix);
         // Two rails from this post to the next one along (if that post is there too)
         const nx = along ? x : x + STEP, nz = along ? z + STEP : z;
         if (Math.abs(nx) > FENCE + 0.1 || Math.abs(nz) > FENCE + 0.1) return;
         if (!free.some(([ox, oz]) => Math.abs(ox - nx) < 0.01 && Math.abs(oz - nz) < 0.01)) return;
+        const rise = groundHeight(nx, nz) - ground; // on the bench's slopes the rails slant up or down
         for (const y of [0.55, 1.05]) {
-          place.position.set((x + nx) / 2, y, (z + nz) / 2);
-          place.rotation.set(0, along ? Math.PI / 2 : 0, 0);
+          place.position.set((x + nx) / 2, ground + rise / 2 + y, (z + nz) / 2);
+          place.rotation.set(0, along ? Math.PI / 2 : 0, Math.atan2(along ? -rise : rise, STEP));
+          place.scale.set(Math.hypot(STEP, rise) / STEP, 1, 1);
           place.updateMatrix();
           rails.setMatrixAt(railCount++, place.matrix);
+          place.scale.set(1, 1, 1);
         }
       });
       rails.count = railCount;
@@ -1954,6 +2008,40 @@
         mesh.castShadow = mesh.receiveShadow = true;
         scene.add(mesh);
       }
+    }
+
+    // ---------- The crib wall: stacked logs holding up the dig bench's edge where it faces the sluice ----------
+    // (The ground itself drops just behind the logs: see benchHeight().) Logs lie along the wall in rows, each row
+    // in a few lengths; upright posts hold them at the front, and planks cap the top, right at your feet up on the bench.
+    {
+      const parts = [];
+      const LOG = 0.12, front = CRIB_WALL.x + 0.2, length = CRIB_WALL.z2 - CRIB_WALL.z1;
+      const shades = [0x6b4a2c, 0x5e4026, 0x7a5634, 0x664630];
+      for (let row = 0; LOG + row * LOG * 1.95 < BENCH.height; row++) {
+        const y = LOG + row * LOG * 1.95;
+        let z = CRIB_WALL.z1 - (row % 2) * 0.8;            // the joins don't line up from row to row
+        while (z < CRIB_WALL.z2) {
+          const z2 = Math.min(z + rand(2.2, 3.2), CRIB_WALL.z2), from = Math.max(z, CRIB_WALL.z1);
+          const r = LOG * rand(0.9, 1.08);
+          const log = new THREE.CylinderGeometry(r, r, z2 - from + 0.1, 8).rotateX(Math.PI / 2).translate(front - LOG, y, (from + z2) / 2);
+          parts.push({ geometry: log, color: pick(shades) });
+          z = z2;
+        }
+      }
+      const posts = Math.round(length / 1.7);
+      for (let i = 0; i <= posts; i++) {                           // upright posts along the front (none behind the hopper)
+        const z = CRIB_WALL.z1 + 0.1 + i * (length - 0.2) / posts;
+        if (Math.abs(z - -7) < 1.2) continue; // (the sluice's middle is at z = -7: see sluice.position)
+        const post = new THREE.BoxGeometry(0.16, BENCH.height + 0.3, 0.16).translate(front + 0.06, (BENCH.height + 0.3) / 2 - 0.15, z);
+        parts.push({ geometry: post, color: 0x4f3620 });
+      }
+      for (let z = CRIB_WALL.z1; z < CRIB_WALL.z2 - 0.01; z += length / 4) { // planks along the top
+        const plank = new THREE.BoxGeometry(0.58, 0.07, length / 4 - 0.03).translate(front - 0.26, BENCH.height + 0.02, z + length / 8);
+        parts.push({ geometry: plank, color: 0x8a6a48 });
+      }
+      const cribWall = new THREE.Mesh(mergeShapes(parts), new THREE.MeshStandardMaterial({ vertexColors: true, map: TEX.wood, roughness: 0.9 }));
+      cribWall.castShadow = cribWall.receiveShadow = true;
+      scene.add(cribWall);
     }
 
     // ---------- The giant dirt pile: all the dirt in the game ----------
@@ -2082,9 +2170,14 @@
     // Solid things you can't walk through. The rest are added further down (see "Solid things").
     const solids = [];
     const SLUICE_TOP = -2; // the high end, measured along the sluice from its middle point (sluice.position)
+    // The feed hopper: a funnel on the high end, its back against the dig bench's crib wall. All the dirt goes in here.
+    // (Measured along the sluice like SLUICE_TOP: x from back to front, rim = the height of its top edge.)
+    const HOPPER = { back: SLUICE_TOP - 0.5, front: SLUICE_TOP + 0.8, rim: 1.82, bottom: 1.3 };
+    const hopperMouth = new THREE.Vector3(); // the middle of the hopper's opening, in the world (where dirt is aimed)
+    let hopperFloor = 1.4;                   // world height where dirt lands inside the hopper
     const sluice = new THREE.Group();
-    const sluiceDirt = new THREE.Mesh(smallHeap, heapMaterial); // shows when dirt is waiting to be washed
-    sluiceDirt.position.set(-1.4, 1.05, 0);
+    const sluiceDirt = new THREE.Mesh(smallHeap, heapMaterial); // shows when dirt is waiting to be washed (in the hopper)
+    sluiceDirt.position.set((HOPPER.back + HOPPER.front) / 2, HOPPER.bottom, 0);
     sluiceDirt.visible = false;
     const sluiceSpot = { x: 0, y: 1.3, z: -7, spread: 2 }; // where gold sparkles float up from
     const sluiceEnd = new THREE.Vector3();                 // where the water pours out (for splashes)
@@ -2092,7 +2185,7 @@
     let sprayBars = [];      // the spray bars (for the spray effect): { x, width, count }
     let gaugeNeedle = null;  // the pressure gauge's needle (it wobbles a little while washing)
     let sluiceWidth = 1;
-    sluice.position.set(4.2, 0, -7);
+    sluice.position.set(4.45, 0, -7); // (so the hopper's back just meets the crib wall's front at x = 1.95)
     sluice.rotation.z = -0.08; // slight tilt so the water flows downhill
     scene.add(sluice);
     makeSign('SLUICE', 0.3, -4.3);
@@ -2208,19 +2301,18 @@
       }
 
       if (tier === 3) {
-        // The blue power box: a steel hopper at the high end with a grate on top, and a yellow safety stripe
-        sluice.add(box(1.4, 0.35, 0.08, frame, top + 0.6, 1.4, width / 2));
-        sluice.add(box(1.4, 0.35, 0.08, frame, top + 0.6, 1.4, -width / 2));
-        sluice.add(box(0.08, 0.35, width, frame, top - 0.1, 1.4, 0));
-        for (let i = 0; i < 6; i++) sluice.add(wheel(0.025, width, EXC_STEEL, top + 0.05 + i * 0.24, 1.6, 0));
+        // The blue power box: yellow safety stripes along the side and across the low end
         sluice.add(box(0.1, 0.1, width, EXC_YELLOW, end, 1.2, 0));
         for (let i = 0; i < pairs; i++) sluice.add(box(0.3, 0.05, 0.02, EXC_YELLOW, top + 0.4 + i * (length - 0.8) / (pairs - 1), 1.2, width / 2 + 0.03));
-      } else {
-        // Header box at the high end: the water comes in here
-        sluice.add(box(0.4, 0.35, width + 0.1, frame, top - 0.2, 1.3, 0));
       }
+      // Header box at the high end, under the hopper: the water comes in here
+      sluice.add(box(0.3, 0.2, width + 0.1, frame, top - 0.15, 1.2, 0));
+      buildHopper(tier, trough, frame, width, post);
       sluice.updateMatrixWorld(true);
-      sluice.localToWorld(sluiceInlets.header.set(top - 0.2, 1.4, width / 2 + 0.06));
+      sluice.localToWorld(sluiceInlets.header.set(top - 0.2, 1.3, width / 2 + 0.06));
+      const hopperMiddle = (HOPPER.back + HOPPER.front) / 2;
+      sluice.localToWorld(hopperMouth.set(hopperMiddle, HOPPER.rim, 0));
+      hopperFloor = sluice.localToWorld(new THREE.Vector3(hopperMiddle, HOPPER.bottom + 0.05, 0)).y;
 
       // Spray bars (Nozzles): one bar at levels 1-5, two from level 6. Brass nozzles, chrome from 7, gold tips at 12.
       sprayBars = [];
@@ -2269,6 +2361,52 @@
       sluice.localToWorld(sluiceEnd.set(end + 0.08, 0.05, 0));
       wetGround.position.set(sluiceEnd.x + 0.3, 0.043, sluice.position.z);
       wetGround.scale.set(1.6 + width * 0.5, 1.1 + width * 0.5, 1);
+    }
+
+    // The feed hopper on the sluice's high end: a square funnel, wider at the top, with a frame round its rim.
+    // It's made of the same things as the sluice (Extended Length tier): planks, braced planks, steel with a
+    // grizzly (bars that stop big rocks), then blue steel with chrome bars and a yellow safety stripe.
+    const hopperMaterials = new Map(); // two-sided copies of the sluice's materials (you look down inside the funnel)
+    function hopperMaterial(color) {
+      if (!hopperMaterials.has(color)) {
+        const material = materialFor(color).clone();
+        material.side = THREE.DoubleSide;
+        hopperMaterials.set(color, material);
+      }
+      return hopperMaterials.get(color);
+    }
+    function buildHopper(tier, trough, frame, width, post) {
+      const sizeX = HOPPER.front - HOPPER.back, sizeZ = width + 0.3, height = HOPPER.rim - HOPPER.bottom;
+      const middle = (HOPPER.back + HOPPER.front) / 2;
+      // The funnel: a 4-sided cone with its point cut off (0.45 as wide at the bottom), flat-shaded so its sides look flat
+      const geometry = new THREE.CylinderGeometry(Math.SQRT1_2, Math.SQRT1_2 * 0.45, 1, 4, 1, true).rotateY(Math.PI / 4).translate(0, 0.5, 0).toNonIndexed();
+      geometry.computeVertexNormals();
+      scaleUVs(geometry, 4, 1);
+      const funnel = new THREE.Mesh(geometry, hopperMaterial(trough));
+      funnel.scale.set(sizeX, height, sizeZ);
+      funnel.position.set(middle, HOPPER.bottom, 0);
+      sluice.add(funnel);
+      // The frame round the rim (a steel rail from tier 2, with a yellow safety stripe on the blue power box)
+      const rail = tier >= 2 ? 0.1 : 0.07;
+      for (const z of [-sizeZ / 2, sizeZ / 2]) sluice.add(box(sizeX + rail, rail, rail, frame, middle, HOPPER.rim, z));
+      for (const x of [HOPPER.back, HOPPER.front]) sluice.add(box(rail, rail, sizeZ + rail, frame, x, HOPPER.rim, 0));
+      if (tier === 3) sluice.add(box(0.02, 0.06, sizeZ, EXC_YELLOW, HOPPER.front + rail / 2 + 0.01, HOPPER.rim - 0.02, 0));
+      if (tier === 1) { // braces across the outside of the planks
+        for (const z of [-1, 1]) {
+          const brace = box(sizeX * 0.8, 0.06, 0.04, frame, middle, HOPPER.bottom + height * 0.5, z * sizeZ * 0.37);
+          brace.rotation.z = 0.3;
+          sluice.add(brace);
+        }
+      }
+      // A grizzly: bars across the top that stop the biggest rocks (steel, then chrome on the power box)
+      if (tier >= 2) {
+        const bars = tier === 3 ? 6 : 4;
+        for (let i = 0; i < bars; i++) sluice.add(wheel(0.025, sizeZ, tier === 3 ? CHROME : EXC_STEEL, HOPPER.back + (i + 1) * sizeX / (bars + 1), HOPPER.rim + 0.02, 0));
+      }
+      // Four posts hold up its corners (they reach a bit below the ground, like the legs)
+      for (const x of [HOPPER.back + post / 2, HOPPER.front - post / 2]) {
+        for (const z of [-1, 1]) sluice.add(box(post, HOPPER.rim + 0.55, post, frame, x, (HOPPER.rim - 0.55) / 2, z * (sizeZ / 2 - post / 2)));
+      }
     }
 
     // A hose: a bendy tube through some points. radius and colour come from the Hoses upgrade.
@@ -2678,12 +2816,12 @@
     // Every level changes it: bigger, then a double screen, punch plate, rockers, shaking, two decks, a motor,
     // grizzly bars, then a spinning drum (trommel).
     const classifier = new THREE.Group();
-    classifier.position.set(2.9, 0, -5.35);
+    classifier.position.set(3.25, 0, -4.95); // (just clear of the hopper, even when both are at their biggest)
     scene.add(classifier);
     const rockPile = new THREE.Mesh(makeHeapGeometry(8, 24, 0.4, 9), new THREE.MeshStandardMaterial({ color: 0xa39c90, map: TEX.ground, bumpMap: TEX.groundBump, bumpScale: 3, roughness: 1, flatShading: true }));
-    rockPile.position.set(2.7, 0, -3.6);
+    rockPile.position.set(3.1, 0, -3.3); // (heaped up against the crib wall when it's big)
     scene.add(rockPile);
-    const rockCircle = { circle: true, x: 2.7, z: -3.6, radius: 0 }; // the rock pile is solid too, once it's there
+    const rockCircle = { circle: true, x: 3.1, z: -3.3, radius: 0 }; // the rock pile is solid too, once it's there
     let classifierParts = { deck: null, drum: null, shakes: false };
 
     function buildClassifier() {
@@ -2793,8 +2931,9 @@
       document.fonts.load('72px Rye').then(paint).catch(() => {}); // paint again once the western font has loaded
 
       const sign = new THREE.Group();
-      sign.position.set(x, 0, z);
-      sign.lookAt(0, 0, 0);
+      const ground = groundHeight(x, z); // (the DIRT sign stands up on the dig bench)
+      sign.position.set(x, ground, z);
+      sign.lookAt(0, ground, 0);
       const front = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.8 });
       const wood = materialFor(WOOD_DARK);
       const board = new THREE.Mesh(new THREE.BoxGeometry(2, 0.5, 0.06), [wood, wood, wood, wood, front, wood]);
@@ -2989,7 +3128,9 @@
     const sluiceBounds = boundsOf(sluice); // updated in place whenever the sluice is upgraded
     const shopBounds = boundsOf(shop);
     const excavatorRect = { ...EXCAVATOR_SPOT, halfLength: 1.6, halfWidth: 1.3 }; // its tracks (only solid once you own it)
-    solids.push(pileCircle, sluiceBounds, shopBounds, pondCircle, ...props.map(boundsOf), ...campSolids); // (the equipment pad's machines are already in)
+    // The crib wall's logs and posts: so you can't walk into them from below (up on the bench, the steep edge stops you first)
+    const cribWallBounds = new THREE.Box3(new THREE.Vector3(CRIB_WALL.x - 0.05, 0, CRIB_WALL.z1), new THREE.Vector3(CRIB_WALL.x + 0.35, BENCH.height, CRIB_WALL.z2));
+    solids.push(pileCircle, sluiceBounds, shopBounds, pondCircle, cribWallBounds, ...props.map(boundsOf), ...campSolids); // (the equipment pad's machines are already in)
 
     // The classifier's rock pile is only solid once it's there
     function updateSolids() {
@@ -3011,7 +3152,7 @@
       dirtPile.visible = state.pile > 0;
       pileCircle.off = state.pile <= 0; // nothing left to bump into
       dirtPile.scale.set(size.radius, Math.max(size.height, 0.01), size.radius);
-      dirtPile.position.set(pileCircle.x, 0, pileCircle.z);
+      dirtPile.position.set(pileCircle.x, BENCH.height - 0.05, pileCircle.z); // up on the dig bench
       pileTexture.repeat.setScalar(size.radius / 3); // one copy of the dirt picture every 3 m or so
       pileBump.repeat.copy(pileTexture.repeat);
     }
@@ -3050,7 +3191,7 @@
     const UP = new THREE.Vector3(0, 1, 0);
 
     const excavator = new THREE.Group(); // the whole machine. It never moves, only its arm does.
-    excavator.position.set(EXCAVATOR_SPOT.x, 0, EXCAVATOR_SPOT.z);
+    excavator.position.set(EXCAVATOR_SPOT.x, groundHeight(EXCAVATOR_SPOT.x, EXCAVATOR_SPOT.z), EXCAVATOR_SPOT.z); // on the dig bench, by its edge
     excavator.rotation.y = EXCAVATOR_SPOT.heading;
     scene.add(excavator);
     let ex = {}; // its moving parts (upper, boom, bucket, ...), filled in by buildExcavator()
@@ -3979,7 +4120,7 @@
     const HIDDEN_NUGGETS = [
       // Easy: out in the open, big, sitting up, glinting often
       { id: 'crates',    x: 3.58,  y: 1.4,  z: 7.43,  hide: 'easy',   value: 25 },  // on top of the crates by the shop
-      { id: 'path',      x: -3,               z: -2,    hide: 'easy',   value: 40 },  // on the bare ground on the way to the pile
+      { id: 'path',      x: -5,               z: 1.2,   hide: 'easy',   value: 40 },  // on the ramp up to the dig bench, on the way to the pile
       { id: 'barrel',    x: -10.3, y: 0.95, z: 5.15,  hide: 'easy',   value: 50 },  // on the lid of a barrel
       { id: 'yard',      x: 6,                z: 3,     hide: 'easy',   value: 60 },  // in the open, between the shop and the pumps
       // Medium: tucked next to things
@@ -4073,7 +4214,7 @@
       showMessage(`Found a nugget! +$${spot.value}`);
       sfx.hiddenNugget();
       // A puff of dirt where it came out of the ground, and a burst of gold sparkles
-      dirtBurst({ x: spot.x, y: spot.y + 0.05, z: spot.z }, 4, { spread: 0.25, up: 0.5 });
+      dirtBurst({ x: spot.x, y: spot.y + 0.05, z: spot.z }, 4, { spread: 0.25, up: 0.5, floor: spot.y + 0.04 });
       for (let i = 0; i < 30; i++) {
         const angle = rand(0, Math.PI * 2), speed = rand(0.4, 1.6);
         glitter.add({
@@ -4112,7 +4253,56 @@
       exhaustSmoke(dt);
       generatorSmoke(dt);
       updateShine(dt);
+      updatePours(dt);
       for (const system of particleSystems) system.update(dt);
+    }
+
+    // ---------- Pouring dirt: a smooth stream of falling dirt (into the hopper, onto the pile or the ground) ----------
+    // One frame of a stream: clods drop from "from" and land around "to" (at height to.y), with puffs of dust where
+    // they land. rate = clods a second (fewer on Low graphics). "stream" remembers things between frames.
+    function newStream() {
+      return { carry: 0, age: 0, puff: 0 };
+    }
+    function pourStream(stream, from, to, rate, dt, spread = 0.25, size = 0.07) {
+      const fall = Math.sqrt(2 * Math.max(0.2, from.y - to.y) / 9.8); // seconds to fall that far
+      stream.age += dt;
+      stream.carry += rate * particleAmount * dt;
+      for (; stream.carry >= 1; stream.carry--) {
+        const time = fall * rand(0.9, 1.1);
+        const x = from.x + rand(-0.12, 0.12), y = from.y + rand(-0.05, 0.05), z = from.z + rand(-0.12, 0.12);
+        const tx = to.x + rand(-spread, spread), tz = to.z + rand(-spread, spread);
+        clods.add({
+          x, y, z, vx: (tx - x) / time, vz: (tz - z) / time, vy: (to.y - y) / time + 4.9 * time, // lands at (tx, tz)
+          gravity: 9.8, size: size * rand(0.6, 1.4), life: time + rand(0.3, 0.6), fade: 0.3, floor: to.y, color: pick(DIRT_SHADES),
+        });
+      }
+      // Dust puffs up where it lands (once the first dirt has got there)
+      stream.puff -= dt;
+      if (stream.age > fall && stream.puff <= 0) {
+        stream.puff = 0.12;
+        dust.add({
+          x: to.x + rand(-spread, spread), y: to.y + 0.1, z: to.z + rand(-spread, spread),
+          vx: rand(-0.4, 0.4), vy: rand(0.3, 0.7), vz: rand(-0.4, 0.4), drag: 1.2,
+          size: rand(0.5, 0.9), grow: 0.9, life: rand(1, 1.8), fade: 1, alpha: 0.3, color: 0x9b7b58,
+        });
+      }
+    }
+
+    // Your bucket or wheelbarrow tipped out over the hopper: a stream for "seconds", then a last puff of dust
+    const pours = [];
+    function pourDirt(from, to, scoops, seconds = 0.7) {
+      pours.push({ from, to, seconds, left: seconds, rate: Math.min(120, 40 + scoops * 2) / seconds, stream: newStream() });
+    }
+    function updatePours(dt) {
+      for (let i = pours.length - 1; i >= 0; i--) {
+        const pour = pours[i];
+        if (pour.left > 0) pourStream(pour.stream, pour.from, pour.to, pour.rate, dt, 0.25, 0.045); // (small bits: it's close to your eyes)
+        pour.left -= dt;
+        if (pour.left <= -0.5) { // the last of it has landed
+          dirtBurst({ x: pour.to.x, y: pour.to.y + 0.1, z: pour.to.z }, 6, { spread: 0.35, up: 0.4, floor: pour.to.y });
+          pours.splice(i, 1);
+        }
+      }
     }
 
     // ---------- Things you can use with E ----------
@@ -4139,7 +4329,10 @@
       },
       {
         bounds: sluiceBounds,
-        prompt: () => state.carrying > 0 ? `Press E to dump ${state.carrying} scoops into the sluice` : 'Bring dirt here to wash it',
+        prompt: () => {
+          if (!onBench()) return state.carrying > 0 ? 'Carry it up the ramp: the hopper is filled from the bench' : 'The sluice: dirt goes in the hopper, from up on the bench';
+          return state.carrying > 0 ? `Press E to tip ${state.carrying} scoops into the hopper` : 'The hopper: bring dirt here to wash it';
+        },
         use: dumpIntoSluice,
         label: 'Dump',
       },
@@ -4184,12 +4377,25 @@
       sfx.dig();
       // Dirt flies up where the shovel goes in: the edge of the pile nearest to you
       const spot = nearestPoint(pileCircle, camera.position.x, camera.position.z);
-      if (taken > 0) dirtBurst({ x: spot.x, y: 0.4, z: spot.z }, taken * 4, { spread: 0.4 });
+      const ground = groundHeight(spot.x, spot.z); // (up on the dig bench)
+      if (taken > 0) dirtBurst({ x: spot.x, y: ground + 0.4, z: spot.z }, taken * 4, { spread: 0.4, floor: ground + 0.04 });
+    }
+
+    // Are you up on the dig bench? (You can only tip dirt into the hopper from up there.)
+    function onBench() {
+      return groundHeight(camera.position.x, camera.position.z) > BENCH.height - 0.4;
     }
 
     function dumpIntoSluice() {
       if (state.carrying === 0) return;
-      dirtFalls({ x: sluice.position.x - 1.4, y: 1.6, z: sluice.position.z }, state.carrying, 1.15);
+      if (!onBench()) {
+        showMessage('Carry it up the ramp and tip it into the hopper from the bench');
+        return;
+      }
+      // Tip it out just in front of you, so it pours down into the hopper below
+      const ahead = new THREE.Vector3(hopperMouth.x - camera.position.x, 0, hopperMouth.z - camera.position.z).setLength(0.5);
+      const from = { x: camera.position.x + ahead.x, y: camera.position.y - 0.55, z: camera.position.z + ahead.z };
+      pourDirt(from, { x: hopperMouth.x, y: hopperFloor, z: hopperMouth.z }, state.carrying);
       addToSluice(state.carrying);
       state.scoopsByHand += state.carrying;
       state.carrying = 0;
@@ -4476,11 +4682,11 @@
       sfx.engineStop();
       // Climb out next to the cab door (left side). If something is in the way, try the right side, then the back.
       const spots = [[0.3, -2.4], [0.3, 2.6], [-3.3, 0]].map(([x, z]) => ex.upper.localToWorld(new THREE.Vector3(x, 0, z)));
-      const free = spots.find((p) => Math.abs(p.x) < 28 && Math.abs(p.z) < 28
+      const free = spots.find((p) => Math.abs(p.x) < 28 && Math.abs(p.z) < 28 && !steepAt(p.x, p.z)
         && !solids.some((solid) => !solid.off && distanceFromPoint(solid, p.x, p.z) < 0.5));
       const spot = free || spots[0];
-      camera.position.set(clamp(spot.x, -28, 28), 1.6, clamp(spot.z, -28, 28));
-      pushOutOfSolids();
+      camera.position.set(clamp(spot.x, -28, 28), 0, clamp(spot.z, -28, 28));
+      placePlayerSafely(); // (on the bench, next to the excavator)
       yaw = EXCAVATOR_SPOT.heading + state.exc.swing - Math.PI / 2 + cabYaw; // keep looking the same way
       pitch = 0;
     }
@@ -4503,27 +4709,65 @@
     function dumpTarget() {
       const spot = ex.bucket.getWorldPosition(new THREE.Vector3());
       if (distanceFromPile(spot) < pileSize().radius + 0.3) return 'pile';
-      if (distanceFromPoint(sluiceBounds, spot.x, spot.z) < 0.3) return 'sluice';
+      if (distanceFromPoint(sluiceBounds, spot.x, spot.z) === 0) return 'sluice'; // right over the hopper or the trough
       return 'ground';
     }
 
-    function dumpBucket() {
-      const exc = state.exc;
-      const scoops = exc.load;
-      exc.load = 0;
-      if (scoops <= 0) return;
+    // Pouring out of the bucket: tipped past DUMP_PITCH, it empties in a stream from its lip over POUR_SECONDS.
+    // Whatever is under it right now gets the dirt (dumpTarget()), so swinging away halfway spills the rest.
+    const POUR_SECONDS = 1.5;
+    const bucketPour = { stream: newStream(), pouring: false, intoSluice: 0, carry: 0, spilled: false };
+    function pourFromBucket(dt) {
+      const exc = state.exc, pour = bucketPour;
+      if (!pour.pouring) { // just started tipping out
+        Object.assign(pour, { stream: newStream(), pouring: true, intoSluice: 0, carry: 0, spilled: false });
+        sfx.dump(2);
+      }
+      const amount = Math.min(exc.load, toolNow('digBucket').scoops / POUR_SECONDS * dt);
+      exc.load -= amount;
+      if (exc.load < 0.001) exc.load = 0;
       const target = dumpTarget();
-      dirtFalls(bucketWorld(ex.belly), scoops, target === 'sluice' ? 1.15 : 0.04); // lands in the sluice or on the ground
-      sfx.dump(2);
+      const lip = bucketWorld(ex.tip);
+      let to = { x: lip.x, y: groundHeight(lip.x, lip.z), z: lip.z }, spread = 0.3;
       if (target === 'sluice') {
-        addToSluice(Math.round(scoops));
-        state.scoopsByExcavator += Math.round(scoops);
-        showMessage(`+${tons(scoops)} t in the sluice`);
+        // It falls straight down into the hopper (or the trough, if the bucket is out past the hopper)
+        const b = sluiceBounds;
+        to.x = clamp(lip.x, b.min.x + 0.25, b.max.x - 0.25);
+        to.z = clamp(lip.z, b.min.z + 0.25, b.max.z - 0.25);
+        to.y = Math.hypot(to.x - hopperMouth.x, to.z - hopperMouth.z) < 0.7 ? hopperFloor : 1.35;
+        spread = 0.15;
+        // The sluice takes whole scoops: part-scoops wait in "carry" (the last bit is rounded when the bucket's empty)
+        pour.carry += amount;
+        const whole = exc.load > 0 ? Math.floor(pour.carry) : Math.round(pour.carry);
+        if (whole > 0) {
+          addToSluice(whole);
+          state.scoopsByExcavator += whole;
+          pour.intoSluice += whole;
+        }
+        pour.carry = exc.load > 0 ? pour.carry - whole : 0;
       } else if (target === 'pile') {
-        addToPile(scoops); // dumped back onto the pile: nothing lost
-      } else {
+        addToPile(amount); // back onto the pile: nothing lost
+        const size = pileSize();
+        to.y = BENCH.height + size.height * Math.max(0, 1 - distanceFromPile(lip) / size.radius); // (about where its surface is)
+      } else if (!pour.spilled) {
+        pour.spilled = true;
         showMessage('Spilled! Dump it over the sluice');
       }
+      pourStream(pour.stream, lip, to, 170, dt, spread, 0.14); // a thick stream: it's a big bucket
+      if (exc.load === 0) { // all poured out
+        pour.pouring = false;
+        if (pour.intoSluice > 0) showMessage(`+${tons(pour.intoSluice)} t in the sluice`);
+      }
+    }
+
+    // The bucket must never touch the sluice or its hopper: is every part of it (the teeth, the back, the middle)
+    // either well above them or off to the side? (A safety net: at the arm's fixed height it always is.)
+    const SLUICE_CLEARANCE = 0.5; // meters
+    function bucketClearsSluice() {
+      return [ex.tip, ex.heel, ex.belly].every((point) => {
+        const p = bucketWorld(point);
+        return p.y > sluiceBounds.max.y + SLUICE_CLEARANCE || distanceFromPoint(sluiceBounds, p.x, p.z) > SLUICE_CLEARANCE;
+      });
     }
 
     // Runs every frame while you're in the excavator: A/D swing the arm, Q/F tilt the bucket.
@@ -4532,6 +4776,7 @@
       const exc = state.exc;
       const speed = toolNow('speed').speed;
       const before = { ...exc };
+      const clearBefore = bucketClearsSluice(); // (if it somehow isn't clear already, it may still move, to get clear)
       const held = (...codes) => (codes.some((code) => keys[code]) ? 1 : 0);
 
       const swing = held('KeyA') - held('KeyD');
@@ -4540,6 +4785,11 @@
       exc.boom = EXCAVATOR_START.boom;
       exc.bucketPitch = clamp(exc.bucketPitch + curl * SETTINGS.bucketCurlSpeed * speed * dt, -1.6, 1.0);
       poseExcavator();
+      if (clearBefore && !bucketClearsSluice()) { // that would bring the bucket down onto the sluice: don't make this move
+        exc.swing = before.swing;
+        exc.bucketPitch = before.bucketPitch;
+        poseExcavator();
+      }
 
       // Scooping: curl the bucket (hold Q) while it's above the pile, and it fills up as it curls
       const capacity = toolNow('digBucket').scoops;
@@ -4550,15 +4800,24 @@
         scrapeTimer -= dt;
         if (scooped > 0 && scrapeTimer <= 0) {
           sfx.scrape();
-          dirtBurst(bucketWorld(ex.tip), 3, { spread: 0.3, up: 0.8 }); // dirt kicked up by the teeth
+          dirtBurst(bucketWorld(ex.tip), 3, { spread: 0.3, up: 0.8, floor: BENCH.height }); // dirt kicked up by the teeth
           scrapeTimer = 0.13;
         }
         poseExcavator(); // show the new dirt in the bucket
       }
-      // Dumping: tip the bucket far enough down and everything falls out
+      // Dumping: tip the bucket far enough down and the dirt pours out of it
       if (exc.bucketPitch <= DUMP_PITCH && exc.load > 0) {
-        dumpBucket();
-        poseExcavator();
+        pourFromBucket(dt);
+        poseExcavator(); // (the dirt in the bucket gets smaller as it pours)
+      } else if (bucketPour.pouring) { // tipped back up before it was empty
+        bucketPour.pouring = false;
+        const whole = Math.round(bucketPour.carry); // the part-scoop that already went in
+        if (whole > 0) {
+          addToSluice(whole);
+          state.scoopsByExcavator += whole;
+          bucketPour.intoSluice += whole;
+        }
+        if (bucketPour.intoSluice > 0) showMessage(`+${tons(bucketPour.intoSluice)} t in the sluice`);
       }
 
       armMoving = swing !== 0 || curl !== 0;
@@ -4571,7 +4830,7 @@
         if (state.pile <= 0) return 'The pile is all dug up!';
         return bucketOverPile() ? 'Over the dirt: hold Q to scoop' : 'Swing (A / D) over the DIRT pile, then hold Q to scoop';
       }
-      if (dumpTarget() === 'sluice') return 'Over the sluice: hold F to dump';
+      if (dumpTarget() === 'sluice') return 'Over the hopper: hold F to dump';
       if (exc.load >= toolNow('digBucket').scoops) return 'Bucket full! Swing (A / D) to the sluice, then hold F';
       if (state.pile <= 0) return 'The pile is empty. Take what you have to the sluice and hold F';
       if (bucketOverPile()) {
@@ -5544,7 +5803,7 @@
       return solids.some((solid) => !solid.off && pushOut(solid, camera.position.x, camera.position.z, PLAYER_RADIUS - 0.01));
     }
 
-    // Hop to the nearest spot where you fit, trying rings further and further out
+    // Hop to the nearest spot where you fit (and that isn't steep ground), trying rings further and further out
     function moveToFreeSpot() {
       const x = camera.position.x, z = camera.position.z;
       for (let r = 0.1; r <= 8; r += 0.1) {
@@ -5552,7 +5811,7 @@
           const angle = k / 24 * Math.PI * 2;
           camera.position.x = clamp(x + Math.cos(angle) * r, -28, 28);
           camera.position.z = clamp(z + Math.sin(angle) * r, -28, 28);
-          if (!stuckInSolid()) return;
+          if (!stuckInSolid() && !steepAt(camera.position.x, camera.position.z)) return;
         }
       }
       camera.position.x = x; // nowhere to go (shouldn't happen): stay put
@@ -5566,8 +5825,40 @@
       if (stuckInSolid()) moveToFreeSpot();
     }
 
+    // After putting you somewhere new (loading a save, climbing out of the excavator): out of anything solid,
+    // off the bench's steep sides (an old save from before the bench could have you standing there), and on the ground
+    function placePlayerSafely() {
+      pushOutOfSolids();
+      if (steepAt(camera.position.x, camera.position.z)) moveToFreeSpot();
+      standOnGround(0, true);
+    }
+
     const MAX_STEP = 0.1; // meters: longer moves are split up, so a slow frame can't jump you past an edge
     let stepDistance = 0; // how far you've walked since the last footstep sound
+
+    // Take one small step, if you can. Not into solid things, and not onto ground too steep to walk on
+    // (the bench's sides and the crib wall: you can't climb them from below or walk off the edge from above).
+    // If you're already on steep ground somehow, you may still step downhill, to get off it.
+    function tryStep(dx, dz) {
+      const fromX = camera.position.x, fromZ = camera.position.z;
+      camera.position.x = clamp(fromX + dx, -28, 28); // (and stay inside the dig site)
+      camera.position.z = clamp(fromZ + dz, -28, 28);
+      pushAway(); // walking into a wall: slide along it
+      const x = camera.position.x, z = camera.position.z;
+      const tooSteep = steepAt(x, z) && !(steepAt(fromX, fromZ) && groundHeight(x, z) < groundHeight(fromX, fromZ));
+      if (stuckInSolid() || tooSteep) { // no room for you here: don't take this step
+        camera.position.x = fromX;
+        camera.position.z = fromZ;
+        return false;
+      }
+      return true;
+    }
+
+    // Keep your eyes EYE_HEIGHT above the ground (up on the bench, on the ramp...). instant = no easing (after a jump).
+    function standOnGround(dt, instant = false) {
+      const want = groundHeight(camera.position.x, camera.position.z) + EYE_HEIGHT;
+      camera.position.y = instant ? want : camera.position.y + (want - camera.position.y) * Math.min(1, dt * 14);
+    }
     function movePlayer(dt) {
       pushOutOfSolids(); // first, in case something grew where you're standing (the pile, the pond...)
 
@@ -5589,18 +5880,12 @@
       const moveX = (-sin * forward + cos * right) * step;
       const moveZ = (-cos * forward - sin * right) * step;
 
-      // Walk there in small steps, checking for solid things after each one
+      // Walk there in small steps, checking for solid things and steep ground after each one.
+      // If a step can't be taken, try just its sideways parts, so you slide along walls and the bench's edge.
       const steps = Math.ceil(Math.hypot(moveX, moveZ) / MAX_STEP);
       for (let i = 0; i < steps; i++) {
-        const fromX = camera.position.x, fromZ = camera.position.z;
-        camera.position.x = clamp(camera.position.x + moveX / steps, -28, 28); // (and stay inside the dig site)
-        camera.position.z = clamp(camera.position.z + moveZ / steps, -28, 28);
-        pushAway(); // walking into a wall: slide along it
-        if (stuckInSolid()) { // no room for you here (a gap narrower than you are): don't take this step
-          camera.position.x = fromX;
-          camera.position.z = fromZ;
-          break;
-        }
+        const dx = moveX / steps, dz = moveZ / steps;
+        if (!tryStep(dx, dz) && !tryStep(dx, 0) && !tryStep(0, dz)) break;
       }
 
       stepDistance += SETTINGS.walkSpeed * dt * Math.min(1, Math.hypot(forward, right));
@@ -6017,7 +6302,8 @@
       applyNuggetsFound([]); // every hidden nugget back where it was
       Object.assign(state, { gameId: newGameId(), usedCheats: false, hofEntered: false }); // a new game for the Hall of Fame
       updatePile();
-      camera.position.set(0, 1.6, 2);
+      camera.position.set(0, 0, 2);
+      standOnGround(0, true);
       yaw = 0;
       pitch = 0;
     }
@@ -6174,12 +6460,12 @@
         excavatorBoughtAt: ownsTool('excavator') ? savedNumber(stats.excavatorBoughtAt, null, 0) : null,
       });
 
-      // Where you were standing and looking (inside the fence, and out of anything solid)
+      // Where you were standing and looking (inside the fence, out of anything solid and off the bench's steep sides)
       const player = save.player && typeof save.player === 'object' ? save.player : {};
-      camera.position.set(savedNumber(player.x, 0, -28, 28), 1.6, savedNumber(player.z, 2, -28, 28));
+      camera.position.set(savedNumber(player.x, 0, -28, 28), 0, savedNumber(player.z, 2, -28, 28));
       yaw = savedNumber(player.yaw, 0);
       pitch = savedNumber(player.pitch, 0, -1.5, 1.5);
-      pushOutOfSolids();
+      placePlayerSafely();
       // Sitting in the excavator's cab
       if (exc.inCab === true && ownsTool('excavator')) {
         enterExcavator();
@@ -6978,6 +7264,7 @@
         ex.seat.getWorldPosition(camera.position);
         camera.rotation.set(cabPitch, EXCAVATOR_SPOT.heading + state.exc.swing - Math.PI / 2 + cabYaw, 0, 'YXZ');
       } else {
+        standOnGround(dt); // up and down the ramp
         camera.rotation.set(pitch, yaw, 0, 'YXZ');
       }
 
