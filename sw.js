@@ -3,6 +3,8 @@
 // so the game still opens and plays when the phone has no signal.
 //
 // - The game's own files: always try the internet first (so updates arrive), and use the copy when offline.
+//   ("no-cache" makes the browser check with the web server every time, instead of using its own copy for
+//   up to 10 minutes, which GitHub Pages allows. If the file hasn't changed, that check is tiny.)
 // - Three.js and the fonts never change: use the copy, and only download them if there isn't one yet.
 //
 // - The ending cutscene (ending.mp4) is left alone: it always comes from the internet. Videos are sent in pieces
@@ -10,8 +12,10 @@
 //   Offline, the game just goes straight to the end screen.
 //
 // If you ever change the list below, change the version in CACHE too, so phones pick up the new list.
+// (A new version of sw.js replaces the old one by itself: skipWaiting() and clients.claim() below.
+// The game shows "Update available, tap to reload" when index.html changes: see "Updates" in index.html.)
 
-const CACHE = 'gold-rush-v1';
+const CACHE = 'gold-rush-v2';
 const THREE_URL = 'https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js';
 const FONTS_URL = 'https://fonts.googleapis.com/css2?family=Bitter:wght@400;600;700&family=Rye&display=swap';
 const GAME_FILES = [
@@ -63,7 +67,7 @@ self.addEventListener('fetch', (event) => {
 async function internetFirst(request) {
   const cache = await caches.open(CACHE);
   try {
-    const response = await fetch(request);
+    const response = await fetch(request, { cache: 'no-cache' });
     if (response.ok) cache.put(request, response.clone());
     return response;
   } catch (e) {
