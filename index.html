@@ -39,8 +39,10 @@
     html, body { margin: 0; width: 100%; height: 100%; height: 100dvh; overflow: hidden; overscroll-behavior: none; background: #b9d3e6; font-family: Bitter, Georgia, serif; color: #fff; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
     html { touch-action: none; }
     body { position: fixed; inset: 0; }
-    /* The 3D view sits on the screen, not in the page, so it can never make the page wider than the screen */
-    body > canvas { position: fixed; top: 0; left: 0; z-index: -1; display: block; } /* z-index -1: under all the panels */
+    /* The 3D view sits on the screen, not in the page, so it can never make the page wider than the screen.
+       It always covers the whole screen, edge to edge (also behind a camera cutout, with viewport-fit=cover);
+       fitScreen() then draws its picture at that size. z-index -1: under all the panels. */
+    body > canvas { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; display: block; }
     /* Phones: no pinch-zooming, page dragging, text selecting or grey flashes when you tap (panels can still scroll) */
     body { touch-action: none; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
     button { font-family: inherit; }
@@ -1208,7 +1210,7 @@
     const TOUCH_DEVICE = matchMedia('(pointer: coarse)').matches;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setSize(screenW, screenH);
+    renderer.setSize(screenW, screenH, false); // false: CSS sets its size on the screen (see "Fitting the screen")
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping; // softer, more film-like colours and light
     renderer.toneMappingExposure = 1.05;
@@ -6136,11 +6138,21 @@
     const viewportMeta = document.querySelector('meta[name="viewport"]');
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; // a reload never brings back an old scroll
 
-    // The visible screen's size at normal zoom, in CSS pixels
+    // Is a text box being typed in? (Then the phone's keyboard may be covering the bottom of the screen.)
+    const typing = () => !!document.activeElement && document.activeElement.matches('textarea, input');
+
+    // The visible screen's size at normal zoom, in CSS pixels: what visualViewport says, or the size the 3D canvas
+    // really covers (it's stretched over the whole screen by CSS), whichever is bigger. Installed Android apps
+    // opening full screen can keep reporting the browser window's smaller visualViewport for a while, even though
+    // the page (and the buttons) already fill the screen: going by visualViewport alone left light-blue strips.
+    // While typing, the visualViewport's height is used, so pop-ups stay above the keyboard.
     function visibleSize() {
       const vv = window.visualViewport;
-      const w = vv ? vv.width * vv.scale : innerWidth;
-      const h = vv ? vv.height * vv.scale : innerHeight;
+      const canvas = renderer.domElement;
+      const vvW = vv ? vv.width * vv.scale : innerWidth;
+      const vvH = vv ? vv.height * vv.scale : innerHeight;
+      const w = Math.max(vvW, canvas.clientWidth);
+      const h = typing() ? vvH : Math.max(vvH, canvas.clientHeight);
       return [Math.max(1, Math.round(w)), Math.max(1, Math.round(h))];
     }
 
@@ -6159,24 +6171,35 @@
       if (scrollX || scrollY) scrollTo(0, 0); // never scrolled sideways (or down)
       const [w, h] = visibleSize();
       document.documentElement.style.setProperty('--app-h', `${h}px`);
+      // The 3D view: CSS stretches the canvas over the screen; this makes its picture the same size (times the
+      // pixel ratio from the graphics quality) and the camera the same shape, so it isn't stretched or squashed.
+      // (While typing, the 3D view keeps the full screen's size; only the pop-ups move up above the keyboard.)
+      const canvas = renderer.domElement;
+      const viewW = Math.max(1, canvas.clientWidth || w), viewH = Math.max(1, canvas.clientHeight || h);
       const canvasSize = renderer.getSize(new THREE.Vector2());
-      if (w !== screenW || h !== screenH || canvasSize.x !== w || canvasSize.y !== h) {
-        screenW = w;
-        screenH = h;
-        camera.aspect = w / h;
+      if (viewW !== screenW || viewH !== screenH || canvasSize.x !== viewW || canvasSize.y !== viewH) {
+        screenW = viewW;
+        screenH = viewH;
+        camera.aspect = viewW / viewH;
         camera.updateProjectionMatrix();
-        renderer.setSize(w, h);
+        renderer.setSize(viewW, viewH, false); // false: leave the canvas's on-screen size to the CSS
         updateParticleScale();
       }
       fitPanels();
     }
 
+    // Phones (installed apps especially) often report their final size late, so check again a few times
     let fitTimers = [];
     function fitSoon() {
       requestAnimationFrame(fitScreen);
       for (const timer of fitTimers) clearTimeout(timer);
-      fitTimers = [150, 500, 1000].map((ms) => setTimeout(fitScreen, ms));
+      fitTimers = [150, 500, 1000, 2500].map((ms) => setTimeout(fitScreen, ms));
     }
+    // Whenever the canvas's real size on the screen changes (going full screen, turning, bars appearing...),
+    // even if the phone sends no resize event for it
+    if (window.ResizeObserver && !PHOTO_MODE) new ResizeObserver(fitSoon).observe(renderer.domElement);
+    addEventListener('load', fitSoon);
+    matchMedia('(display-mode: fullscreen)').addEventListener?.('change', fitSoon); // the installed app went full screen
     addEventListener('resize', fitSoon);
     addEventListener('orientationchange', fitSoon);
     if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', fitSoon);
@@ -6231,7 +6254,7 @@
       quality = name;
       const q = QUALITY[name];
       renderer.setPixelRatio(q.pixelRatio);
-      renderer.setSize(screenW, screenH);
+      renderer.setSize(screenW, screenH, false);
       sun.castShadow = q.shadows;
       grass.count = Math.floor(GRASS_COUNT * q.grass);
       particleAmount = q.particles;
