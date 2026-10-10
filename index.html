@@ -6,7 +6,10 @@
        The scale is fixed at 1 (no zooming in or out); fitScreen() puts it back if a browser zoomed anyway. -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Gold Rush</title>
-  <!-- Installable app (PWA): the manifest gives the name, icon and full-screen landscape; sw.js makes it work offline -->
+  <!-- Installable app (PWA): the manifest gives the name, icon and full-screen landscape; sw.js makes it work offline.
+       The manifest says "display": "standalone" (an app with no browser bars), which iPhones understand; its
+       display_override asks Android for true full screen. iPhones don't support "fullscreen" there, and newer
+       iPhones read the manifest before the apple-... tags below, so "fullscreen" opened it with Safari's bars. -->
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#2c1a0a">
   <link rel="icon" type="image/png" href="icons/icon-192.png">
