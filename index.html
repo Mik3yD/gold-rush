@@ -106,6 +106,7 @@
     #flash.go { animation: flash 1.4s ease-out; }
     @keyframes flash { 10% { opacity: 1; } 100% { opacity: 0; } }
     #flash.jackpot { animation: flash-long 3.5s ease-out; }
+    body.touch #flash { display: none; } /* phones: no extra full-screen layer on top of the 3D view */
     @keyframes flash-long { 10% { opacity: 1; } 100% { opacity: 0; } }
     /* The jackpot nugget's pop-up: a big brass-edged plaque that bounces in and glows */
     #jackpot { position: fixed; top: 16%; left: 50%; padding: 14px 34px 16px; text-align: center; pointer-events: none; z-index: 11; opacity: 0; transform: translateX(-50%) scale(0.6); transition: opacity 0.5s, transform 0.5s; }
@@ -130,7 +131,7 @@
     .tool-slot { position: relative; width: 60px; height: 60px; border-radius: 8px; background: radial-gradient(circle at 50% 35%, #5a3b1d, #24160a); border: 2px solid #7d5a26; box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6); }
     .tool-slot.max { border-color: #ffd54a; animation: glow 2s ease-in-out infinite; } /* fully upgraded */
     @keyframes glow { 0%, 100% { box-shadow: 0 0 8px rgba(255, 213, 74, 0.6); } 50% { box-shadow: 0 0 18px rgba(255, 213, 74, 1); } }
-    .tool-slot canvas { display: block; width: 60px; height: 60px; }
+    .tool-slot img { display: block; width: 60px; height: 60px; }
     .tool-slot .badge { position: absolute; top: -9px; right: -8px; padding: 1px 6px; background: linear-gradient(180deg, #ffe680, #d49a1c); color: var(--ink); border: 1px solid #7a5208; border-radius: 8px; font-size: 11px; font-weight: 700; }
     .tool-slot.upgraded { animation: pop 0.6s; } /* a little bounce right after you upgrade */
     .tool-slot.max.upgraded { animation: pop 0.6s, glow 2s 0.6s ease-in-out infinite; }
@@ -160,7 +161,7 @@
     @media (hover: hover) { .shop-item:hover:not(.cant) { transform: translateY(-2px); box-shadow: 0 4px 0 #7a5516, 0 0 14px rgba(255, 213, 74, 0.6); } }
     .shop-item.cant { opacity: 0.5; filter: grayscale(0.9); cursor: not-allowed; } /* can't buy it (yet) */
     .shop-item kbd { font-size: 18px; }
-    .shop-item canvas { width: 52px; height: 52px; flex: none; border-radius: 8px; border: 2px solid #7d5a26; background: radial-gradient(circle at 50% 35%, #5a3b1d, #24160a); }
+    .shop-item img { width: 52px; height: 52px; flex: none; border-radius: 8px; border: 2px solid #7d5a26; background: radial-gradient(circle at 50% 35%, #5a3b1d, #24160a); }
     .shop-item .title { font-size: 17px; }
     .shop-item .level { color: #9a6a1c; letter-spacing: 2px; }
     .shop-item .about { color: #5a4028; }
@@ -174,7 +175,7 @@
     .shop-item.cant.locked { filter: grayscale(0.5); } /* keep the red "Needs ..." line readable */
     .shop-item { font-size: 13px; line-height: 1.3; padding: 6px 10px; }
     .shop-item .title { font-size: 16px; }
-    .shop-item canvas { width: 46px; height: 46px; }
+    .shop-item img { width: 46px; height: 46px; }
     .shop-item .price { margin-left: auto; padding: 4px 12px; font: 20px Rye, Georgia, serif; color: var(--ink); white-space: nowrap; background: linear-gradient(180deg, #ffe27a, #d49a1c); border: 1px solid #7a5208; border-radius: 6px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6); }
     #shop-foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 8px; font-size: 13px; color: #e6d3a8; }
 
@@ -268,6 +269,8 @@
     /* The little "Saved" note in the corner after the game saves */
     #saved { position: fixed; left: 12px; bottom: 46px; padding: 4px 10px; font-size: 12px; color: #e6d3a8; pointer-events: none; opacity: 0; transition: opacity 0.4s; z-index: 8; }
     #saved.show { opacity: 1; }
+    #graphics-lost { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 30; padding: 12px 22px; font-size: 18px; color: #f4d98a; white-space: nowrap; }
+    #graphics-lost[hidden] { display: none; }
     /* "Update available, tap to reload": a new version of the game is on the internet (see "Updates" in the script) */
     #update { position: fixed; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); z-index: 18; padding: 8px 18px; font-size: 15px; white-space: nowrap; box-shadow: 0 0 0 2px rgba(255, 216, 77, 0.5), 0 4px 14px rgba(0, 0, 0, 0.6); }
     #update[hidden] { display: none; }
@@ -319,7 +322,7 @@
     body.touch #excavator-help { display: none !important; } /* the touch buttons are labelled instead */
     /* The tool bar moves to the top middle, out of the way of your thumbs */
     body.touch #toolbar { top: max(8px, env(safe-area-inset-top)); bottom: auto; transform-origin: top center; gap: 6px; padding: 5px 6px 4px; }
-    body.touch .tool-slot, body.touch .tool-slot canvas { width: 40px; height: 40px; }
+    body.touch .tool-slot, body.touch .tool-slot img { width: 40px; height: 40px; }
     body.touch .tool-slot .badge { top: auto; bottom: -7px; right: -5px; font-size: 9px; padding: 0 4px; }
     /* No "+$12" pop-up next to the wallet: on small screens it ran into the tool bar.
        It floats on top of the page (position: absolute), so hiding it doesn't move anything else. */
@@ -466,6 +469,7 @@
     <p>Gold Rush plays sideways (landscape).</p>
   </div>
   <div id="saved" class="plaque">Saved</div>
+  <div id="graphics-lost" class="plaque" hidden>Reloading graphics…</div>
   <button id="update" class="btn" type="button" hidden><span class="only-desktop">Update available, click to reload</span><span class="only-touch">Update available, tap to reload</span></button>
 
   <div id="excavator-help" class="plaque" hidden>
@@ -1255,10 +1259,22 @@
     }
 
     // ---------- Textures: painted in code on hidden canvases, so there are no image files ----------
-    function canvasTexture(size, paint, { repeat = false, color = true } = {}) {
+    // A hidden canvas to paint on. willReadFrequently keeps it in normal memory instead of the graphics card's,
+    // so its picture survives if the phone resets its graphics (see "When the graphics card gives up").
+    function paintCanvas(width, height = width) {
       const canvas = document.createElement('canvas');
-      canvas.width = canvas.height = size;
-      paint(canvas.getContext('2d'), size);
+      canvas.width = width;
+      canvas.height = height;
+      return { canvas, ctx: canvas.getContext('2d', { willReadFrequently: true }) };
+    }
+    function canvasTexture(size, paint, { repeat = false, color = true } = {}) {
+      let { canvas, ctx } = paintCanvas(size);
+      paint(ctx, size);
+      if (TOUCH_DEVICE && size > 256) { // phones: keep a half-size copy of the big ones (a quarter of the graphics memory)
+        const small = paintCanvas(size / 2);
+        small.ctx.drawImage(canvas, 0, 0, size / 2, size / 2);
+        canvas = small.canvas;
+      }
       const texture = new THREE.CanvasTexture(canvas);
       if (color) texture.colorSpace = THREE.SRGBColorSpace;
       if (repeat) texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
@@ -1750,7 +1766,16 @@
     // Soft light from the whole sky, worked out from the sky itself (it's what makes metal and glass look shiny)
     const skyForLight = new THREE.Scene();
     skyForLight.add(new THREE.Mesh(sky.geometry, skyMaterial));
-    scene.environment = new THREE.PMREMGenerator(renderer).fromScene(skyForLight, 0.04, 1, 1000).texture;
+    let skyLightMap = null;
+    // Also run again when the sky changes, and after a graphics reset (the old picture is gone then)
+    function lightFromSky() {
+      const maker = new THREE.PMREMGenerator(renderer);
+      if (skyLightMap) skyLightMap.dispose(); // free the old one's graphics memory
+      skyLightMap = maker.fromScene(skyForLight, 0.04, 1, 1000);
+      scene.environment = skyLightMap.texture;
+      maker.dispose(); // the maker keeps its own working pictures: free them too
+    }
+    lightFromSky();
     scene.environmentIntensity = 0.55;
 
     // ---------- Lights ----------
@@ -1760,7 +1785,7 @@
     sun.target.position.set(0, 0, -4);
     sun.position.copy(SUN_DIRECTION).multiplyScalar(80).add(sun.target.position);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    sun.shadow.mapSize.setScalar(TOUCH_DEVICE ? 1024 : 2048); // phones: a quarter of the graphics memory
     Object.assign(sun.shadow.camera, { left: -36, right: 36, top: 36, bottom: -36, near: 20, far: 170 }); // covers the dig site
     sun.shadow.bias = -0.0004;
     sun.shadow.normalBias = 0.03;
@@ -2962,14 +2987,11 @@
 
     // ---------- Signs: a painted board on two posts, facing the middle of the dig site ----------
     function makeSign(text, x, z) {
-      const canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 128;
+      const { canvas, ctx } = paintCanvas(512, 128);
       const texture = new THREE.CanvasTexture(canvas);
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.anisotropy = 4;
       const paint = () => {
-        const ctx = canvas.getContext('2d');
         ctx.drawImage(TEX.wood.image, 0, 0, 512, 128);
         ctx.globalCompositeOperation = 'multiply'; // tint the wood brown
         ctx.fillStyle = '#8b5a2b';
@@ -4051,7 +4073,7 @@
       shineSize = size;
       shineSpot.set(where.x + (Math.random() - 0.5) * where.spread * 0.5, where.y, where.z);
       nuggetModel.visible = shine.visible = true;
-      for (let i = 0; i < 50; i++) {
+      for (let i = 0; i < (TOUCH_DEVICE ? 20 : 50); i++) { // fewer sparkles on phones
         const angle = rand(0, Math.PI * 2), speed = rand(1, 3.5);
         glitter.add({
           x: shineSpot.x, y: shineSpot.y + 0.7, z: shineSpot.z,
@@ -4552,7 +4574,7 @@
     // Rebuild the sluice, pond, equipment pad and classifier with their new upgrades,
     // and update where you bump into them
     function upgradeSluiceModel() {
-      buildSluiceArea();
+      rebuildAndFree(buildSluiceArea);
       measureSluice();
       updateSolids();
       pushOutOfSolids(); // in case you're standing where something new appeared
@@ -4560,9 +4582,42 @@
 
     // Rebuild the excavator with its new upgrades, in the same pose
     function rebuildExcavator() {
-      buildExcavator();
+      rebuildAndFree(buildExcavator);
       poseExcavator();
       showExcavatorIfOwned();
+    }
+
+    // ---------- Freeing graphics memory when a model is rebuilt ----------
+    // Every shape, material and texture is copied onto the graphics card, and three.js only frees that copy when
+    // told to (dispose()). Rebuilding the sluice area or the excavator after an upgrade makes hundreds of new shapes.
+    // Before version 17 the old ones were never freed, so every purchase used up more graphics memory, until a
+    // phone ran out late in the game and the 3D view turned white (the WebGL context was lost).
+    // The things in the scene, and the shapes, materials and textures they use
+    function graphicsIn(root) {
+      const found = { objects: new Set(), geometries: new Set(), materials: new Set(), textures: new Set() };
+      root.traverse((object) => {
+        found.objects.add(object);
+        if (object.geometry) found.geometries.add(object.geometry);
+        const list = Array.isArray(object.material) ? object.material : object.material ? [object.material] : [];
+        for (const material of list) {
+          found.materials.add(material);
+          for (const value of Object.values(material)) if (value && value.isTexture) found.textures.add(value);
+        }
+      });
+      return found;
+    }
+    // Run rebuild(), then free whatever was in the scene before and isn't anymore. (Shared things, like the
+    // materials from materialFor() and the TEX textures, are still in use, so they're kept.)
+    function rebuildAndFree(rebuild) {
+      const before = graphicsIn(scene);
+      rebuild();
+      const after = graphicsIn(scene);
+      for (const kind of ['geometries', 'materials', 'textures']) {
+        for (const thing of before[kind]) if (!after[kind].has(thing)) thing.dispose();
+      }
+      for (const object of before.objects) { // grids of copies (like the rocks round the pond) have their own memory
+        if (object.isInstancedMesh && !after.objects.has(object)) object.dispose();
+      }
     }
 
     // Set every tool's level from a list like { shovel: 2, pumps: 1 } (for example from a saved game).
@@ -4988,7 +5043,7 @@
       button.className = 'shop-item';
       button.innerHTML = `
         <kbd>${key}</kbd>
-        <canvas width="104" height="104"></canvas>
+        <img alt="" draggable="false">
         <span>
           <b class="title">${tool.title}</b> <span class="level"></span><span class="pips">${maxLevel > 1 ? '<i></i>'.repeat(maxLevel) : ''}</span><br>
           <span class="about">${bothVersions(tool.about)}</span><br>
@@ -5001,7 +5056,7 @@
       shopItems.appendChild(button);
       return {
         button,
-        icon: button.querySelector('canvas'),
+        icon: button.querySelector('img'),
         iconDrawn: '', // which picture is on the icon now, so it's only redrawn when it changes
         level: button.querySelector('.level'),
         pips: [...button.querySelectorAll('.pips i')],
@@ -5080,7 +5135,7 @@
         const iconLevel = next ? level + 1 : level;
         const iconKey = `${iconLevel} ${state.levels.digBucket} ${state.levels.speed}`; // the excavator icon shows its upgrades
         if (row.iconDrawn !== iconKey) {
-          drawToolIcon(row.icon, id, iconLevel);
+          row.icon.src = toolIconPicture(id, iconLevel);
           row.iconDrawn = iconKey;
         }
         setHtml(row.now, `Now: ${now.name}${nowText ? ` - ${nowText}` : ''}`);
@@ -5505,7 +5560,7 @@
 
     const toolbarEl = document.getElementById('toolbar');
 
-    // Draw one icon on a canvas (used by the tool bar and the shop)
+    // Draw one icon on a canvas
     function drawToolIcon(canvas, id, level) {
       const ctx = canvas.getContext('2d');
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -5514,6 +5569,13 @@
       ctx.translate(32, 32);                             // (0, 0) is now the middle of the icon
       ctx.scale(0.8 + level * 0.017, 0.8 + level * 0.017); // better tools look a bit bigger
       ICONS[id](ctx, level);
+    }
+    // The icons in the tool bar and the shop are pictures (<img>), drawn here and turned into image data.
+    // A canvas on the page can lose its picture when a phone resets its graphics; an <img> keeps it.
+    const iconPainter = paintCanvas(128).canvas; // double size, so they stay sharp on high-res screens
+    function toolIconPicture(id, level) {
+      drawToolIcon(iconPainter, id, level);
+      return iconPainter.toDataURL();
     }
 
     // The tool bar: the tools you own, then the sluice and the pond (each showing all their upgrades), then the excavator
@@ -5547,11 +5609,12 @@
           || (id === 'pondAll' && POND_PARTS.includes(justUpgraded));
         if (bounce) slot.classList.add('upgraded');
 
-        const canvas = document.createElement('canvas');
-        canvas.width = canvas.height = 128; // double size, so it stays sharp on high-res screens
-        drawToolIcon(canvas, id, level);
+        const icon = new Image();
+        icon.alt = '';
+        icon.draggable = false;
+        icon.src = toolIconPicture(id, level);
         slot.title = toolbarTitle[id] || toolNow(id).name;
-        slot.append(canvas);
+        slot.append(icon);
 
         let badge = '';
         if (id === 'sluiceAll') badge = `Lv ${levelsOf(SLUICE_PARTS)}/${maxLevelsOf(SLUICE_PARTS)}`;
@@ -6266,7 +6329,76 @@
     function switchQuality() {
       setQuality(quality === 'High' ? 'Low' : 'High');
       showMessage(`Graphics: ${quality}`); // only when the player switches it themselves
+      autoLowered = true; // the player chose: don't step it down by itself after this
       saveGame(false);
+    }
+
+    // Running slowly on High (under SLOW_FPS frames a second for 10 seconds while playing)? Step down to Low,
+    // once. Called every frame with the real time since the last frame.
+    const SLOW_FPS = 24;
+    let autoLowered = false, fpsFrames = 0, fpsTime = 0, slowChecks = 0;
+    function watchFrameRate(seconds) {
+      if (autoLowered || quality !== 'High' || !playing || document.hidden || graphicsLost) {
+        fpsFrames = fpsTime = slowChecks = 0;
+        return;
+      }
+      fpsFrames++;
+      fpsTime += seconds;
+      if (fpsTime < 5) return;
+      slowChecks = fpsFrames / fpsTime < SLOW_FPS ? slowChecks + 1 : 0; // two slow 5-second spells in a row
+      fpsFrames = fpsTime = 0;
+      if (slowChecks >= 2) {
+        autoLowered = true;
+        setQuality('Low');
+        showMessage('Graphics: Low');
+        saveGame(false);
+      }
+    }
+
+    // ---------- When the graphics card gives up (the WebGL "context" is lost) ----------
+    // A phone that runs short of graphics memory can take the 3D view away: it turns white or black, while the
+    // page's buttons and panels still work. The browser usually gives it back a moment later. While it's gone the
+    // game waits (paused). When it's back, three.js copies the shapes and textures onto the graphics card again by
+    // itself; we redo what it can't (the light from the sky), switch to Low graphics and carry on.
+    // If it isn't back within GRAPHICS_WAIT seconds, the game saves and reloads the page.
+    const GRAPHICS_WAIT = 5;
+    let graphicsLost = false, graphicsTimer = 0;
+    const graphicsNote = document.getElementById('graphics-lost');
+    renderer.domElement.addEventListener('webglcontextlost', (event) => {
+      event.preventDefault(); // tells the browser we want the 3D view back
+      graphicsLost = true;
+      for (const code in keys) keys[code] = false; // let go of everything
+      releaseTouches();
+      graphicsNote.hidden = false;
+      quality = 'Low'; // (set properly once the graphics are back) so a reload starts on Low too
+      saveGame(false);
+      clearTimeout(graphicsTimer);
+      graphicsTimer = setTimeout(reloadForGraphics, GRAPHICS_WAIT * 1000);
+    });
+    renderer.domElement.addEventListener('webglcontextrestored', () => {
+      clearTimeout(graphicsTimer);
+      lightFromSky();     // the reflections of the sky were a picture on the old graphics card
+      setQuality('Low');  // lighter from now on, so it doesn't happen again
+      autoLowered = true;
+      fitScreen();
+      updateToolbar();
+      graphicsLost = false;
+      graphicsNote.hidden = true;
+      clock.getDelta();   // don't count the time it was gone
+      showMessage('Graphics reloaded');
+    });
+    function reloadForGraphics() {
+      saveGame(false);
+      // Already reloaded for this a minute ago? Then don't keep reloading by itself: let the player tap.
+      let last = 0;
+      try { last = Number(sessionStorage.getItem('goldRush.graphicsReload')) || 0; } catch (e) { /* blocked */ }
+      if (Date.now() - last < 60 * 1000) {
+        graphicsNote.textContent = `Graphics stopped working. ${touchMode ? 'Tap' : 'Click'} here to reload.`;
+        graphicsNote.onclick = () => location.reload();
+        return;
+      }
+      try { sessionStorage.setItem('goldRush.graphicsReload', String(Date.now())); } catch (e) { /* blocked */ }
+      location.reload();
     }
 
     // ---------- The end of the game: when the whole pile has been dug up and washed ----------
@@ -7399,7 +7531,7 @@
           skyMaterial.uniforms.dusk.value = on ? 1 : 0;
           sun.position.copy(SUN_DIRECTION).multiplyScalar(80).add(sun.target.position);
           // Shiny things reflect the sky, so the reflections need painting again from the new sky
-          scene.environment = new THREE.PMREMGenerator(renderer).fromScene(skyForLight, 0.04, 1, 1000).texture;
+          lightFromSky();
         },
 
         // Take the picture: draw the 3D view (at double size) and shrink it to 1920 x 1080. Returns a PNG as text.
@@ -7454,7 +7586,11 @@
     // ---------- Game loop: runs about 60 times per second ----------
     const clock = new THREE.Clock();
     function gameLoop() {
-      const dt = Math.min(clock.getDelta(), 0.1); // seconds since last frame
+      requestAnimationFrame(gameLoop);
+      if (graphicsLost) return; // paused until the 3D view is back (see "When the graphics card gives up")
+      const frameTime = clock.getDelta();
+      const dt = Math.min(frameTime, 0.1); // seconds since last frame
+      watchFrameRate(frameTime);
 
       armMoving = false;
       if (playing && state.inExcavator) operateExcavator(dt);
@@ -7481,7 +7617,6 @@
       sky.position.copy(camera.position); // the sky moves with you, so it always looks endlessly far away
       skyMaterial.uniforms.time.value += dt;
       renderer.render(scene, camera);
-      requestAnimationFrame(gameLoop);
     }
     if (!PHOTO_MODE) gameLoop(); // (in photo mode the capture script moves time forward itself)
   </script>
