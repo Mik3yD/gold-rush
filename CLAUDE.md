@@ -14,7 +14,14 @@ Core loop:
 5. Spend money on better tools and equipment so you can dig and process more dirt, faster.
 6. There is one giant dirt pile for the whole game. When it's all dug up and washed, the game ends.
 
-## Current state (version 15: the raised dig bench)
+## Current state (version 16: fitting iPhone Safari)
+
+- **The start screen on short screens** (under 540 px tall: phones held sideways, and Safari with its bars showing): a smaller title (40 px), and **Tap to play**, New Game, **How to play**, Hall of Fame and Settings in one row (`#start-actions`). The controls list and the story are folded away in `#how-to`; **How to play** opens them (`#start.show-how`, the button then says "Hide help") and the card scrolls inside. On tall screens nothing changed and the How to play button is hidden.
+- **Add to Home Screen tip** (`#home-tip`, at the top of the start screen card): "For full screen: tap Share, then Add to Home Screen." Only on iPhone Safari (`IPHONE_SAFARI`: an iPhone or iPod in the user agent, and not Chrome, Firefox, Edge, Opera or the Google app), and not when opened from the home screen (`FROM_HOME_SCREEN`: `navigator.standalone` or the standalone display mode). Its ✕ closes it for good (`goldRush.homeTip` = `'closed'`). Tapping the tip doesn't start the game.
+- **Already in place before** (checked again): `viewport-fit=cover` and safe-area padding (`--edge`, `env(safe-area-inset-...)`), the Apple home-screen tags (`apple-mobile-web-app-capable`, `black-translucent` status bar, `apple-touch-icon`, title), and `fitScreen()` sizing everything to `visualViewport` (with `100dvh` before it runs) when Safari's bars show or hide, on turning, and on coming back to the tab.
+- **iPhone test:** `node tools/test-iphone-fit.mjs` opens the game as iPhone Safari (user agent, touch, a faked notch where Chrome allows it) at 844 × 390 and 667 × 375, and shorter (844 × 330, 667 × 315, 667 × 280) as if Safari's bars were showing. At each size it checks the start screen (fits without scrolling, buttons in one row, tip showing), How to play, Settings, Hall of Fame, playing (HUD, tool bar, thumb buttons, clear of the notch), the shop and the end screen are all inside the screen, scrolling inside when too tall, and saves screenshots in the temp folder (`gold-rush-iphone-shots`).
+
+### Version 15: the raised dig bench
 
 - **The dig bench** (like a real placer mine): the dirt pile, the excavator and the ground around them sit up on a flat-topped dirt platform 2.3 m high. You tip your dirt down into a **hopper** on the sluice's high end, just below the bench's edge. The sluice, classifier, equipment pad and pond stay down on the ground.
   - **Its shape is part of the ground:** `benchHeight(x, z)` (in the ground section, called by `groundHeight()`), so the ground mesh, rocks, grass, signs, the fence, hidden nuggets and the player all follow it. The numbers are in `BENCH` (height, `lipX` 1.75 and `lipZ` -1.5: it covers everything west and north (-z) of those, out past the fence into the hills), `CRIB_WALL` and `RAMP`.

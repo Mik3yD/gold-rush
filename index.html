@@ -239,6 +239,12 @@
     /* Under "Click to play" / "Continue": New Game and Settings */
     #start-buttons { display: flex; justify-content: center; gap: 10px; margin: -6px 0 14px; }
     #start-buttons .btn { font-size: 14px; padding: 6px 14px; }
+    #how-to-play { display: none; } /* only on short screens (see below) */
+    /* iPhone Safari: "For full screen: tap Share, then Add to Home Screen" (until it's closed) */
+    #home-tip { display: flex; align-items: center; justify-content: center; gap: 10px; margin: -6px auto 10px; padding: 5px 6px 5px 12px; width: fit-content; max-width: 100%; box-sizing: border-box; font-size: 14px; line-height: 1.3; color: #fff3c8; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(201, 161, 59, 0.6); border-radius: 8px; cursor: default; }
+    #home-tip[hidden] { display: none; }
+    #home-tip .share-icon { display: inline-block; padding: 0 4px; border: 1px solid #fff3c8; border-radius: 4px; font-size: 12px; line-height: 1.2; }
+    #home-tip-close { flex: none; width: 36px; height: 36px; padding: 0; font-size: 16px; line-height: 1; }
 
     /* ---- Settings panel and the "Are you sure?" box (both sit above the pause and end screens) ---- */
     #settings, #confirm { position: fixed; inset: 0; height: var(--app-h, 100dvh); box-sizing: border-box; padding: var(--edge); z-index: 30; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.55); }
@@ -340,9 +346,20 @@
       #jackpot-value { font-size: 24px; }
       /* Start and end screens: smaller, and they scroll if they still don't fit */
       .card { padding: 12px 18px; }
-      #start h1 { font-size: 44px; }
+      #start h1 { font-size: 40px; }
       .tagline { margin: 4px 0 8px; font-size: 12px; }
       .play { margin-bottom: 8px; padding: 8px 24px; }
+      /* The start screen in one glance: play and every button in one row, and the controls and the story
+         folded away behind "How to play" (#start.show-how opens them, and the card scrolls if they don't fit) */
+      #start-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin-bottom: 8px; }
+      #start-actions .play { margin: 0 4px; padding: 7px 20px; font-size: 18px; }
+      #start-buttons { margin: 0; gap: 8px; }
+      #start-buttons .btn { padding: 7px 12px; }
+      #how-to-play { display: inline-block; }
+      #start:not(.show-how) #how-to { display: none; }
+      #how-to { padding-top: 4px; border-top: 1px solid rgba(201, 161, 59, 0.35); }
+      #home-tip { margin: -4px auto 6px; padding: 3px 4px 3px 10px; font-size: 12px; }
+      #home-tip-close { width: 30px; height: 30px; font-size: 14px; }
       .controls { font-size: 13px; gap: 3px 12px; margin-bottom: 6px; }
       #start p, #end p { font-size: 13px; margin: 3px 0; }
       #end h2 { font-size: 28px; }
@@ -461,15 +478,26 @@
 
   <div id="start">
     <div class="card plaque">
+      <!-- iPhone Safari only: how to get the game full screen (see "Add to Home Screen tip" in the script) -->
+      <div id="home-tip" hidden>
+        <span>For full screen: tap <b>Share</b> <span class="share-icon" aria-hidden="true">&#8679;</span>, then <b>Add to Home Screen</b>.</span>
+        <button id="home-tip-close" class="btn" type="button" aria-label="Close this tip">&#10005;</button>
+      </div>
       <h1 class="gold-text">Gold Rush</h1>
       <div class="tagline">Dig &middot; Wash &middot; Strike it rich</div>
-      <!-- The words change to "Continue" when there's a saved game (see updateStartScreen()) -->
-      <div class="play" id="play"><span class="only-desktop">Click to play</span><span class="only-touch">Tap to play</span></div>
-      <div id="start-buttons">
-        <button id="new-game" class="btn" type="button" hidden>New Game</button>
-        <button id="open-hof" class="btn" type="button">Hall of Fame</button>
-        <button id="open-settings" class="btn" type="button">Settings</button>
+      <!-- Play and the other buttons: one under the other, or all in one row on short screens -->
+      <div id="start-actions">
+        <!-- The words change to "Continue" when there's a saved game (see updateStartScreen()) -->
+        <div class="play" id="play"><span class="only-desktop">Click to play</span><span class="only-touch">Tap to play</span></div>
+        <div id="start-buttons">
+          <button id="new-game" class="btn" type="button" hidden>New Game</button>
+          <!-- Only on short screens, where the controls and the story are folded away (see #how-to) -->
+          <button id="how-to-play" class="btn" type="button">How to play</button>
+          <button id="open-hof" class="btn" type="button">Hall of Fame</button>
+          <button id="open-settings" class="btn" type="button">Settings</button>
+        </div>
       </div>
+      <div id="how-to">
       <div class="controls only-touch">
         <span>Left thumb</span><span>drag anywhere on the left to walk</span>
         <span>Right thumb</span><span>drag on the right to look around</span>
@@ -492,6 +520,7 @@
       <p>The game ends when the whole pile has been dug up and washed.</p>
       <p>Old-timers say gold nuggets lie hidden around the camp. Watch for a glint!</p>
       <p>Your game saves by itself, so you can stop any time and carry on later.</p>
+      </div>
     </div>
   </div>
 
@@ -6592,6 +6621,35 @@
         : '<span class="only-desktop">Click to play</span><span class="only-touch">Tap to play</span>';
       newGameButton.hidden = !hasSave;
     }
+
+    // Short screens (phones held sideways) fold the controls and the story away: "How to play" opens and closes them
+    const howButton = document.getElementById('how-to-play');
+    howButton.addEventListener('click', (e) => {
+      e.stopPropagation(); // not a click on the start screen (that would start playing)
+      const open = startScreen.classList.toggle('show-how');
+      howButton.textContent = open ? 'Hide help' : 'How to play';
+    });
+
+    // ---- Add to Home Screen tip (iPhone Safari only) ----
+    // Safari on an iPhone can't go full-screen, and its address bar and tab bar take a lot of the screen.
+    // Added to the home screen, the game opens like an app with no Safari bars (the apple-... tags in <head>).
+    // So iPhone Safari players see a small tip on the start screen until they close it (remembered).
+    const HOME_TIP_KEY = 'goldRush.homeTip'; // 'closed' once it's been closed
+    const homeTip = document.getElementById('home-tip');
+    const IPHONE_SAFARI = /iPhone|iPod/.test(navigator.userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA\//.test(navigator.userAgent);
+    const FROM_HOME_SCREEN = navigator.standalone === true || matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches;
+    let homeTipClosed = false;
+    try {
+      homeTipClosed = localStorage.getItem(HOME_TIP_KEY) === 'closed';
+    } catch (e) { /* storage blocked: show it */ }
+    homeTip.hidden = !IPHONE_SAFARI || FROM_HOME_SCREEN || homeTipClosed;
+    homeTip.addEventListener('click', (e) => e.stopPropagation()); // reading the tip doesn't start the game
+    document.getElementById('home-tip-close').addEventListener('click', () => {
+      homeTip.hidden = true;
+      try {
+        localStorage.setItem(HOME_TIP_KEY, 'closed');
+      } catch (e) { /* storage blocked: it's closed until the page reloads */ }
+    });
 
     // New Game asks first, in its own box (clicks on it don't reach the start screen behind it)
     const confirmEl = document.getElementById('confirm');
