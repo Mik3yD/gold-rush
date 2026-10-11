@@ -195,7 +195,7 @@ const whereAmI = async (chrome) => (await chrome.run(`dispatchEvent(new Event('p
 // Start the game standing at (x, z), looking along yaw (0 = north (-z), PI/2 = west (-x), -PI/2 = east, PI = south)
 async function startAt(chrome, url, x, z, yaw, levels = {}) {
   const save = {
-    version: 1, money: 0, pile: 190000, carrying: 0, levels,
+    version: 1, money: 0, pile: 100000, carrying: 0, levels,
     player: { x, z, yaw, pitch: -0.1 }, settings: { muted: true, hints: true, quality: 'Low' },
   };
   // (Put it in from another page on the same site: the game itself saves as it closes, which would overwrite it)

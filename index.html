@@ -648,11 +648,12 @@
       mouseSensitivity: 0.002,
       touchSensitivity: 0.006, // looking around by dragging a finger (turns per pixel, like the mouse)
       reach: 1.5,              // how close (in meters) you must be to use something
-      // Gold in the dirt. Every scoop holds about $2.00 of gold on average:
-      //   nuggets: 1% x about $50 = $0.50 (heavy, so the sluice always catches them; see NUGGETS below)
-      //   flakes: 75% chance of 1 to 3 flakes x $1 = $1.50 (only if the sluice catches them all: see Mesh and Nozzles)
+      // Gold in the dirt. Every scoop holds about $4.00 of gold on average (a ton about $40):
+      //   nuggets: 2% x about $50 = $1.00 (heavy, so the sluice always catches them; see NUGGETS below)
+      //   flakes: 75% chance of 1 to 3 flakes x $2 = $3.00 (only if the sluice catches them all: see Mesh and Nozzles;
+      //   the tailing pond's filters get back some of the ones it misses)
       flakeChance: 0.75,       // chance (0 to 1) that a washed scoop has gold flakes in it
-      flakeValue: 1,           // dollars per flake
+      flakeValue: 2,           // dollars per flake
       tonsPerScoop: 0.1,       // how heavy one scoop of dirt is (so 10 scoops = 1 ton)
 
       sluiceBaseSpeed: 1.5,    // scoops a second the sluice washes before any upgrades
@@ -660,15 +661,17 @@
       digPause: 0.5,           // seconds between digs without a pickaxe (so at most 2 digs a second)
 
       // ===== TOTAL DIRT IN THE GAME: the one giant pile, in tons. The game ends when it's all dug and washed. =====
-      // How 19,000 was worked out (with a simulated player who buys the cheapest thing and saves up for new tools):
-      //   Every tool and upgrade costs $220,120 in total. Gold per ton averages about $19 over the game
+      // How 10,000 was worked out (with a simulated player who buys the cheapest thing and saves up for new tools):
+      //   Every tool and upgrade costs $220,120 in total. Gold per ton averages about $39 over the game
       //   (the sluice misses a lot of flakes early on; the pond gets some of them back), so buying
-      //   everything takes about 11,400 t of washed dirt (about 2 1/4 hours of play).
-      //   Fully upgraded, the sluice washes 40 scoops a second = 4 t/s,
-      //   so 30 more minutes of play is about 7,200 t (a player who doesn't keep the sluice busy takes up to an hour).
-      //   11,400 + 7,200 = about 18,600, rounded to 19,000.
+      //   everything takes about 5,600 t of washed dirt (about 1 hour 6 minutes for a player who keeps the
+      //   sluice busy all the time; more like 1 1/2 hours for most).
+      //   That leaves about 4,400 t. Fully upgraded, the sluice washes 40 scoops a second = 4 t/s, so that's
+      //   about 18 more minutes for a busy player, 20 to 40 minutes for most.
+      //   Whole game: about 1 1/2 hours for a busy player, about 2 hours for most.
+      //   (Version 18 and before had 19,000 t and half the gold: $1 flakes and nuggets in 1 scoop in 100.)
       // If you change prices or gold values, redo this sum.
-      pileTons: 19000,
+      pileTons: 10000,
 
       // Excavator arm speeds with stock hydraulics (Speed upgrades multiply these), in radians per second
       armSwingSpeed: 0.9,
@@ -676,13 +679,13 @@
     };
 
     // ===== BIG NUGGETS FROM THE SLUICE: how often they turn up and how big they are. Tweak them here. =====
-    // Balance: on average a nugget must be worth about $50 and turn up in 1 scoop in 100 (so $0.50 a scoop),
+    // Balance: on average a nugget must be worth about $50 and turn up in 1 scoop in 50 (so $1.00 a scoop),
     // or the dirt pile total (SETTINGS.pileTons) and the upgrade prices stop working out. Right now:
     //   average weight = 62% x 4.5 g + 28% x 12 g + 9.5% x 33.5 g + 0.5% x 650 g = 12.58 g
     //   (the middle of each size's range), x $4 a gram = $50.33. If you change the sizes, redo this sum
     //   (the browser's console also prints the average when the game loads).
     const NUGGETS = {
-      chance: 0.01,       // the normal chance that a washed scoop has a nugget (1 in 100)
+      chance: 0.02,       // the normal chance that a washed scoop has a nugget (1 in 50)
       dollarsPerGram: 4,  // what a gram of nugget gold is worth
 
       // The dirt has rich and poor patches, so nuggets come in bunches with dry spells between them.
@@ -691,9 +694,9 @@
       //   50% x 0.25 + 35% x 1 + 15% x 3.5 = 0.125 + 0.35 + 0.525 = 1.0
       patchScoops: [50, 500], // shortest and longest patch, in scoops
       patches: [
-        { name: 'poor',   share: 0.50, times: 0.25 }, // half the dirt: a dry spell, 1 nugget in 400 scoops
-        { name: 'normal', share: 0.35, times: 1 },    // 1 nugget in 100 scoops
-        { name: 'rich',   share: 0.15, times: 3.5 },  // a pay streak: about 1 nugget in 29 scoops
+        { name: 'poor',   share: 0.50, times: 0.25 }, // half the dirt: a dry spell, 1 nugget in 200 scoops
+        { name: 'normal', share: 0.35, times: 1 },    // 1 nugget in 50 scoops
+        { name: 'rich',   share: 0.15, times: 3.5 },  // a pay streak: about 1 nugget in 14 scoops
       ],
 
       // Sizes: a nugget picks a size (by share), then a random weight in that size's range (grams)
@@ -711,7 +714,7 @@
 
     // The average nugget's value, worked out from the sizes above (printed in the console to check the balance)
     const averageNuggetValue = NUGGETS.sizes.reduce((sum, size) => sum + size.share * (size.grams[0] + size.grams[1]) / 2, 0) * NUGGETS.dollarsPerGram;
-    console.log(`Sluice nuggets: average $${averageNuggetValue.toFixed(2)}, so $${(averageNuggetValue * NUGGETS.chance).toFixed(2)} a scoop (aim for about $50 and $0.50)`);
+    console.log(`Sluice nuggets: average $${averageNuggetValue.toFixed(2)}, so $${(averageNuggetValue * NUGGETS.chance).toFixed(2)} a scoop (aim for about $50 and $1.00)`);
 
     // Turn scoops into tons for showing on screen, like "4,012.5" (no ".0" on whole numbers)
     const tons = (scoops) => (Math.round(scoops * SETTINGS.tonsPerScoop * 10) / 10).toLocaleString('en-US');
@@ -6695,7 +6698,7 @@
       const exc = save.excavator && typeof save.excavator === 'object' ? save.excavator : {};
       Object.assign(state, {
         money: savedNumber(save.money, 0, 0),
-        pile: savedNumber(save.pile, FULL_PILE, 0, FULL_PILE),
+        pile: savedNumber(save.pile, FULL_PILE, 0, FULL_PILE), // (saves from when the pile was 19,000 t are capped at a full pile)
         carrying: savedNumber(save.carrying, 0, 0),
         sluiceQueue: savedNumber(save.sluiceQueue, 0, 0),
         washTimer: 0, digTimer: 0,

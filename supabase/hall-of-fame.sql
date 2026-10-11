@@ -46,11 +46,11 @@ create table if not exists public.hall_of_fame (
   -- Exactly 3 capital letters, and not on the blocklist
   constraint hof_initials_check check (initials ~ '^[A-Z]{3}$' and not public.hof_blocked(initials)),
   -- Believable numbers for a finished game:
-  --   time: at least 1 hour (even fully upgraded from the start, washing all 19,000 t takes about 79 minutes),
+  --   time: at least 1 hour (a player who keeps the sluice busy all game takes about 1 1/2 hours for the 10,000 t),
   --         at most a year
   constraint hof_time_check check (time_played between 3600 and 31536000),
   --   gold: at least $10,000 (finishing early means you bought the $12,000 excavator), at most $600,000
-  --         (all the gold in the pile is worth about $380,000, plus the hidden nuggets)
+  --         (all the gold in the pile is worth about $400,000 at most, plus the hidden nuggets)
   constraint hof_gold_check check (gold_earned between 10000 and 600000),
   --   the biggest possible nugget is a 900 g jackpot = $3,600
   constraint hof_nugget_check check (biggest_nugget between 0 and 3600),
