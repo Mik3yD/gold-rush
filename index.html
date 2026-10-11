@@ -1815,7 +1815,8 @@
     // Like a real placer mine: you dig up on the bench and drop the dirt down into the sluice's hopper, just below its edge.
     // The bench covers everything west of lipX and north (-z) of lipZ, and runs out past the fence into the hills.
     // Its sides are natural dirt slopes, too steep to walk. Where it faces the sluice, a timber crib wall holds it up
-    // instead (CRIB_WALL), so the hopper can sit right against the edge. A wide ramp leads down towards the camp.
+    // instead (CRIB_WALL), so the hopper can sit right against the edge. Two wide ramps lead up: one from the camp,
+    // and one up the east face just north of the crib wall (on the sluice side, so you don't have to walk round).
     //
     //   2.3 m  ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀█┐                 <- bench top (pile, excavator)
     //   2.0 m                  █ \▓▓/             <- the sluice's hopper rim
@@ -1823,7 +1824,18 @@
     //   0 m    ────────────────█───╨───╨───╨──    <- ground
     const BENCH = { height: 2.3, lipX: 1.75, lipZ: -1.5, slope: 2.7 }; // slope = how far out the sides run (meters, give or take 0.5)
     const CRIB_WALL = { x: 1.75, z1: -12, z2: -2 };                    // the timber wall on the sluice side (front face at x + 0.2)
-    const RAMP = { x1: -8.5, x2: -3, top: -3, bottom: 4.5 };            // the ramp down to the camp: 5.5 m wide, about 17°
+    // The ramps: each one runs straight up the bench's edge, 5.5 m wide and 7.5 m long (about 17°).
+    // runs = the direction it climbs along ('z' or 'x'), side1/side2 = its edges on the other direction,
+    // top/bottom = where its flat top and its foot are along the way it runs.
+    const RAMPS = [
+      { runs: 'z', side1: -8.5,  side2: -3,  top: -3, bottom: 4.5 }, // down to the camp (south)
+      { runs: 'x', side1: -20.5, side2: -15, top: 2,  bottom: 9.5 }, // down the east face, just north of the crib wall
+    ];
+    // Where (x, z) is compared with a ramp: at = how far along it runs, fromSide = how far inside its width (negative outside)
+    function rampSpot(ramp, x, z) {
+      const at = ramp.runs === 'z' ? z : x, across = ramp.runs === 'z' ? x : z;
+      return { at, fromSide: Math.min(across - ramp.side1, ramp.side2 - across) };
+    }
     const EYE_HEIGHT = 1.6;       // how high your eyes are above the ground
     const MAX_WALK_SLOPE = 0.5;   // the steepest ground you can walk up or down (meters up per meter along; the ramp is 0.38)
 
@@ -1839,13 +1851,15 @@
       const natural = 1 - wall;
       inside += (fbm(x * 0.1 + 3, z * 0.1 - 8, 3) - 0.5) * 1.6 * natural - 0.3 * wall;
       const slope = 0.3 * wall + (BENCH.slope + (fbm(x * 0.08 - 2, z * 0.08 + 5, 2) - 0.5) * 1) * natural;
-      const bench = BENCH.height * smoothstep(-slope, 0, inside);
-      // The ramp: a straight slope cut into the bench's edge and running down to the camp, with steep sides of its own
-      const along = clamp((RAMP.bottom - z) / (RAMP.bottom - RAMP.top), 0, 1);
-      const fromSide = Math.min(x - RAMP.x1, RAMP.x2 - x); // how far inside the ramp's width you are
-      const ramp = BENCH.height * along * smoothstep(-2.5, 0, fromSide);
-      const cut = smoothstep(-0.5, 0.5, fromSide);           // on the ramp, the bench's own slope is dug away
-      return Math.max(bench * (1 - cut), ramp);
+      let bench = BENCH.height * smoothstep(-slope, 0, inside), ramps = 0;
+      // The ramps: straight slopes cut into the bench's edge and running down to the ground, with steep sides of their own
+      for (const ramp of RAMPS) {
+        const { at, fromSide } = rampSpot(ramp, x, z);
+        const along = clamp((ramp.bottom - at) / (ramp.bottom - ramp.top), 0, 1); // 0 at its foot, 1 at its top
+        ramps = Math.max(ramps, BENCH.height * along * smoothstep(-2.5, 0, fromSide));
+        bench *= 1 - smoothstep(-0.5, 0.5, fromSide);          // on the ramp, the bench's own slope is dug away
+      }
+      return Math.max(bench, ramps);
     }
 
     // ---------- The ground: dusty dirt in the middle, grass around it, hills further out ----------
@@ -1880,9 +1894,12 @@
         grassColor.lerp(GROUND_COLORS.grassDry, smoothstep(0.5, 0.75, fbm(x * 0.03 - 9, z * 0.03, 3)) * 0.8);
         color.lerp(grassColor, g);
       }
-      // The ramp up to the dig bench: a track of darker, packed-down dirt, so it's easy to spot
-      const onRamp = smoothstep(-0.3, 0.6, Math.min(x - RAMP.x1, RAMP.x2 - x)) * smoothstep(RAMP.bottom + 1.5, RAMP.bottom - 0.5, z) * smoothstep(RAMP.top - 2.5, RAMP.top - 0.5, z);
-      color.lerp(GROUND_COLORS.track, onRamp * (0.6 + n * 0.3));
+      // The ramps up to the dig bench: tracks of darker, packed-down dirt, so they're easy to spot
+      for (const ramp of RAMPS) {
+        const { at, fromSide } = rampSpot(ramp, x, z);
+        const onRamp = smoothstep(-0.3, 0.6, fromSide) * smoothstep(ramp.bottom + 1.5, ramp.bottom - 0.5, at) * smoothstep(ramp.top - 2.5, ramp.top - 0.5, at);
+        color.lerp(GROUND_COLORS.track, onRamp * (0.6 + n * 0.3));
+      }
       // A patch of darker dug-up dirt the size of the full pile, so you can see how much has been dug away
       const fromPile = Math.hypot(x - PILE_FULL.x, z - PILE_FULL.z);
       color.lerp(GROUND_COLORS.underPile, 1 - smoothstep(PILE_RADIUS - 0.5, PILE_RADIUS + 1.5 + n * 2, fromPile));
@@ -1919,7 +1936,10 @@
       if (x > PAD.x1 - margin && x < PAD.x2 + margin && z > PAD.z1 - margin && z < PAD.z2 + margin) return true; // equipment pad
       if (Math.hypot(x - POND_SPOT.x, z - POND_SPOT.z) < 6.8 + margin) return true;               // the tailing pond
       if (Math.abs(x) < 4.5 + margin && z > 5 - margin && z < 10 + margin) return true;          // the shop
-      if (x > RAMP.x1 - margin && x < RAMP.x2 + margin && z > RAMP.top - margin && z < RAMP.bottom + 0.5 + margin) return true; // the ramp
+      for (const ramp of RAMPS) {                                                                   // the ramps
+        const { at, fromSide } = rampSpot(ramp, x, z);
+        if (fromSide > -margin && at > ramp.top - margin && at < ramp.bottom + 0.5 + margin) return true;
+      }
       if (x > CRIB_WALL.x - 1 - margin && x < CRIB_WALL.x + 0.8 + margin && z > CRIB_WALL.z1 - margin && z < CRIB_WALL.z2 + margin) return true; // the crib wall
       for (const spot of [...CAMP_BOULDERS, ...CAMP_TREES]) {                                     // boulders and trees in the camp
         if (Math.hypot(x - spot.x, z - spot.z) < 1.5 + margin) return true;
